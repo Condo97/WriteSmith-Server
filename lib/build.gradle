@@ -13,7 +13,7 @@ plugins {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'writesmith.server.Main'
+        attributes 'Main-Class': 'com.writesmith.Main'
     }
 
     from {
