@@ -1,6 +1,6 @@
 package com.writesmith.http.server.response;
 
-import com.writesmith.constants.Constants;
+import com.writesmith.Constants;
 
 public class ImportantConstantsResponse {
     private static String weeklyDisplayPrice = Constants.WEEKLY_PRICE;

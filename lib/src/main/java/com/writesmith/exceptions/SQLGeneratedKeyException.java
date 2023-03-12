@@ -1,8 +1,8 @@
 package com.writesmith.exceptions;
 
-public class SQLGeneratedKeyException extends BasicException {
+public class SQLGeneratedKeyException extends Exception {
 
-    public SQLGeneratedKeyException(String description) {
-        super(description);
+    public SQLGeneratedKeyException(String message) {
+        super(message);
     }
 }

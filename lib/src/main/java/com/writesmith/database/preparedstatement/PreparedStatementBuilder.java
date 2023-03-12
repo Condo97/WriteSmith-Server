@@ -41,6 +41,7 @@ public abstract class PreparedStatementBuilder {
     final String FROM = "FROM";
     final String SET = "SET";
     final String AND = "AND";
+    final String BETWEEN = "BETWEEN";
 
 
 
@@ -66,7 +67,7 @@ public abstract class PreparedStatementBuilder {
         scope = new ArrayList<>();
     }
 
-    public void setOrderedValues(PreparedStatement ps, List<Object> orderedValues) throws SQLException {
+    void setOrderedValues(PreparedStatement ps, List<Object> orderedValues) throws SQLException {
         for (int i = 0; i < orderedValues.size(); i++) ps.setObject(i + 1, orderedValues.get(i));
     }
 

@@ -17,8 +17,8 @@ public class InsertIntoPreparedStatement extends PreparedStatementBuilder {
 
     public Map<String, Object> columnValueMap;
 
-    public InsertIntoPreparedStatement(Connection conn, DatabaseObject dbObject) {
-        super(conn, Command.INSERT_INTO, dbObject.getType());
+    public InsertIntoPreparedStatement(Connection conn, Table table) {
+        super(conn, Command.INSERT_INTO, table);
 
         columnValueMap = new HashMap<>();
     }

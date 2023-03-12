@@ -1,14 +1,18 @@
 package com.writesmith.http.server.request;
 
 public class GetChatRequest extends AuthRequest {
-    private String inputText;
+    private String prompt;
 
-    public GetChatRequest(String authToken, String inputText) {
-        super(authToken);
-        this.inputText = inputText;
+    public GetChatRequest() {
+
     }
 
-    public String getInputText() {
-        return inputText;
+    public GetChatRequest(String authToken, String prompt) {
+        super(authToken);
+        this.prompt = prompt;
+    }
+
+    public String getPrompt() {
+        return prompt;
     }
 }

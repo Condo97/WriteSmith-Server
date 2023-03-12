@@ -1,8 +1,8 @@
 package com.writesmith.exceptions;
 
-public class MalformedJSONException extends BasicException {
+public class MalformedJSONException extends Exception {
 
-    public MalformedJSONException(String description) {
-        super(description);
+    public MalformedJSONException(String message) {
+        super(message);
     }
 }

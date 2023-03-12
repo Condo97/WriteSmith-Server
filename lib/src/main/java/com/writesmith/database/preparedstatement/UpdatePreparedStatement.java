@@ -1,6 +1,7 @@
 package com.writesmith.database.preparedstatement;
 
 import com.writesmith.database.objects.DatabaseObject;
+import com.writesmith.database.objects.Table;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 
 import java.sql.Connection;
@@ -14,8 +15,8 @@ import java.util.Map;
 public class UpdatePreparedStatement extends PreparedStatementBuilder {
 
     Map<String, Object> toSetColumnValueMap, whereColumnValueMap;
-    public UpdatePreparedStatement(Connection conn, DatabaseObject dbObject) {
-        super(conn, Command.UPDATE, dbObject.getType());
+    public UpdatePreparedStatement(Connection conn, Table table) {
+        super(conn, Command.UPDATE, table);
 
         toSetColumnValueMap = new HashMap<>();
         whereColumnValueMap = new HashMap<>();

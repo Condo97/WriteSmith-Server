@@ -1,5 +1,6 @@
 package com.writesmith.http.client;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -10,7 +11,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.function.Consumer;
 
-class HttpHelper {
+public class HttpHelper {
+
+    protected JsonNode sendPOST(Object requestObject, HttpClient client, URI uri) throws IOException, InterruptedException {
+        return sendPOST(requestObject, client, uri, v->{});
+    }
+
     protected JsonNode sendPOST(Object requestObject, HttpClient client, URI uri, Consumer<HttpRequest.Builder> httpRequestBuilder) throws IOException, InterruptedException {
         // Takes some sort of input JSON
         String requestString = new ObjectMapper().writeValueAsString(requestObject);

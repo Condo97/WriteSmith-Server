@@ -1,8 +1,8 @@
 package com.writesmith.exceptions;
 
-public class PreparedStatementMissingArgumentException extends BasicException {
+public class PreparedStatementMissingArgumentException extends Exception {
 
-    public PreparedStatementMissingArgumentException(String description) {
-        super(description);
+    public PreparedStatementMissingArgumentException(String message) {
+        super(message);
     }
 }

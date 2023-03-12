@@ -7,7 +7,7 @@ public class Chat extends DatabaseObject {
 
     private Long userID;
     private Integer chatID;
-    private String userText, aiText;
+    private String userText, aiText, finishReason;
     private Timestamp date;
 
     public Chat() {
@@ -22,14 +22,16 @@ public class Chat extends DatabaseObject {
 
         this.chatID = null;
         this.aiText = null;
+        this.finishReason = null;
     }
 
-    public Chat(int chatID, long userID, String userText, String aiText, Timestamp date) {
+    public Chat(int chatID, long userID, String userText, String aiText, String finishReason, Timestamp date) {
         super(TABLE);
         this.chatID = chatID;
         this.userID = userID;
         this.userText = userText;
         this.aiText = aiText;
+        this.finishReason = finishReason;
         this.date = date;
     }
 
@@ -49,6 +51,10 @@ public class Chat extends DatabaseObject {
         return aiText;
     }
 
+    public String getFinishReason() {
+        return finishReason;
+    }
+
     public Timestamp getDate() {
         return date;
     }
@@ -59,5 +65,9 @@ public class Chat extends DatabaseObject {
 
     public void setAiText(String aiText) {
         this.aiText = aiText;
+    }
+
+    public void setFinishReason(String finishReason) {
+        this.finishReason = finishReason;
     }
 }

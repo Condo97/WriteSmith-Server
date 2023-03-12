@@ -9,4 +9,9 @@ public enum Table {
     public final String string;
 
     Table(String string) { this.string = string; }
+
+    @Override
+    public String toString() {
+        return string;
+    }
 }

@@ -1,6 +1,7 @@
 package com.writesmith.database.preparedstatement;
 
 import com.writesmith.database.objects.DatabaseObject;
+import com.writesmith.database.objects.Table;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,10 +29,12 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
 
     private Map<String, Object> whereMap;
     private List<String> orderByColumns;
+    private String betweenCol;
+    private Object betweenVal1, betweenVal2;
     private int limit = 0;
 
-    public SelectPreparedStatement(Connection conn, DatabaseObject dbObject) {
-        super(conn, Command.SELECT, dbObject.getType());
+    public SelectPreparedStatement(Connection conn, Table table) {
+        super(conn, Command.SELECT, table);
 
         whereMap = new HashMap<>();
         orderByColumns = new ArrayList<>();
@@ -43,7 +46,7 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
 
         // Setup Prepared Statement
         List<Object> orderedValues = new ArrayList<>();
-        PreparedStatement ps = conn.prepareStatement(SELECT + SPACE + getScopePlaceholderString(orderedValues) + SPACE + FROM + SPACE + table + getWherePlaceholderString(orderedValues) + getOrderByPlaceholderString(orderedValues) + getLimitPlaceholderString() + TERMINATOR);
+        PreparedStatement ps = conn.prepareStatement(SELECT + SPACE + getScopePlaceholderString(orderedValues) + SPACE + FROM + SPACE + table + getWherePlaceholderString(orderedValues) + getOrderByPlaceholderString() + getBetweenPlaceholderString(orderedValues) + getLimitPlaceholderString() + TERMINATOR);
 
         // Setup Parameters List
         setOrderedValues(ps, orderedValues);
@@ -75,6 +78,12 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         this.orderByColumns.addAll(orderByColumns);
     }
 
+    public void setBetween(String col, Object val1, Object val2) {
+        betweenCol = col;
+        betweenVal1 = val1;
+        betweenVal2 = val2;
+    }
+
     public void setLimit(int limit) {
         this.limit = limit;
     }
@@ -89,8 +98,9 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < scope.size(); i++) {
-            sb.append("?");
-            orderedValues.add(scope.get(i));
+//            sb.append("?");
+            sb.append(scope.get(i));
+//            orderedValues.add(scope.get(i));
 
             if (i < scope.size() - 1) sb.append(", ");
         }
@@ -116,7 +126,7 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         return sb.toString();
     }
 
-    private String getOrderByPlaceholderString(List<Object> orderedValues) {
+    private String getOrderByPlaceholderString() {
         if (orderByColumns.size() == 0) return "";
 
         // Build simple ORDER BY [?] ASC LIMIT ? string
@@ -125,8 +135,7 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
 
         // Append columns placeholder
         orderByColumns.forEach(v -> {
-            sb.append(PLACEHOLDER + SEPARATOR);
-            orderedValues.add(v);
+            sb.append(v + SEPARATOR);
         });
 
         // Trim end ", "
@@ -135,6 +144,28 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         // Add order, ASC or DESC
         sb.append(SPACE);
         sb.append(order);
+
+        return sb.toString();
+    }
+
+    private String getBetweenPlaceholderString(List<Object> orderedValues) {
+        if (betweenCol == null || betweenVal1 == null || betweenVal2 == null) return "";
+
+        // Add to orderedValues list
+        orderedValues.add(betweenVal1);
+        orderedValues.add(betweenVal2);
+
+        StringBuilder sb = new StringBuilder();
+        if (whereMap.size() > 0) {
+            // Build simple AND ...
+            sb.append(SPACE + AND + SPACE);
+        } else {
+            // or.. WHERE ...
+            sb.append(SPACE + WHERE + SPACE);
+        }
+
+        // Add columnVal BETWEEN ? and ?
+        sb.append(betweenCol + SPACE + BETWEEN + SPACE + PLACEHOLDER + SPACE + AND + SPACE + PLACEHOLDER);
 
         return sb.toString();
     }
