@@ -1,8 +1,10 @@
 package com.writesmith.http.client.apple.itunes.response.verifyreceipt;
 
+import com.writesmith.http.client.apple.itunes.response.AppleItunesBaseResponse;
+
 import java.util.List;
 
-public class VerifyReceiptResponse {
+public class VerifyReceiptResponse implements AppleItunesBaseResponse {
     private String environment;
     private String latest_receipt;
     private int status;

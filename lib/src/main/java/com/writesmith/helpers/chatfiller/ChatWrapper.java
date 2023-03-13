@@ -13,16 +13,19 @@ public class ChatWrapper extends Chat {
         super(chat.getChatID(), chat.getUserID(), chat.getUserText(), chat.getAiText(), chat.getFinishReason(), chat.getDate());
 
         this.dailyChatsRemaining = 0;
+        isPremium = false;
     }
 
-    public ChatWrapper(long userID, String userText, Timestamp date, int dailyChatsRemaining) {
+    public ChatWrapper(long userID, String userText, Timestamp date, int dailyChatsRemaining, boolean isPremium) {
         super(userID, userText, date);
         this.dailyChatsRemaining = dailyChatsRemaining;
+        this.isPremium = isPremium;
     }
 
-    public ChatWrapper(int chatID, long userID, String userText, String aiText, String finishReason, Timestamp date, int dailyChatsRemaining) {
+    public ChatWrapper(int chatID, long userID, String userText, String aiText, String finishReason, Timestamp date, int dailyChatsRemaining, boolean isPremium) {
         super(chatID, userID, userText, aiText, finishReason, date);
         this.dailyChatsRemaining = dailyChatsRemaining;
+        this.isPremium = isPremium;
     }
 
     public int getDailyChatsRemaining() {

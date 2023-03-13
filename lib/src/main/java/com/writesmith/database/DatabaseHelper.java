@@ -5,6 +5,7 @@ import com.writesmith.database.objects.Receipt;
 import com.writesmith.database.objects.Table;
 import com.writesmith.database.objects.User_AuthToken;
 import com.writesmith.database.preparedstatement.UpdatePreparedStatement;
+import com.writesmith.exceptions.SQLColumnNotFoundException;
 import com.writesmith.keys.Keys;
 import com.writesmith.database.preparedstatement.InsertIntoPreparedStatement;
 import com.writesmith.database.preparedstatement.SelectPreparedStatement;
@@ -64,7 +65,7 @@ public class DatabaseHelper {
         return u_aT;
     }
 
-    public User_AuthToken getUser_AuthToken(String authToken) throws SQLException {
+    public User_AuthToken getUser_AuthToken(String authToken) throws SQLException, SQLColumnNotFoundException {
         // Setup User_AuthToken object
         User_AuthToken u_aT = new User_AuthToken(authToken);
 
@@ -88,6 +89,9 @@ public class DatabaseHelper {
         } finally {
             ps.close();
         }
+
+        // Check if userID was filled, as the whole reason for this function is to fill the UserID.. also it helps with GetRemaining and validating authToken userID pair exists
+        if (u_aT.getUserID() == null) throw new SQLColumnNotFoundException("Didn't find column in User_AuthToken", "user_id");
         
         return u_aT;
     }
@@ -230,7 +234,7 @@ public class DatabaseHelper {
         }
     }
 
-    public int countTodaysChats(Long userID) throws SQLException {
+    public int countTodaysGeneratedChats(Long userID) throws SQLException {
         // Setup count variable
         int count = 0;
 
@@ -255,6 +259,7 @@ public class DatabaseHelper {
         selectPS.addScope("chat_id");
 
         selectPS.addWhere("user_id", userID);
+        selectPS.addWhere("ai_text", SelectPreparedStatement.Operator.IS_NOT_NULL); // appends the proper IS NOT NULL phrase... neat! :)
 
         selectPS.setBetween("date", startOfDayTimestamp, endOfDayTimestamp);
 

@@ -1,10 +1,11 @@
 package com.writesmith.http.server;
 
 public enum ResponseStatus {
-    SUCCESS("Success"),
-    ERROR("Error");
+    SUCCESS(1),
+    ERROR(-1),
+    CAP_REACHED_ERROR(51);
 
-    public final String string;
+    public final int Success;
 
-    ResponseStatus(String string) { this.string = string; }
+    ResponseStatus(int Success) { this.Success = Success; }
 }

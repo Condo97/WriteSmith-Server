@@ -22,6 +22,22 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         Order(String string) { this.string = string; }
     }
 
+    public enum Operator {
+        IS_NULL("IS NULL"),
+        IS_NOT_NULL("IS NOT NULL");
+
+        public String string;
+
+        Operator(String string) {
+            this.string = string;
+        }
+
+        @Override
+        public String toString() {
+            return string;
+        }
+    }
+
     final String SCOPE_DEFAULT = "*";
 
     // ORDER BY Variables
@@ -66,7 +82,7 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         whereMap.put(key, value);
     }
 
-    public void addWhere(HashMap<String, Object> whereMap) {
+    public void addWhere(Map<String, Object> whereMap) {
         this.whereMap.putAll(whereMap);
     }
 
@@ -112,18 +128,25 @@ public class SelectPreparedStatement extends PreparedStatementBuilder {
         if (whereMap.size() == 0) return "";
 
         // Build where placeholders with keys
-        StringBuilder sb = new StringBuilder();
-        sb.append(SPACE + WHERE + SPACE);
+        StringBuilder firstStringBuilder = new StringBuilder();
+        StringBuilder trailingStringBuilder = new StringBuilder();
+        firstStringBuilder.append(SPACE + WHERE + SPACE);
 
         whereMap.forEach((k, v) -> {
-            sb.append(k + EQUAL + PLACEHOLDER + SEPARATOR);
-            orderedValues.add(v);
+            // Fill differently if value is an operator
+            if (v instanceof Operator) {
+                trailingStringBuilder.append(SPACE + AND + SPACE + k + SPACE + v);
+            } else {
+                firstStringBuilder.append(k + EQUAL + PLACEHOLDER + SEPARATOR);
+                orderedValues.add(v);
+            }
         });
 
         // Trim end ", "
-        sb.delete(sb.length() - 2, sb.length());
+        firstStringBuilder.delete(firstStringBuilder.length() - 2, firstStringBuilder.length());
 
-        return sb.toString();
+        // Return merged stringBuilders
+        return firstStringBuilder.append(trailingStringBuilder).toString();
     }
 
     private String getOrderByPlaceholderString() {

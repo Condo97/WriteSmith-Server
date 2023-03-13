@@ -5,6 +5,7 @@ import com.writesmith.database.objects.Receipt;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.http.client.apple.itunes.AppleItunesHttpHelper;
 import com.writesmith.http.client.apple.itunes.VerifyReceiptRequestBuilder;
+import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
 
@@ -16,7 +17,7 @@ import java.util.Date;
 public class ReceiptValidator {
 
     // Sets the receipt if expired or not!!! And also updates it in the database :)
-    public static void validateReceipt(Receipt receipt, DatabaseHelper db) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException {
+    public static void validateReceipt(Receipt receipt, DatabaseHelper db) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException, AppleItunesResponseException {
         // Build request object
         VerifyReceiptRequest request = new VerifyReceiptRequestBuilder().setReceiptData(receipt.getReceiptData()).build(); // Can also do VerifyReceiptRequestBuilder(receipt.getReceiptData()).build(); but this is more fun :)
 

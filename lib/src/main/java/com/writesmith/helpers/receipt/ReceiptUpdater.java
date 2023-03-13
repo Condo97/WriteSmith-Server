@@ -4,6 +4,7 @@ import com.writesmith.database.DatabaseHelper;
 import com.writesmith.database.objects.Receipt;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.http.client.apple.itunes.AppleItunesHttpHelper;
+import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -12,7 +13,7 @@ import java.util.Date;
 
 public class ReceiptUpdater {
 
-    public static void updateIfNeeded(Receipt newReceipt, DatabaseHelper db) throws SQLException, PreparedStatementMissingArgumentException, IOException, InterruptedException {
+    public static void updateIfNeeded(Receipt newReceipt, DatabaseHelper db) throws SQLException, PreparedStatementMissingArgumentException, IOException, InterruptedException, AppleItunesResponseException {
         //TODO: - In v2, update existing receipt instead of this silly implementation where it saves a new one every time... unless it's good for bookkeeping...?
 
         // Check if most recent receipt string is equal to new receipt string
@@ -21,7 +22,6 @@ public class ReceiptUpdater {
         Receipt recentReceipt = db.getMostRecentReceipt(newReceipt.getUserID());
         boolean shouldInsert = false;
         if (recentReceipt == null || !recentReceipt.getReceiptData().equals(newReceipt.getReceiptData())) {
-            newReceipt.setCheckDate(new Timestamp(new Date().getTime()));
 //            newReceipt.setExpired(); // hmm?, wait validateReceipt sets the value of isExpired!!
 
             shouldInsert = true;

@@ -5,6 +5,7 @@ import com.writesmith.database.objects.Receipt;
 import com.writesmith.helpers.receipt.ReceiptUpdater;
 import com.writesmith.helpers.receipt.ReceiptValidator;
 import com.writesmith.http.client.apple.itunes.AppleItunesHttpHelper;
+import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -164,6 +165,8 @@ public class Tests {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
+        } catch (AppleItunesResponseException e) {
+            throw new RuntimeException(e);
         } finally {
             db.close();
         }
@@ -198,6 +201,7 @@ public class Tests {
             // Ensure that the date is later after updating
             r = db.getMostRecentReceipt(userID);
             initialCheckDate = r.getCheckDate();
+            Thread.sleep(1000);
             ReceiptUpdater.updateIfNeeded(r, db);
             secondCheckDate = r.getCheckDate();
 
@@ -211,6 +215,8 @@ public class Tests {
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (AppleItunesResponseException e) {
             throw new RuntimeException(e);
         }
     }

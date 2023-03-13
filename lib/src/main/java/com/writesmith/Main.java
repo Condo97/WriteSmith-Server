@@ -6,28 +6,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.writesmith.database.DatabaseHelper;
 import com.writesmith.database.objects.Receipt;
 import com.writesmith.database.objects.User_AuthToken;
-import com.writesmith.exceptions.CapReachedException;
+import com.writesmith.exceptions.*;
 import com.writesmith.helpers.chatfiller.ChatWrapper;
 import com.writesmith.helpers.chatfiller.OpenAIGPTChatFiller;
+import com.writesmith.helpers.chatfiller.OpenAIGPTChatWrapperFiller;
 import com.writesmith.helpers.receipt.ReceiptUpdater;
-import com.writesmith.helpers.receipt.ReceiptValidator;
+import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.http.server.ResponseStatus;
+import com.writesmith.http.server.request.AuthRequest;
 import com.writesmith.http.server.request.FullValidatePremiumRequest;
 import com.writesmith.http.server.request.GetChatRequest;
 import com.writesmith.http.server.response.*;
 import com.writesmith.keys.Keys;
 import spark.Request;
 import spark.Response;
-import com.writesmith.exceptions.MalformedJSONException;
-import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
-import com.writesmith.exceptions.SQLGeneratedKeyException;
 
 import java.io.IOException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Random;
+
+import static spark.Spark.*;
 
 public class Main {
 
@@ -36,6 +39,12 @@ public class Main {
     private static final int TIMEOUT_MS = 30000;
 
     private static final int DEFAULT_PORT = 443;
+
+    private static final String[] responses = {"I'd love to keep chatting, but my program uses a lot of computer power. Please upgrade to unlock unlimited chats.",
+            "Thank you for chatting with me. To continue, please upgrade to unlimited chats.",
+            "I hope I was able to help. If you'd like to keep chatting, please subscribe for unlimited chats. There's a 3 day free trial!",
+            "You are appreciated. You are loved. Show us some support and subscribe to keep chatting.",
+            "Upgrade today for unlimited chats and a free 3 day trial!"};
 
     private static final DatabaseHelper db;
     static {
@@ -55,53 +64,80 @@ public class Main {
         }
 
         // Set up Policy static file location
-        spark.Spark.staticFiles.location("/policies");
+        staticFiles.location("/policies");
 
         // Set up Spark thread pool and port
-        spark.Spark.threadPool(MAX_THREADS, MIN_THREADS, TIMEOUT_MS);
-        spark.Spark.port(DEFAULT_PORT);
+        threadPool(MAX_THREADS, MIN_THREADS, TIMEOUT_MS);
+        port(DEFAULT_PORT);
 
         // Set up SSL
-        spark.Spark.secure("chitchatserver.com.jks", Keys.sslPassword, null, null);
+        secure("chitchatserver.com.jks", Keys.sslPassword, null, null);
 
-        // POST Functions
-        spark.Spark.post(Constants.REGISTER_USER_URI, Main::registerUser);
-        spark.Spark.post(Constants.GET_CHAT_URI, Main::getChat);
-        spark.Spark.post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI, Main::validateAndUpdateReceipt);
+        // Set up v1 path
+        path("/v1", () -> configureHttp());
 
-        // Get Constants
-        spark.Spark.post(Constants.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new ImportantConstantsResponse())));
+        // Set up dev path
+        path("/dev", () -> configureHttp(true));
 
+        // Set up legacy / path, though technically I think configureHttp() can be just left plain there in the method without the path call
+        configureHttp();
 
         // Exception Handling
-        spark.Spark.exception(OpenAIGPTException.class, (error, req, res) -> {
+        exception(OpenAIGPTException.class, (error, req, res) -> {
             error.printStackTrace();
             res.body("OAIGPT Exception - " + error.getErrorObject().getError().getMessage());
         });
 
-        spark.Spark.exception(IllegalArgumentException.class, (error, req, res) -> {
+        exception(IllegalArgumentException.class, (error, req, res) -> {
             error.printStackTrace();
             res.status(400);
             res.body("Illegal Argument");
         });
 
-        spark.Spark.exception(PreparedStatementMissingArgumentException.class, (error, req, res) -> {
+        exception(PreparedStatementMissingArgumentException.class, (error, req, res) -> {
             error.printStackTrace();
             res.status(400);
             res.body("PreparedStatementMissingArgumentException(): " + error.getMessage());
         });
 
-        spark.Spark.exception(Exception.class, (error, req, res) -> {
+        exception(Exception.class, (error, req, res) -> {
             error.printStackTrace();
             res.status(400);
             res.body(error.toString());
         });
 
-
-        spark.Spark.notFound((req, res) -> {
+        // Handle not found (404)
+        notFound((req, res) -> {
+            System.out.println(req.uri() + " 404 Not Found!");
             res.status(404);
             return "asdf";
         });
+    }
+
+    private static void configureHttp() {
+        configureHttp(false);
+    }
+
+    private static void configureHttp(boolean dev) {
+        // POST Functions
+        post(Constants.REGISTER_USER_URI, Main::registerUser);
+        post(Constants.GET_CHAT_URI, Main::getChat);
+        post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI, Main::validateAndUpdateReceipt);
+
+        // Get Constants
+        post(Constants.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetImportantConstantsResponse())));
+        post(Constants.GET_REMAINING_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetRemainingResponse(OpenAIGPTChatFiller.getCapFromPremium.getInt(db.getMostRecentReceipt(db.getUser_AuthToken(new ObjectMapper().readValue(req.body(), AuthRequest.class).getAuthToken()).getUserID()) != null && !db.getMostRecentReceipt(db.getUser_AuthToken(new ObjectMapper().readValue(req.body(), AuthRequest.class).getAuthToken()).getUserID()).isExpired()) - db.countTodaysGeneratedChats(db.getUser_AuthToken(new ObjectMapper().readValue(req.body(), AuthRequest.class).getAuthToken()).getUserID()))))); // 😅 TODO
+        post(Constants.GET_IAP_STUFF_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetIAPStuffResponse())));
+
+        // Legacy Functions
+        post(Constants.GET_DISPLAY_PRICE_URI, (req, res) -> new ObjectMapper().writeValueAsString( new BodyResponse(ResponseStatus.SUCCESS, new LegacyGetDisplayPriceResponse())));
+        post(Constants.GET_SHARE_URL_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new LegacyGetShareURLResponse())));
+
+
+        // dev functions
+        if (dev) {
+
+        }
     }
 
     private static Object registerUser(Request request, Response response) throws SQLException, SQLGeneratedKeyException, PreparedStatementMissingArgumentException, IOException {
@@ -114,7 +150,7 @@ public class Main {
         return new ObjectMapper().writeValueAsString(bodyResponse);
     }
 
-    private static Object getChat(Request req, Response res) throws SQLException, MalformedJSONException, PreparedStatementMissingArgumentException, IOException, InterruptedException, OpenAIGPTException, CapReachedException {
+    private static Object getChat(Request req, Response res) throws SQLException, MalformedJSONException, PreparedStatementMissingArgumentException, IOException, InterruptedException, OpenAIGPTException, SQLColumnNotFoundException, AppleItunesResponseException {
         GetChatRequest gcRequest;
 
         try {
@@ -127,24 +163,43 @@ public class Main {
         // Get User_AuthToken from Database by authToken (also validates!)
         User_AuthToken u_aT = db.getUser_AuthToken(gcRequest.getAuthToken());
 
-        // Get remaining chats for User
-
         // Create new Chat object, save to database
-        ChatWrapper chat = new ChatWrapper(db.createChat(u_aT.getUserID(), gcRequest.getPrompt(), new Timestamp(new Date().getTime())));
+        ChatWrapper chat = new ChatWrapper(db.createChat(u_aT.getUserID(), gcRequest.getInputText(), new Timestamp(new Date().getTime())));
 
-        // Fill if able!
-        OpenAIGPTChatFiller.fillChatIfAble(chat, db);
+        // Create the status code and chat text objects for the response before the try block
+        ResponseStatus responseStatus;
+        String aiChatTextResponse;
 
-        // Update Chat in database
-        db.updateChatAIText(chat);
+        // Fill if able! Or fill with a cap reached response
+        try {
+            OpenAIGPTChatWrapperFiller.fillChatWrapperIfAble(chat, db);
+
+            // Update Chat in database
+            db.updateChatAIText(chat);
+
+            responseStatus = ResponseStatus.SUCCESS;
+            aiChatTextResponse = chat.getAiText();
+
+            // Print out a little blurb containing the current time and the preview of the chat TODO put this in a class or something, and make a better logger!
+            printGeneratedChat(aiChatTextResponse);
+
+        } catch (CapReachedException e) {
+            // If the cap was reached, then respond with ResponseStatus.CAP_REACHED_ERROR and cap reached response
+
+            int randomIndex = new Random().nextInt(responses.length - 1);
+
+            responseStatus = ResponseStatus.CAP_REACHED_ERROR;
+            aiChatTextResponse = responses[randomIndex];
+        }
+
 
         // Return full response object
-        GetChatResponse getChatResponse = new GetChatResponse(chat.getAiText(), chat.getFinishReason(), chat.getDailyChatsRemaining());
-        BodyResponse bodyResponse = new BodyResponse(ResponseStatus.SUCCESS, getChatResponse);
+        GetChatResponse getChatResponse = new GetChatResponse(aiChatTextResponse, chat.getFinishReason(), chat.getDailyChatsRemaining());
+        BodyResponse bodyResponse = new BodyResponse(responseStatus, getChatResponse);
         return new ObjectMapper().writeValueAsString(bodyResponse);
     }
 
-    private static Object validateAndUpdateReceipt(Request request, Response response) throws MalformedJSONException, IOException, SQLException, PreparedStatementMissingArgumentException, InterruptedException {
+    private static Object validateAndUpdateReceipt(Request request, Response response) throws MalformedJSONException, IOException, SQLException, PreparedStatementMissingArgumentException, InterruptedException, SQLColumnNotFoundException, AppleItunesResponseException {
         FullValidatePremiumRequest vpRequest;
 
         try {
@@ -159,8 +214,15 @@ public class Main {
         Receipt receipt = new Receipt(u_aT.getUserID(), vpRequest.getReceiptString());
         ReceiptUpdater.updateIfNeeded(receipt, db);
 
-        FullValidatePremiumResponse vpResponse = new FullValidatePremiumResponse(!receipt.isExpired());
+        ValidateAndUpdateReceiptResponse vpResponse = new ValidateAndUpdateReceiptResponse(!receipt.isExpired());
         BodyResponse bodyResponse = new BodyResponse(ResponseStatus.SUCCESS, vpResponse);
         return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
+    //TODO Count the words more accurately and move to another class
+    private static void printGeneratedChat(String aiChatTextResponse) {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date();
+        System.out.println("Chat Filled " + sdf.format(date) + " - " + aiChatTextResponse.substring(0, 40) + "... ~" + (aiChatTextResponse.split(" ").length - 1) + " Words");
     }
 }

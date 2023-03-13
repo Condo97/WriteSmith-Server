@@ -1,14 +1,27 @@
 package com.writesmith.http.client.apple.itunes.response.error;
 
-public class AppleItunesErrorResponse {
+import com.writesmith.http.client.apple.itunes.response.AppleItunesBaseResponse;
+
+public class AppleItunesErrorResponse implements AppleItunesBaseResponse {
+
+    String environment;
     int status;
 
     public AppleItunesErrorResponse() {
 
     }
 
-    public AppleItunesErrorResponse(int status) {
+    public AppleItunesErrorResponse(String environment, int status) {
+        this.environment = environment;
         this.status = status;
+    }
+
+    public String getEnvironment() {
+        return environment;
+    }
+
+    public void setEnvironment(String environment) {
+        this.environment = environment;
     }
 
     public int getStatus() {
