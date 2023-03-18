@@ -21,7 +21,7 @@ public final class Constants {
     public static final int Delay_Seconds_Paid = 0;
 
     /* Token Limits */
-    public static final int Token_Limit_Free = 50;
+    public static final int Token_Limit_Free = 80;
     public static final int Token_Limit_Paid = 1000;
 
     public static final int Delay_Seconds_Premium_Check = 60;
