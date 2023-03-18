@@ -29,11 +29,18 @@ jar {
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
+    mavenLocal()
+
+//    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     // Spark for HTTPS server
     implementation 'com.sparkjava:spark-core:2.9.4'
+
+    // SQLComponentizer for SQL handling
+//    implementation 'com.github.Condo97:SQLComponentizer:-SNAPSHOT'
+    implementation 'com.github.condo97:SQLComponentizer:1.0.0'
 
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.1'

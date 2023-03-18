@@ -19,7 +19,8 @@ public class GetChatResponse {
     }
 
     public String getFinishReason() {
-        return finishReason;
+        //TODO: - App needs to be able to take a null argument, but for now it'll just be "null" if null
+        return finishReason == null ? "null" : finishReason;
     }
 
     public Integer getRemaining() {

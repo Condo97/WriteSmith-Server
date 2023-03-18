@@ -7,18 +7,22 @@ public class VerifyReceiptPendingRenewalInfoResponse {
     String product_id;
     String original_transaction_id;
     String auto_renew_status;
+    String grace_period_expires_date, grace_period_expires_date_pst, grace_period_expires_date_ms;
 
     public VerifyReceiptPendingRenewalInfoResponse() {
 
     }
 
-    public VerifyReceiptPendingRenewalInfoResponse(String expiration_intent, String auto_renew_product_id, String is_in_billing_retry_period, String product_id, String original_transaction_id, String auto_renew_status) {
+    public VerifyReceiptPendingRenewalInfoResponse(String expiration_intent, String auto_renew_product_id, String is_in_billing_retry_period, String product_id, String original_transaction_id, String auto_renew_status, String grace_period_expires_date, String grace_period_expires_date_pst, String grace_period_expires_date_ms) {
         this.expiration_intent = expiration_intent;
         this.auto_renew_product_id = auto_renew_product_id;
         this.is_in_billing_retry_period = is_in_billing_retry_period;
         this.product_id = product_id;
         this.original_transaction_id = original_transaction_id;
         this.auto_renew_status = auto_renew_status;
+        this.grace_period_expires_date = grace_period_expires_date;
+        this.grace_period_expires_date_pst = grace_period_expires_date_pst;
+        this.grace_period_expires_date_ms = grace_period_expires_date_ms;
     }
 
     public String getExpiration_intent() {
@@ -67,5 +71,29 @@ public class VerifyReceiptPendingRenewalInfoResponse {
 
     public void setAuto_renew_status(String auto_renew_status) {
         this.auto_renew_status = auto_renew_status;
+    }
+
+    public String getGrace_period_expires_date() {
+        return grace_period_expires_date;
+    }
+
+    public void setGrace_period_expires_date(String grace_period_expires_date) {
+        this.grace_period_expires_date = grace_period_expires_date;
+    }
+
+    public String getGrace_period_expires_date_pst() {
+        return grace_period_expires_date_pst;
+    }
+
+    public void setGrace_period_expires_date_pst(String grace_period_expires_date_pst) {
+        this.grace_period_expires_date_pst = grace_period_expires_date_pst;
+    }
+
+    public String getGrace_period_expires_date_ms() {
+        return grace_period_expires_date_ms;
+    }
+
+    public void setGrace_period_expires_date_ms(String grace_period_expires_date_ms) {
+        this.grace_period_expires_date_ms = grace_period_expires_date_ms;
     }
 }

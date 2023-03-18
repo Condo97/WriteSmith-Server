@@ -61,9 +61,12 @@ public final class Constants {
     public static final String PRIVACY_POLICY_LOCATION = "policies/privacy.html";
     public static final String TERMS_AND_CONDITIONS_LOCATION = "policies/termsandconditions.html";
 
+    /* MySQL Constants */
+    public static final String MYSQL_URL = "jdbc:mysql://localhost:3306/chitchat_schema";
+
     /* Apple Server Constants */
-    public static String Sandbox_Apple_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
-    public static String Apple_URL = "https://buy.itunes.apple.com/verifyReceipt";
+    public static final String Sandbox_Apple_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
+    public static final String Apple_URL = "https://buy.itunes.apple.com/verifyReceipt";
     public static long APPLE_TIMEOUT_MINUTES = 4;
 
     /* ChatSonic Server Constants */

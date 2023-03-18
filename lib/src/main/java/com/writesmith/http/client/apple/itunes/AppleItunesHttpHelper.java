@@ -30,6 +30,7 @@ public class AppleItunesHttpHelper extends AppleHttpHelper {
 
             return verifyReceiptResponse;
         } catch (JsonMappingException e) {
+            e.printStackTrace();
             // Try with sandbox if error is 21007, which should be a constant, otherwise throw ItunesVerifyReceiptException
             AppleItunesErrorResponse errorResponse = new ObjectMapper().treeToValue(response, AppleItunesErrorResponse.class);
 

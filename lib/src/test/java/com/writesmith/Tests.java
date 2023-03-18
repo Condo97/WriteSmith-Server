@@ -1,121 +1,135 @@
 package com.writesmith;
 
-import com.writesmith.database.DatabaseHelper;
-import com.writesmith.database.objects.Receipt;
+import com.writesmith.connectionpool.SQLConnectionPoolInstance;
+import com.writesmith.database.DBObject;
+import com.writesmith.database.tableobjects.Receipt;
+import com.writesmith.database.tableobjects.factories.ReceiptFactory;
+import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.exceptions.CapReachedException;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.helpers.chatfiller.ChatWrapper;
+import com.writesmith.helpers.chatfiller.OpenAIGPTChatWrapperFiller;
 import com.writesmith.helpers.receipt.ReceiptUpdater;
 import com.writesmith.helpers.receipt.ReceiptValidator;
 import com.writesmith.http.client.apple.itunes.AppleItunesHttpHelper;
 import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.keys.Keys;
-import com.writesmith.database.objects.Table;
-import com.writesmith.database.preparedstatement.InsertIntoPreparedStatement;
-import com.writesmith.database.preparedstatement.SelectPreparedStatement;
-import com.writesmith.database.preparedstatement.UpdatePreparedStatement;
 import com.writesmith.http.client.openaigpt.OpenAIGPTHttpHelper;
 import com.writesmith.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.http.client.openaigpt.request.prompt.OpenAIGPTPromptMessageRequest;
 import com.writesmith.http.client.openaigpt.request.prompt.OpenAIGPTPromptRequest;
 import com.writesmith.http.client.openaigpt.response.prompt.OpenAIGPTPromptResponse;
+import sqlcomponentizer.DBClient;
+import sqlcomponentizer.dbserializer.DBSerializerException;
+import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
+import sqlcomponentizer.preparedstatement.ComponentizedPreparedStatement;
+import sqlcomponentizer.preparedstatement.component.OrderByComponent;
+import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
+import sqlcomponentizer.preparedstatement.statement.InsertIntoComponentizedPreparedStatementBuilder;
+import sqlcomponentizer.preparedstatement.statement.SelectComponentizedPreparedStatementBuilder;
+import sqlcomponentizer.preparedstatement.statement.UpdateComponentizedPreparedStatementBuilder;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.sql.*;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class Tests {
 
-    Connection conn;
-
-    @BeforeEach
-    void setUp() {
-        // Setup DriverManager and get connected!
-        try {
-            conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/chitchat_schema?user=testinguser&password=" + Keys.mysqlTestPassword);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    @BeforeAll
+    static void setUp() throws SQLException {
+        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, 10);
     }
 
     @Test
     @DisplayName("Try creating a SELECT Prepared Statement")
     void testSelectPreparedStatement() {
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+
         try {
             // Try complete Select PS
-            SelectPreparedStatement selectPSComplete = new SelectPreparedStatement(conn, Table.CHAT);
+            ComponentizedPreparedStatement cps = SelectComponentizedPreparedStatementBuilder.forTable("Chat").select("chat_id").select("user_id").where("user_text", SQLOperators.EQUAL, 5).limit(5).orderBy(OrderByComponent.Direction.DESC, "date").build();
 
-            selectPSComplete.addScope("chat_id");
-            selectPSComplete.addScope("user_id");
-
-            selectPSComplete.addWhere("user_text", 5);
-            selectPSComplete.setLimit(5);
-
-            selectPSComplete.addOrderByColumn("date");
-            selectPSComplete.setOrder(SelectPreparedStatement.Order.DESC);
-
-            System.out.println(selectPSComplete.build().toString());
+//            selectPSComplete.addScope("chat_id");
+//            selectPSComplete.addScope("user_id");
+//
+//            selectPSComplete.addWhere("user_text", 5);
+//            selectPSComplete.setLimit(5);
+//
+//            selectPSComplete.addOrderByColumn("date");
+//            selectPSComplete.setOrder(SelectPreparedStatement.Order.DESC);
+            PreparedStatement cpsPS = cps.connect(conn);
+            System.out.println(cpsPS.toString());
+            cpsPS.close();
 
             // Try minimal Select PS
-            SelectPreparedStatement selectPSMinimal = new SelectPreparedStatement(conn, Table.CHAT);
+            ComponentizedPreparedStatement selectCPSMinimal = SelectComponentizedPreparedStatementBuilder.forTable("Chat").build();
 
-            System.out.println(selectPSMinimal.build().toString());
+            PreparedStatement selectCPSMinimalPS = selectCPSMinimal.connect(conn);
+            System.out.println(selectCPSMinimalPS.toString());
+            selectCPSMinimalPS.close();
 
             // Try partial Select PS
-            SelectPreparedStatement selectPSPartial = new SelectPreparedStatement(conn, Table.CHAT);
+            ComponentizedPreparedStatement selectCPSPartial = SelectComponentizedPreparedStatementBuilder.forTable("Chat").select("chat_id").where("user_text", SQLOperators.EQUAL, false).build();
 
-            selectPSPartial.addScope("chat_id");
-
-            selectPSPartial.addWhere("user_text", false);
-
-            System.out.println(selectPSPartial.build().toString());
+            PreparedStatement selectCPSPartialPS = selectCPSPartial.connect(conn);
+            System.out.println(selectCPSPartialPS.toString());
+            selectCPSPartialPS.close();
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
 
     @Test
     @DisplayName("Try creating an INSERT INTO Prepared Statement")
     void testInsertIntoPreparedStatement() {
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+
         try {
-            InsertIntoPreparedStatement insertPSComplete = new InsertIntoPreparedStatement(conn, Table.CHAT);
+            // Build the insert componentized statement
+            ComponentizedPreparedStatement insertCPSComplete = InsertIntoComponentizedPreparedStatementBuilder.forTable("Chat").addColAndVal("chat_id", Types.NULL).addColAndVal("user_id", 5).addColAndVal("user_text", "hi").addColAndVal("ai_text", "hello").addColAndVal("date", LocalDateTime.now()).build(true);
 
-            insertPSComplete.addColumnValue("chat_id", Types.NULL);
-            insertPSComplete.addColumnValue("user_id", 5);
-            insertPSComplete.addColumnValue("user_text", "hi");
-            insertPSComplete.addColumnValue("ai_text", "hello");
-            insertPSComplete.addColumnValue("date", new Timestamp(new Date().getTime()));
+            System.out.println(insertCPSComplete);
 
-            insertPSComplete.build().executeUpdate();
-        } catch (SQLException | PreparedStatementMissingArgumentException e) {
+            // Do update and get generated keys
+            List<Map<String, Object>> generatedKeys = DBClient.updateReturnGeneratedKeys(conn, insertCPSComplete);
+
+            System.out.println(generatedKeys);
+        } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
 
     @Test
     @DisplayName("Try creating an UPDATE Prepared Statement")
     void testUpdatePreparedStatement() {
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+
         try {
-            UpdatePreparedStatement updatePSComplete = new UpdatePreparedStatement(conn, Table.CHAT);
+            ComponentizedPreparedStatement updatePSComplete = UpdateComponentizedPreparedStatementBuilder.forTable("Chat").set("user_text", "wow!").set("date", LocalDateTime.now()).where("user_id", SQLOperators.EQUAL, 5).where("chat_id", SQLOperators.EQUAL, 65842).build();
 
-            updatePSComplete.addToSetColumnValue("user_text", "wow!");
-            updatePSComplete.addToSetColumnValue("date", new Timestamp(new Date().getTime() + 10000));
-
-            updatePSComplete.addWhereColumnValue("user_id", 5);
-            updatePSComplete.addWhereColumnValue("chat_id", 65842);
-
-            updatePSComplete.build().executeUpdate();
-        } catch (SQLException | PreparedStatementMissingArgumentException e) {
+            DBClient.update(conn, updatePSComplete);
+        } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
 
@@ -149,10 +163,10 @@ public class Tests {
     @Test
     @DisplayName("VerifyReceipt Testing")
     void testVerifyReceipt() {
-        DatabaseHelper db = null;
+        Integer userID = 32828;
+        DBObject db = null;
         try {
-            db = new DatabaseHelper();
-            Receipt r = db.getMostRecentReceipt(32828l);
+            Receipt r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
 
             VerifyReceiptRequest request = new VerifyReceiptRequest(r.getReceiptData(), Keys.sharedAppSecret, "false");
 
@@ -167,45 +181,47 @@ public class Tests {
             throw new RuntimeException(e);
         } catch (AppleItunesResponseException e) {
             throw new RuntimeException(e);
-        } finally {
-            db.close();
+        } catch (DBSerializerException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (DBObjectNotFoundFromQueryException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Test
     @DisplayName("Test receipt validation")
     void testReceiptValidation() {
-        long userID = 32830l;
-        DatabaseHelper db = null;
+        Integer userID = 32830;
+        DBObject db = null;
         try {
-            db = new DatabaseHelper();
-
             // Ensure that the date is the same, even after getting twice
-            Receipt r = db.getMostRecentReceipt(userID);
-            Timestamp initialCheckDate = r.getCheckDate();
-            r = db.getMostRecentReceipt(userID);
-            Timestamp secondCheckDate = r.getCheckDate();
+            Receipt r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            LocalDateTime initialCheckDate = r.getCheckDate();
+            r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            LocalDateTime secondCheckDate = r.getCheckDate();
 
-            assert(initialCheckDate.getTime() == secondCheckDate.getTime());
+            assert(initialCheckDate.isEqual(secondCheckDate));
 
             // Ensure that the date is later after validating
-            r = db.getMostRecentReceipt(userID);
+            r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
             initialCheckDate = r.getCheckDate();
-            ReceiptValidator.validateReceipt(r, db);
+            ReceiptValidator.validateReceipt(r);
             secondCheckDate = r.getCheckDate();
 
-            System.out.println(secondCheckDate.getTime() - initialCheckDate.getTime());
+            System.out.println(ChronoUnit.MILLIS.between(secondCheckDate, initialCheckDate));
 
-            assert(secondCheckDate.getTime() > initialCheckDate.getTime());
+            assert(secondCheckDate.isAfter(initialCheckDate));
 
             // Ensure that the date is later after updating
-            r = db.getMostRecentReceipt(userID);
+            r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
             initialCheckDate = r.getCheckDate();
             Thread.sleep(1000);
-            ReceiptUpdater.updateIfNeeded(r, db);
+            ReceiptUpdater.updateIfNeeded(r);
             secondCheckDate = r.getCheckDate();
 
-            assert(secondCheckDate.getTime() > initialCheckDate.getTime());
+            assert(secondCheckDate.isAfter(initialCheckDate));
 
 
         } catch (SQLException e) {
@@ -218,12 +234,62 @@ public class Tests {
             throw new RuntimeException(e);
         } catch (AppleItunesResponseException e) {
             throw new RuntimeException(e);
+        } catch (DBSerializerPrimaryKeyMissingException e) {
+            throw new RuntimeException(e);
+        } catch (DBSerializerException e) {
+            throw new RuntimeException(e);
+        } catch (AutoIncrementingDBObjectExistsException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (DBObjectNotFoundFromQueryException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    @DisplayName("Test Filling ChatWrapper")
+    void testFillChatWrapperIfAble() {
+        int userID = 32861;
+        String userText = "test";
+
+        try {
+            ChatWrapper chatWrapper = new ChatWrapper(userID, userText, LocalDateTime.now());
+
+            try {
+                OpenAIGPTChatWrapperFiller.fillChatWrapperIfAble(chatWrapper);
+            } catch (DBObjectNotFoundFromQueryException e) {
+                System.out.println("No receipt found for id " + userID);
+                // TODO: - Maybe test this more, add a receipt?
+            }
+
+            System.out.println("Remaining: " + chatWrapper.getDailyChatsRemaining());
+            System.out.println("AI Text: " + chatWrapper.getAiText());
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (PreparedStatementMissingArgumentException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (OpenAIGPTException e) {
+            throw new RuntimeException(e);
+        } catch (CapReachedException e) {
+            throw new RuntimeException(e);
+        } catch (AppleItunesResponseException e) {
+            throw new RuntimeException(e);
+        } catch (DBSerializerException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Test
     @DisplayName("Misc Modifyable")
     void misc() {
-        System.out.println("Here it is: " + Table.USER_AUTHTOKEN);
+//        System.out.println("Here it is: " + Table.USER_AUTHTOKEN);
     }
 }

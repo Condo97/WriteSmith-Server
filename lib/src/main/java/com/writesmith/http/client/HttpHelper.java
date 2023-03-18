@@ -3,6 +3,7 @@ package com.writesmith.http.client;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysql.cj.jdbc.PreparedStatementWrapper;
 
 import java.io.IOException;
 import java.net.URI;

@@ -1,23 +1,23 @@
 package com.writesmith.helpers.receipt;
 
-import com.writesmith.database.DatabaseHelper;
-import com.writesmith.database.objects.Receipt;
+import com.writesmith.database.tableobjects.Receipt;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.http.client.apple.itunes.AppleItunesHttpHelper;
 import com.writesmith.http.client.apple.itunes.VerifyReceiptRequestBuilder;
 import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
+import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
+import java.time.LocalDateTime;
+import java.util.Map;
 
 public class ReceiptValidator {
 
     // Sets the receipt if expired or not!!! And also updates it in the database :)
-    public static void validateReceipt(Receipt receipt, DatabaseHelper db) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException, AppleItunesResponseException {
+    public static void validateReceipt(Receipt receipt) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBSerializerException {
         // Build request object
         VerifyReceiptRequest request = new VerifyReceiptRequestBuilder().setReceiptData(receipt.getReceiptData()).build(); // Can also do VerifyReceiptRequestBuilder(receipt.getReceiptData()).build(); but this is more fun :)
 
@@ -26,7 +26,7 @@ public class ReceiptValidator {
         VerifyReceiptResponse response = helper.getVerifyReceiptResponse(request);
 
         // Update check date
-        receipt.setCheckDate(new Timestamp(new Date().getTime()));
+        receipt.setCheckDate(LocalDateTime.now());
 
         // Check if getPendingRenewalInfo exists, meaning potentially premium
         // Check if getPendingRenewalInfo size is > 0, meaning potentially premium
@@ -42,8 +42,5 @@ public class ReceiptValidator {
             // If premium, update
             if (!receipt.isExpired()) receipt.setExpired(true);
         }
-
-        // Update receipt
-        db.updateReceipt(receipt);
     }
 }
