@@ -88,8 +88,6 @@ public class OpenAIGPTChatFiller {
         // GENERATE THE CHAT! :)
         fillChat(chat, tokenLimit);
 
-        System.out.println(isPremium + " " + count);
-
         // If filled successfully, we can increment the count.. This is pretty much just for ChatWrapper to get remaining to save a db call... The count could totally be gotten again in ..ChatWrapperFiller by counting the chats, which would return the proper number if the chat was properly generated, but we can also just do that here and save that db call. so just chill with the polymorphism
         if (chat.getAiText() != null) count.set(count.intValue() + 1); // (ree)
     }

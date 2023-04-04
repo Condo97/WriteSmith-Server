@@ -1,9 +1,11 @@
 package com.writesmith.http.client.apple.itunes.response.verifyreceipt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.writesmith.http.client.apple.itunes.response.AppleItunesBaseResponse;
 
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class VerifyReceiptResponse implements AppleItunesBaseResponse {
     private String environment;
     private String latest_receipt;

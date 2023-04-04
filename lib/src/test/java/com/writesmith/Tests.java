@@ -56,7 +56,7 @@ public class Tests {
 
     @Test
     @DisplayName("Try creating a SELECT Prepared Statement")
-    void testSelectPreparedStatement() {
+    void testSelectPreparedStatement() throws InterruptedException {
         Connection conn = SQLConnectionPoolInstance.getConnection();
 
         try {
@@ -97,7 +97,7 @@ public class Tests {
 
     @Test
     @DisplayName("Try creating an INSERT INTO Prepared Statement")
-    void testInsertIntoPreparedStatement() {
+    void testInsertIntoPreparedStatement() throws InterruptedException {
         Connection conn = SQLConnectionPoolInstance.getConnection();
 
         try {
@@ -119,7 +119,7 @@ public class Tests {
 
     @Test
     @DisplayName("Try creating an UPDATE Prepared Statement")
-    void testUpdatePreparedStatement() {
+    void testUpdatePreparedStatement() throws InterruptedException {
         Connection conn = SQLConnectionPoolInstance.getConnection();
 
         try {

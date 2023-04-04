@@ -18,7 +18,7 @@ public class Main {
 
     private static final int MAX_THREADS = 4;
     private static final int MIN_THREADS = 1;
-    private static final int TIMEOUT_MS = 30000;
+    private static final int TIMEOUT_MS = -1; //30000;
 
     private static final int DEFAULT_PORT = 443;
 
@@ -31,13 +31,13 @@ public class Main {
         }
 
         // Set up SQLConnectionPoolInstance
-        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, MAX_THREADS + 1);
+        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, MAX_THREADS * 2);
 
         // Set up Policy static file location
         staticFiles.location("/policies");
 
         // Set up Spark thread pool and port
-        threadPool(MAX_THREADS, MIN_THREADS, TIMEOUT_MS);
+//        threadPool(MAX_THREADS, MIN_THREADS, TIMEOUT_MS);
         port(DEFAULT_PORT);
 
         // Set up SSL
@@ -61,18 +61,21 @@ public class Main {
         });
 
         exception(OpenAIGPTException.class, (error, req, res) -> {
+            System.out.println("The request: " + req.body());
             error.printStackTrace();
 
             res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.OAIGPT_ERROR));
         });
 
         exception(IllegalArgumentException.class, (error, req, res) -> {
+            System.out.println("The request: " + req.body());
             error.printStackTrace();
 
             res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.ILLEGAL_ARGUMENT));
         });
 
         exception(Exception.class, (error, req, res) -> {
+            System.out.println("The request: " + req.body());
             error.printStackTrace();
 
             res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.UNHANDLED_ERROR));
@@ -80,7 +83,10 @@ public class Main {
 
         // Handle not found (404)
         notFound((req, res) -> {
+            System.out.println("The request: " + req.body());
             System.out.println(req.uri() + " 404 Not Found!");
+
+            System.out.println(activeThreadCount());
             res.status(404);
             return "asdf";
         });

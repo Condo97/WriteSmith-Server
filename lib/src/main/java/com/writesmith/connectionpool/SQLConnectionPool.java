@@ -3,48 +3,42 @@ package com.writesmith.connectionpool;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class SQLConnectionPool implements ISQLConncetionPool {
     private String url, user, password;
-    private List<Connection> poolConnections, usedConnections;
+    private Deque<Connection> poolConnections, usedConnections;
 
     public static SQLConnectionPool create(String url, String user, String password, int size) throws SQLException {
-        List<Connection> pool = new ArrayList<>();
+        Deque<Connection> pool = new ArrayDeque<>();
         for (int i = 0; i < size; i++) {
             // Add connection from DriverManager
-            pool.add(DriverManager.getConnection(url, user, password));
+            pool.offer(DriverManager.getConnection(url, user, password));
         }
 
         return new SQLConnectionPool(pool);
     }
 
-    private SQLConnectionPool(List<Connection> poolConnections) {
+    private SQLConnectionPool(Deque<Connection> poolConnections) {
         this.poolConnections = poolConnections;
 
-        this.usedConnections = new ArrayList<>();
+        this.usedConnections = new ArrayDeque<>();
     }
 
     @Override
-    public Connection getConnection() {
-        if (poolConnections.size() > 0) {
-            Connection connection = poolConnections.remove(poolConnections.size() - 1);
-            usedConnections.add(connection);
-            return connection;
-        }
-
-        return null;
+    public synchronized Connection getConnection() throws InterruptedException {
+        System.out.println(poolConnections.size());
+        if (poolConnections.isEmpty())
+            wait();
+        Connection connection = poolConnections.pop();
+        usedConnections.offer(connection);
+        return connection;
     }
 
     @Override
-    public boolean releaseConnection(Connection connection) {
-        poolConnections.add(connection);
-        return usedConnections.remove(connection);
-    }
-
-    @Override
-    public String getUrl() {
-        return url;
+    public synchronized void releaseConnection(Connection connection) {
+        usedConnections.remove(connection);
+        poolConnections.offer(connection);
+        notify();
     }
 }

@@ -75,7 +75,7 @@ public final class Constants {
     /* OpenAI Constants */
     public static URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
     public static long AI_TIMEOUT_MINUTES = 4;
-    public static String Model_Name = "gpt-3.5-turbo";
+    public static String Model_Name = "gpt-4";
     public static String Role = "user";
     public static int Temperature = 0;
 

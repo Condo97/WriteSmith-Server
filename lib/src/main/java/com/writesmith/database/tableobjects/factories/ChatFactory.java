@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 public class ChatFactory extends DBObjectFactory {
 
-    public static Chat createInDB(Integer userID, String userText, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, IllegalAccessException {
+    public static Chat createInDB(Integer userID, String userText, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, IllegalAccessException, InterruptedException {
         Chat chat = create(userID, userText, date);
 
         insertWithAutoIncrementingPrimaryKey(chat);

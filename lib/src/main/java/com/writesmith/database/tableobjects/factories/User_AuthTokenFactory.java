@@ -11,14 +11,14 @@ import java.sql.SQLException;
 
 public class User_AuthTokenFactory extends DBObjectFactory {
 
-    public static User_AuthToken getFromDB(String authToken) throws DBSerializerException, SQLException, IllegalAccessException, DBObjectNotFoundFromQueryException {
+    public static User_AuthToken getFromDB(String authToken) throws DBSerializerException, SQLException, IllegalAccessException, DBObjectNotFoundFromQueryException, InterruptedException {
         User_AuthToken u_aT = new User_AuthToken(null, authToken);
         u_aT.fillWhereColumnNameAndObject("auth_token", u_aT.getAuthToken()); // TODO: - Is there a way to not use plain text here, maybe somehow just use the row or something? Or just use the plain text and look up the id by annotation? Maybe that is better, then it verifies the text
 
         return u_aT;
     }
 
-    public static User_AuthToken createInDB() throws AutoIncrementingDBObjectExistsException, DBSerializerException, DBSerializerPrimaryKeyMissingException, IllegalAccessException, SQLException {
+    public static User_AuthToken createInDB() throws AutoIncrementingDBObjectExistsException, DBSerializerException, DBSerializerPrimaryKeyMissingException, IllegalAccessException, SQLException, InterruptedException {
         // Create u_aT and ensure no userID
         User_AuthToken u_aT = create();
 

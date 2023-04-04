@@ -17,7 +17,7 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 public class OpenAIGPTHttpHelper extends HttpHelper {
-    private static HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
+    private static HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
 
     public OpenAIGPTHttpHelper() {
 
@@ -33,6 +33,7 @@ public class OpenAIGPTHttpHelper extends HttpHelper {
         try {
             return new ObjectMapper().treeToValue(response, OpenAIGPTPromptResponse.class);
         } catch (JsonMappingException e) {
+            System.out.println("Issue Mapping OpenAIGPTErrorResponseJSON: " + response.asText());
             throw new OpenAIGPTException(new ObjectMapper().treeToValue(response, OpenAIGPTErrorResponse.class));
         }
     }

@@ -20,7 +20,7 @@ import static sqlcomponentizer.dbserializer.DBSerializer.getTableMap;
 
 public class DBObjectFactory {
 
-    public static void insertWithAutoIncrementingPrimaryKey(DBObject object) throws DBSerializerException, DBSerializerPrimaryKeyMissingException, IllegalAccessException, SQLException, AutoIncrementingDBObjectExistsException {
+    public static void insertWithAutoIncrementingPrimaryKey(DBObject object) throws DBSerializerException, DBSerializerPrimaryKeyMissingException, IllegalAccessException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException {
         // Insert existing fields, getting generated keys and setting primary key to the first corresponding generated primary key
         String tableName = DBSerializer.getTableName(object);
         String primaryKeyName = DBSerializer.getPrimaryKeyName(object);
@@ -28,8 +28,6 @@ public class DBObjectFactory {
 
         // If there is a value for the primaryKey in the DBObject tableMap, then throw an exception stating there is already an ID for this object
         if (tableMap.get(primaryKeyName) != null) throw new AutoIncrementingDBObjectExistsException("ID exists for object " + object.getClass());
-
-        System.out.println(tableMap);
 
         // Insert into table cols and vals
         ComponentizedPreparedStatement cps = InsertIntoComponentizedPreparedStatementBuilder.forTable(tableName).addColAndVals(tableMap).build(true);

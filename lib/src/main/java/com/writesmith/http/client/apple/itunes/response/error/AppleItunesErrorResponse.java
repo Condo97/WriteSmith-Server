@@ -1,7 +1,9 @@
 package com.writesmith.http.client.apple.itunes.response.error;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.writesmith.http.client.apple.itunes.response.AppleItunesBaseResponse;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AppleItunesErrorResponse implements AppleItunesBaseResponse {
 
     String environment;

@@ -20,20 +20,20 @@ import java.util.Map;
 
 public abstract class DBObject {
 
-    public void fillWhereColumnNameAndObject(String columnName, Object object) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException {
+    public void fillWhereColumnNameAndObject(String columnName, Object object) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
         // TODO: - Maybe make this just fillByColumn and have the factory methods get from the database themselves?
         fillWhereColumnObjectMap(Map.of(columnName, object));
     }
 
-    public void fillWhereColumnObjectMap(Map<String, Object> columnObjectMap) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException {
+    public void fillWhereColumnObjectMap(Map<String, Object> columnObjectMap) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
         fillWhereColumnObjectMapOrderBy(columnObjectMap, null, null);
     }
 
-    public void fillWhereColumnObjectMapOrderBy(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException {
+    public void fillWhereColumnObjectMapOrderBy(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
         fillWhereColumnObjectMapOrderByLimit(columnObjectMap, orderByColumns, direction, null);
     }
 
-    public void fillWhereColumnObjectMapOrderByLimit(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException {
+    public void fillWhereColumnObjectMapOrderByLimit(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
         String tableName = DBSerializer.getTableName(this);
         Map<String, Object> tableMap = DBSerializer.getTableMap(this);
 
@@ -42,12 +42,10 @@ public abstract class DBObject {
 
         ComponentizedPreparedStatement cps = SelectComponentizedPreparedStatementBuilder.forTable(tableName).select(new ArrayList<>(tableMap.keySet())).where(columnObjectMap, SQLOperators.EQUAL).orderBy(direction, orderByColumns).limit(limit).build();
 
-        System.out.println(cps);
-
         fillFromComponentizedPreparedStatement(cps);
     }
 
-    private void fillFromComponentizedPreparedStatement(ComponentizedPreparedStatement cps) throws SQLException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException {
+    private void fillFromComponentizedPreparedStatement(ComponentizedPreparedStatement cps) throws SQLException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InterruptedException {
         // Get connection from pool and query
         Connection conn = SQLConnectionPoolInstance.getConnection();
         List<Map<String, Object>> resultMap;
@@ -57,6 +55,7 @@ public abstract class DBObject {
             throw e;
         } finally {
             // Release connection
+            System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
 
@@ -69,11 +68,11 @@ public abstract class DBObject {
         DBDeserializer.fillObjectFromMap(this, firstObject);
     }
 
-    public void updateWhere(String columnToUpdate, Object valueToUpdateWith, String whereColumn, Object whereValue) throws DBSerializerException, SQLException {
+    public void updateWhere(String columnToUpdate, Object valueToUpdateWith, String whereColumn, Object whereValue) throws DBSerializerException, SQLException, InterruptedException {
         updateWhere(Map.of(columnToUpdate, valueToUpdateWith), Map.of(whereColumn, whereValue));
     }
 
-    public void updateWhere(Map<String, Object> colAndValMapToUpdate, Map<String, Object> whereColValMap) throws DBSerializerException, SQLException {
+    public void updateWhere(Map<String, Object> colAndValMapToUpdate, Map<String, Object> whereColValMap) throws DBSerializerException, SQLException, InterruptedException {
         String tableName = DBSerializer.getTableName(this);
 
         ComponentizedPreparedStatement cps = UpdateComponentizedPreparedStatementBuilder.forTable(tableName).set(colAndValMapToUpdate).where(whereColValMap, SQLOperators.EQUAL).build();
@@ -86,6 +85,7 @@ public abstract class DBObject {
             throw e;
         } finally {
             // Release connection instance
+            System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }

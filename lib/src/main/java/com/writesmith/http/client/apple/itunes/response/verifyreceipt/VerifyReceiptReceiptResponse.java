@@ -1,7 +1,10 @@
 package com.writesmith.http.client.apple.itunes.response.verifyreceipt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class VerifyReceiptReceiptResponse {
     String receipt_type, bundle_id, application_version;
     String receipt_creation_date, receipt_creation_date_ms, receipt_creation_date_pst;

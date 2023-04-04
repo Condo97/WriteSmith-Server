@@ -1,7 +1,9 @@
 package com.writesmith.http.client.openaigpt.response.prompt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.writesmith.http.client.openaigpt.response.OpenAIGPTResponse;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OpenAIGPTPromptUsageResponse extends OpenAIGPTResponse {
     private Integer prompt_tokens, completion_tokens, total_tokens;
 

@@ -1,5 +1,8 @@
 package com.writesmith.http.client.apple.itunes.response.verifyreceipt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class VerifyReceiptPendingRenewalInfoResponse {
     String expiration_intent;
     String auto_renew_product_id;

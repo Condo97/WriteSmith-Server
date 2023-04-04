@@ -19,29 +19,29 @@ import java.util.Map;
 public class DBHelper {
 
 
-    public static Integer countObjectWhereByColumn(Object dbObject, String whereCol, SQLOperators operator, Object whereVal, String byColumn) throws DBSerializerException, SQLException {
+    public static Integer countObjectWhereByColumn(Object dbObject, String whereCol, SQLOperators operator, Object whereVal, String byColumn) throws DBSerializerException, SQLException, InterruptedException {
         return countObjectWhereByColumn(dbObject, Map.of(whereCol, whereVal), operator, byColumn);
     }
 
-    public static Integer countObjectWhereByColumn(Class dbClass, String whereCol, SQLOperators operator, Object whereVal, String byColumn) throws DBSerializerException, SQLException {
+    public static Integer countObjectWhereByColumn(Class dbClass, String whereCol, SQLOperators operator, Object whereVal, String byColumn) throws DBSerializerException, SQLException, InterruptedException {
         return countObjectWhereByColumn(dbClass, Map.of(whereCol, whereVal), operator, byColumn);
     }
 
-    public static Integer countObjectWhereByColumn(Object dbObject, Map<String, Object> whereColValMap, SQLOperators commonOperator, String byColumn) throws DBSerializerException, SQLException {
+    public static Integer countObjectWhereByColumn(Object dbObject, Map<String, Object> whereColValMap, SQLOperators commonOperator, String byColumn) throws DBSerializerException, SQLException, InterruptedException {
         return countObjectWhereByColumn(dbObject.getClass(), whereColValMap, commonOperator, byColumn);
     }
 
-    public static Integer countObjectWhereByColumn(Class dbClass, Map<String, Object> whereColValMap, SQLOperators commonOperator, String byColumn) throws DBSerializerException, SQLException {
+    public static Integer countObjectWhereByColumn(Class dbClass, Map<String, Object> whereColValMap, SQLOperators commonOperator, String byColumn) throws DBSerializerException, SQLException, InterruptedException {
         List<PSComponent> sqlConditions = new ArrayList<>();
         whereColValMap.forEach((k, v) -> sqlConditions.add(new SQLOperatorCondition(k, commonOperator, v)));
         return countObjectWhereByColumn(dbClass, sqlConditions, byColumn);
     }
 
-    public static Integer countObjectWhereByColumn(Object dbObject, List<PSComponent> sqlConditions, String byColumn) throws DBSerializerException, SQLException {
+    public static Integer countObjectWhereByColumn(Object dbObject, List<PSComponent> sqlConditions, String byColumn) throws DBSerializerException, SQLException, InterruptedException {
         return countObjectWhereByColumn(dbObject.getClass(), sqlConditions, byColumn);
     }
 
-    public static Integer countObjectWhereByColumn(Class dbClass, List<PSComponent> sqlConditions, String byColumn) throws DBSerializerException, SQLException {
+    public static Integer countObjectWhereByColumn(Class dbClass, List<PSComponent> sqlConditions, String byColumn) throws DBSerializerException, SQLException, InterruptedException {
         // Table, row=v
         String tableName = DBSerializer.getTableName(dbClass);
 
@@ -57,6 +57,7 @@ public class DBHelper {
             throw e;
         } finally {
             // Release connection instance
+            System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }

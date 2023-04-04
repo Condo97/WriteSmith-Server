@@ -1,5 +1,8 @@
 package com.writesmith.http.client.apple.itunes.response.verifyreceipt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class VerifyReceiptReceiptInAppResponse {
     private String quantity;
     private String product_id, transaction_id, original_transaction_id;

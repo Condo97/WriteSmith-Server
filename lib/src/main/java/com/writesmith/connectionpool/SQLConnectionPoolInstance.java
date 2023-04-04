@@ -6,17 +6,17 @@ import java.sql.SQLException;
 public class SQLConnectionPoolInstance {
     private static SQLConnectionPool instance;
 
-    public static SQLConnectionPool create(String url, String user, String pass, int size) throws SQLException {
-        instance = SQLConnectionPool.create(url, user, pass, size);
+    public static SQLConnectionPool create(String url, String user, String password, int size) throws SQLException {
+        instance = SQLConnectionPool.create(url, user, password, size);
 
         return instance;
     }
 
-    public static Connection getConnection() {
+    public static Connection getConnection() throws InterruptedException {
         return instance.getConnection();
     }
 
-    public static boolean releaseConnection(Connection connection) {
-        return instance.releaseConnection(connection);
+    public static void releaseConnection(Connection connection) {
+        instance.releaseConnection(connection);
     }
 }
