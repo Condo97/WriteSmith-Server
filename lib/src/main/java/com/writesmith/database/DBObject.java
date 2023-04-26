@@ -1,17 +1,19 @@
 package com.writesmith.database;
 
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
-import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import sqlcomponentizer.DBClient;
 import sqlcomponentizer.dbserializer.DBDeserializer;
 import sqlcomponentizer.dbserializer.DBSerializer;
 import sqlcomponentizer.dbserializer.DBSerializerException;
+import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 import sqlcomponentizer.preparedstatement.ComponentizedPreparedStatement;
 import sqlcomponentizer.preparedstatement.component.OrderByComponent;
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 import sqlcomponentizer.preparedstatement.statement.SelectComponentizedPreparedStatementBuilder;
 import sqlcomponentizer.preparedstatement.statement.UpdateComponentizedPreparedStatementBuilder;
 
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -20,21 +22,22 @@ import java.util.Map;
 
 public abstract class DBObject {
 
-    public void fillWhereColumnNameAndObject(String columnName, Object object) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
+
+    public void fillWhereColumnNameAndObject(String columnName, Object object) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // TODO: - Maybe make this just fillByColumn and have the factory methods get from the database themselves?
         fillWhereColumnObjectMap(Map.of(columnName, object));
     }
 
-    public void fillWhereColumnObjectMap(Map<String, Object> columnObjectMap) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
+    public void fillWhereColumnObjectMap(Map<String, Object> columnObjectMap) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         fillWhereColumnObjectMapOrderBy(columnObjectMap, null, null);
     }
 
-    public void fillWhereColumnObjectMapOrderBy(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
+    public void fillWhereColumnObjectMapOrderBy(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         fillWhereColumnObjectMapOrderByLimit(columnObjectMap, orderByColumns, direction, null);
     }
 
-    public void fillWhereColumnObjectMapOrderByLimit(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException {
-        String tableName = DBSerializer.getTableName(this);
+    public void fillWhereColumnObjectMapOrderByLimit(Map<String, Object> columnObjectMap, List<String> orderByColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, IllegalAccessException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+        String tableName = DBSerializer.getTableName(this.getClass());
         Map<String, Object> tableMap = DBSerializer.getTableMap(this);
 
         // Remove the "WHERE" columns from the "SELECT" clause for a teeny tiny bit of efficiency, plus it serves as a check that the Object contains these column names in the first place
@@ -45,7 +48,7 @@ public abstract class DBObject {
         fillFromComponentizedPreparedStatement(cps);
     }
 
-    private void fillFromComponentizedPreparedStatement(ComponentizedPreparedStatement cps) throws SQLException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InterruptedException {
+    private void fillFromComponentizedPreparedStatement(ComponentizedPreparedStatement cps) throws SQLException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // Get connection from pool and query
         Connection conn = SQLConnectionPoolInstance.getConnection();
         List<Map<String, Object>> resultMap;
@@ -73,7 +76,7 @@ public abstract class DBObject {
     }
 
     public void updateWhere(Map<String, Object> colAndValMapToUpdate, Map<String, Object> whereColValMap) throws DBSerializerException, SQLException, InterruptedException {
-        String tableName = DBSerializer.getTableName(this);
+        String tableName = DBSerializer.getTableName(this.getClass());
 
         ComponentizedPreparedStatement cps = UpdateComponentizedPreparedStatementBuilder.forTable(tableName).set(colAndValMapToUpdate).where(whereColValMap, SQLOperators.EQUAL).build();
 
@@ -89,7 +92,6 @@ public abstract class DBObject {
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
-
 
 
 //    private Connection conn;

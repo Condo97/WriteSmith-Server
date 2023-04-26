@@ -1,30 +1,31 @@
 package com.writesmith;
 
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
+import com.writesmith.core.iapvalidation.AppleHttpVerifyReceipt;
+import com.writesmith.core.iapvalidation.ReceiptUpdater;
+import com.writesmith.core.iapvalidation.ReceiptValidator;
 import com.writesmith.database.DBObject;
-import com.writesmith.database.tableobjects.Receipt;
-import com.writesmith.database.tableobjects.factories.ReceiptFactory;
-import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
-import com.writesmith.exceptions.CapReachedException;
-import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.helpers.chatfiller.ChatWrapper;
-import com.writesmith.helpers.chatfiller.OpenAIGPTChatWrapperFiller;
-import com.writesmith.helpers.receipt.ReceiptUpdater;
-import com.writesmith.helpers.receipt.ReceiptValidator;
-import com.writesmith.http.client.apple.itunes.AppleItunesHttpHelper;
-import com.writesmith.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
-import com.writesmith.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
+import com.writesmith.model.database.objects.Receipt;
+import com.writesmith.database.managers.ReceiptDBManager;
+import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.common.exceptions.CapReachedException;
+import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.deprecated.helpers.chatfiller.ChatLegacyWrapper;
+import com.writesmith.deprecated.helpers.chatfiller.OpenAIGPTChatWrapperFiller;
+import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
+import com.writesmith.model.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
+import com.writesmith.model.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
+import com.writesmith.model.http.client.openaigpt.Role;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
+import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.keys.Keys;
-import com.writesmith.http.client.openaigpt.OpenAIGPTHttpHelper;
-import com.writesmith.http.client.openaigpt.exception.OpenAIGPTException;
-import com.writesmith.http.client.openaigpt.request.prompt.OpenAIGPTPromptMessageRequest;
-import com.writesmith.http.client.openaigpt.request.prompt.OpenAIGPTPromptRequest;
-import com.writesmith.http.client.openaigpt.response.prompt.OpenAIGPTPromptResponse;
+import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
+import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
+import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
+import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
+import com.writesmith.model.http.client.openaigpt.response.prompt.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.DBClient;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
@@ -36,6 +37,7 @@ import sqlcomponentizer.preparedstatement.statement.SelectComponentizedPreparedS
 import sqlcomponentizer.preparedstatement.statement.UpdateComponentizedPreparedStatementBuilder;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.sql.*;
@@ -138,16 +140,16 @@ public class Tests {
     void testBasicHttpRequest() {
         HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
 //        GenerateChatRequest gcr = new GenerateChatRequest(Constants.Model_Name, "prompt", Constants.Temperature, Constants.Token_Limit_Paid);
-        OpenAIGPTPromptMessageRequest promptMessageRequest = new OpenAIGPTPromptMessageRequest("user", "write me a short joke");
-        OpenAIGPTPromptRequest promptRequest = new OpenAIGPTPromptRequest("gpt-3.5-turbo", 100, 0.7, Arrays.asList(promptMessageRequest));
+        OpenAIGPTChatCompletionMessageRequest promptMessageRequest = new OpenAIGPTChatCompletionMessageRequest(Role.USER, "write me a short joke");
+        OpenAIGPTChatCompletionRequest promptRequest = new OpenAIGPTChatCompletionRequest("gpt-3.5-turbo", 100, 0.7, Arrays.asList(promptMessageRequest));
         Consumer<HttpRequest.Builder> c = requestBuilder -> {
             requestBuilder.setHeader("Authorization", "Bearer " + Keys.openAiAPI);
         };
 
-        OpenAIGPTHttpHelper httpHelper = new OpenAIGPTHttpHelper();
+        OpenAIGPTHttpsClientHelper httpHelper = new OpenAIGPTHttpsClientHelper();
 
         try {
-            OpenAIGPTPromptResponse response = httpHelper.getChat(promptRequest);
+            OpenAIGPTChatCompletionResponse response = httpHelper.postChatCompletion(promptRequest);
             System.out.println(response.getChoices()[0].getMessage().getContent());
 
         } catch (OpenAIGPTException e) {
@@ -166,11 +168,12 @@ public class Tests {
         Integer userID = 32828;
         DBObject db = null;
         try {
-            Receipt r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB
+                    (userID);
 
             VerifyReceiptRequest request = new VerifyReceiptRequest(r.getReceiptData(), Keys.sharedAppSecret, "false");
 
-            VerifyReceiptResponse response = new AppleItunesHttpHelper().getVerifyReceiptResponse(request);
+            VerifyReceiptResponse response = new AppleHttpVerifyReceipt().getVerifyReceiptResponse(request);
 
             System.out.println(response.getPending_renewal_info().get(0).getExpiration_intent());
         } catch (SQLException e) {
@@ -187,6 +190,12 @@ public class Tests {
             throw new RuntimeException(e);
         } catch (DBObjectNotFoundFromQueryException e) {
             throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -197,15 +206,15 @@ public class Tests {
         DBObject db = null;
         try {
             // Ensure that the date is the same, even after getting twice
-            Receipt r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
             LocalDateTime initialCheckDate = r.getCheckDate();
-            r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
             LocalDateTime secondCheckDate = r.getCheckDate();
 
             assert(initialCheckDate.isEqual(secondCheckDate));
 
             // Ensure that the date is later after validating
-            r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
             initialCheckDate = r.getCheckDate();
             ReceiptValidator.validateReceipt(r);
             secondCheckDate = r.getCheckDate();
@@ -215,7 +224,7 @@ public class Tests {
             assert(secondCheckDate.isAfter(initialCheckDate));
 
             // Ensure that the date is later after updating
-            r = ReceiptFactory.getMostRecentReceiptFromDB(userID);
+            r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
             initialCheckDate = r.getCheckDate();
             Thread.sleep(1000);
             ReceiptUpdater.updateIfNeeded(r);
@@ -244,17 +253,23 @@ public class Tests {
             throw new RuntimeException(e);
         } catch (DBObjectNotFoundFromQueryException e) {
             throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Test
     @DisplayName("Test Filling ChatWrapper")
     void testFillChatWrapperIfAble() {
-        int userID = 32861;
+        Integer userID = 32861;
         String userText = "test";
 
         try {
-            ChatWrapper chatWrapper = new ChatWrapper(userID, userText, LocalDateTime.now());
+            ChatLegacyWrapper chatWrapper = new ChatLegacyWrapper(userID, userText, LocalDateTime.now());
 
             try {
                 OpenAIGPTChatWrapperFiller.fillChatWrapperIfAble(chatWrapper);
@@ -283,6 +298,12 @@ public class Tests {
         } catch (DBSerializerException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
         }
     }

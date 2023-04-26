@@ -3,11 +3,11 @@ package com.writesmith;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
-import com.writesmith.http.client.openaigpt.exception.OpenAIGPTException;
-import com.writesmith.http.server.ResponseStatus;
-import com.writesmith.http.server.request.AuthRequest;
-import com.writesmith.http.server.response.*;
+import com.writesmith.core.Server;
+import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
+import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.keys.Keys;
+import com.writesmith.model.http.server.response.*;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -88,7 +88,7 @@ public class Main {
 
             System.out.println(activeThreadCount());
             res.status(404);
-            return "asdf";
+            return "<html><a href=\"" + Constants.SHARE_URL + "\">Download WriteSmith</a></html>";
         });
     }
 
@@ -101,7 +101,7 @@ public class Main {
         post(Constants.REGISTER_USER_URI, Server::registerUser);
         post(Constants.GET_CHAT_URI, Server::getChat);
         post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI, Server::validateAndUpdateReceipt);
-        post(Constants.GET_REMAINING_URI, Server::getRemaining);
+        post(Constants.GET_REMAINING_URI, Server::getRemainingChats);
 
         // Get Constants
         post(Constants.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetImportantConstantsResponse())));

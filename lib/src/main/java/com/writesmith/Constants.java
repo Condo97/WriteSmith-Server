@@ -1,5 +1,7 @@
 package com.writesmith;
 
+import com.writesmith.model.http.client.openaigpt.Role;
+
 import java.net.URI;
 
 public final class Constants {
@@ -20,19 +22,23 @@ public final class Constants {
     public static final int Delay_Seconds_Free = 15;
     public static final int Delay_Seconds_Paid = 0;
 
-    /* Token Limits */
-    public static final int Token_Limit_Free = 80;
-    public static final int Token_Limit_Paid = 1000;
+    /* Tiered Limits */
+    public static final int Response_Token_Limit_Free = 80;
+    public static final int Response_Token_Limit_Paid = 1000;
+
+    public static final int Context_Character_Limit_Free = 800;
+    public static final int Context_Character_Limit_Paid = 2000;
 
     public static final int Delay_Seconds_Premium_Check = 60;
 
     /* Caps */
     public static final int Cap_Free_Total_Essays = 3; // This is just a constant sent to the device, which handles everything
-    public static final int Cap_Chat_Daily_Free = 10;
-    public static final int Cap_Chat_Daily_Paid = -1; //-1 is unlimited
+    public static final Integer Cap_Chat_Daily_Free = 10;
+    public static final Integer Cap_Chat_Daily_Paid = null;
+    public static final int Cap_Chat_Daily_Paid_Legacy = -1; //-1 is unlimited
 
     /* URIs for HTTPSServer */
-    public static final String GET_CHAT_URI = "/getChat";
+    public static final String GET_CONVERSATION_URI = "/getConversation";
     public static final String GET_REMAINING_URI = "/getRemaining";
     public static final String GENERATE_IMAGE_URI = "/generateImage";
     public static final String REGISTER_USER_URI = "/registerUser";
@@ -48,6 +54,7 @@ public final class Constants {
     public static final String PRINT_ALL_ACTIVE_SUBSCRIPTIONS_URI = "/printAllActiveSubscriptions";
 
     /* Legacy URIs for HTTPServer */
+    public static final String GET_CHAT_URI = "/getChat";
     public static final String GET_DISPLAY_PRICE_URI = "/getDisplayPrice";
     public static final String GET_SHARE_URL_URI = "/getShareURL";
 
@@ -75,9 +82,11 @@ public final class Constants {
     /* OpenAI Constants */
     public static URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
     public static long AI_TIMEOUT_MINUTES = 4;
-    public static String Model_Name = "gpt-4";
-    public static String Role = "user";
-    public static int Temperature = 0;
+    public static String DEFAULT_MODEL_NAME = "gpt-3.5-turbo";//"gpt-4";
+    public static String PAID_MODEL_NAME = "gpt-3.5-turbo";//"gpt-4";
+    public static String DEFAULT_BEHAVIOR = null;
+    public static Role LEGACY_DEFAULT_ROLE = Role.USER;
+    public static int DEFAULT_TEMPERATURE = 0;
 
     /* Success and Exceptions */
     public static final int SUCCESS_Success = 1;
