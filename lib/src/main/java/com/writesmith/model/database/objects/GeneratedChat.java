@@ -14,6 +14,15 @@ public class GeneratedChat {
     @DBColumn(name = DBRegistry.Table.GeneratedChat.finish_reason)
     private String finish_reason;
 
+    @DBColumn(name = DBRegistry.Table.GeneratedChat.completion_tokens)
+    private Integer completionTokens;
+
+    @DBColumn(name = DBRegistry.Table.GeneratedChat.prompt_tokens)
+    private Integer promptTokens;
+
+    @DBColumn(name = DBRegistry.Table.GeneratedChat.total_tokens)
+    private Integer totalTokens;
+
     @DBSubObject()
     private Chat chat;
 
@@ -22,9 +31,12 @@ public class GeneratedChat {
 
     }
 
-    public GeneratedChat(Chat chat, String finish_reason) {
+    public GeneratedChat(Chat chat, String finish_reason, Integer completionTokens, Integer promptTokens, Integer totalTokens) {
         this.chat = chat;
         this.finish_reason = finish_reason;
+        this.completionTokens = completionTokens;
+        this.promptTokens = promptTokens;
+        this.totalTokens = totalTokens;
     }
 
     public Chat getChat() {
@@ -49,6 +61,30 @@ public class GeneratedChat {
 
     public void setFinish_reason(String finish_reason) {
         this.finish_reason = finish_reason;
+    }
+
+    public Integer getCompletionTokens() {
+        return completionTokens;
+    }
+
+    public void setCompletionTokens(Integer completionTokens) {
+        this.completionTokens = completionTokens;
+    }
+
+    public Integer getPromptTokens() {
+        return promptTokens;
+    }
+
+    public void setPromptTokens(Integer promptTokens) {
+        this.promptTokens = promptTokens;
+    }
+
+    public Integer getTotalTokens() {
+        return totalTokens;
+    }
+
+    public void setTotalTokens(Integer totalTokens) {
+        this.totalTokens = totalTokens;
     }
 
 }

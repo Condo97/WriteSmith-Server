@@ -3,6 +3,7 @@ package com.writesmith.core.endpoints;
 import com.writesmith.Constants;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.database.DBManager;
+import com.writesmith.database.DBObject;
 import com.writesmith.database.managers.ChatDBManager;
 import com.writesmith.database.managers.ConversationDBManager;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
@@ -10,6 +11,7 @@ import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.core.generation.GenerationGrantor;
+import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.*;
 import com.writesmith.model.generation.objects.GrantedGeneratedChat;
@@ -25,7 +27,9 @@ import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Random;
 
 public class GetChatEndpoint {
@@ -44,16 +48,23 @@ public class GetChatEndpoint {
         // Create conversation object and it conversationID is null get by creating in database
         Conversation conversation;
         if (request.getConversationID() == null) {
-            conversation = createConversationInDB(u_aT.getUserID());
+            conversation = createConversationInDB(u_aT.getUserID(), request.getBehavior());
         } else {
             // Get conversation by id, use the first in the list TODO: Is it okay to cast here, or should this all just be done in ConversationDBManager?
             conversation = ConversationDBManager.getFirstByPrimaryKey(request.getConversationID());
 
             // Create conversation if conversation is null or there's a userID mismatch with the received conversation
             if (conversation == null || !conversation.getUserID().equals(u_aT.getUserID())) {
-                conversation = createConversationInDB(u_aT.getUserID());
+                conversation = createConversationInDB(u_aT.getUserID(), request.getBehavior());
             }
+        }
 
+        // Set conversation behavior if given in the request
+        if (request.getBehavior() != null && !request.getBehavior().equals("")) {
+            conversation.setBehavior(request.getBehavior());
+
+            //TODO: Should this be moved somewhere else?
+            conversation.updateWhere(DBRegistry.Table.Conversation.behavior, conversation.getBehavior(), DBRegistry.Table.Conversation.conversation_id, conversation.getID());
         }
 
         // Save chat to database by createInDB
@@ -72,7 +83,6 @@ public class GetChatEndpoint {
             // Generate chat with conversation
             GrantedGeneratedChat grantedGeneratedChat = GenerationGrantor.generateFromConversationIfPermitted(conversation);
 
-
             // Save the Chat
             DBManager.deepInsert(grantedGeneratedChat.getGeneratedChat(), true);
 
@@ -90,6 +100,9 @@ public class GetChatEndpoint {
             int maxContainsSearchLength = 8;
             if (aiChatTextResponse.length() >= maxContainsSearchLength && !aiChatTextResponse.substring(0, maxContainsSearchLength).contains("\n\n"))
                 aiChatTextResponse = "\n\n" + aiChatTextResponse;
+
+            // Print generated chat
+            printGeneratedChat(grantedGeneratedChat.getGeneratedChat());
 
             // Construct and return the GetChatResponse
             getChatResponse = new GetChatResponse(aiChatTextResponse, grantedGeneratedChat.getGeneratedChat().getFinish_reason(), conversation.getID(), remainingNotNull);
@@ -116,8 +129,25 @@ public class GetChatEndpoint {
 
     }
 
-    private static Conversation createConversationInDB(Integer userID) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException {
-        return ConversationDBManager.createInDB(userID, Constants.DEFAULT_BEHAVIOR);
+    private static Conversation createConversationInDB(Integer userID, String behavior) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException {
+        if (behavior == null) {
+            behavior = Constants.DEFAULT_BEHAVIOR;
+        }
+
+        return ConversationDBManager.createInDB(userID, behavior);
+    }
+
+    //TODO Count the words and move to another class
+    private static void printGeneratedChat(GeneratedChat generatedChat) {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date();
+        int maxLength = 40;
+
+        String tempAIChatTextResponse = generatedChat.getChat().getText().replaceAll("\n","");
+        int chatID = generatedChat.getChat_id();
+        int tokens = generatedChat.getCompletionTokens();
+
+        System.out.println("Chat " + chatID + " Filled " + sdf.format(date) + "\t" + (tempAIChatTextResponse.length() >= maxLength ? tempAIChatTextResponse.substring(0, maxLength) : tempAIChatTextResponse) + "... " + tokens + " Tokens\ton Thread " + Thread.currentThread().getName());
     }
 
 }

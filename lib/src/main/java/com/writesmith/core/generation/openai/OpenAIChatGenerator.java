@@ -6,6 +6,7 @@ import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.database.managers.ConversationDBManager;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.model.database.objects.GeneratedChat;
+import com.writesmith.model.http.client.openaigpt.Role;
 import com.writesmith.model.http.client.openaigpt.RoleMapper;
 import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
@@ -29,6 +30,11 @@ public class OpenAIChatGenerator {
 
         // Create OpenAIGPTPromptMessageRequests
         List<OpenAIGPTChatCompletionMessageRequest> messageRequests = new ArrayList<>();
+
+        // Append behavior as system message request as first object in messageRequests if not null and not blank
+        if (conversation.getBehavior() != null && !conversation.getBehavior().equals("")) {
+            messageRequests.add(new OpenAIGPTChatCompletionMessageRequest(Role.SYSTEM, conversation.getBehavior()));
+        }
 
         // Append chats as message requests maintaining order
         chats.forEach(v -> messageRequests.add(new OpenAIGPTChatCompletionMessageRequest(RoleMapper.getRole(v.getSender()), v.getText())));
@@ -56,7 +62,10 @@ public class OpenAIChatGenerator {
 
                 return new GeneratedChat(
                         chat,
-                        response.getChoices()[0].getFinish_reason()
+                        response.getChoices()[0].getFinish_reason(),
+                        response.getUsage().getCompletion_tokens(),
+                        response.getUsage().getPrompt_tokens(),
+                        response.getUsage().getTotal_tokens()
                 );
             }
 

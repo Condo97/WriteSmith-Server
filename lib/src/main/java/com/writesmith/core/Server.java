@@ -121,9 +121,6 @@ public class Server {
         // Get chat response and return as string
         BodyResponse bodyResponse = GetChatEndpoint.getChat(gcRequest);
 
-        // Print generated chat
-        printGeneratedChat(((GetChatResponse)bodyResponse.getBody()).getOutput());
-
         return new ObjectMapper().writeValueAsString(bodyResponse);
 
     }
@@ -186,10 +183,7 @@ public class Server {
             int maxContainsSearchLength = 8;
             if (aiChatTextResponse.length() >= maxContainsSearchLength && !aiChatTextResponse.substring(0, maxContainsSearchLength).contains("\n\n"))
                 aiChatTextResponse = "\n\n" + aiChatTextResponse;
-
-            // Print out a little blurb containing the current time and the preview of the chat TODO put this in a class or something, and make a better logger!
-            printGeneratedChat(aiChatTextResponse);
-
+            
         } catch (CapReachedException e) {
             // If the cap was reached, then respond with ResponseStatus.CAP_REACHED_ERROR and cap reached response
 
@@ -340,16 +334,6 @@ public class Server {
 
 
     // --------------- //
-
-
-    //TODO Count the words and move to another class
-    private static void printGeneratedChat(String aiChatTextResponse) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        Date date = new Date();
-        int maxLength = 40;
-        String tempAIChatTextResponse = aiChatTextResponse.replaceAll("\n","");
-        System.out.println("Chat Filled " + sdf.format(date) + "\t" + (tempAIChatTextResponse.length() >= maxLength ? tempAIChatTextResponse.substring(0, maxLength) : tempAIChatTextResponse) + "... " + aiChatTextResponse.length() + " Chars\ton Thread " + Thread.currentThread().getName());
-    }
 
     public static String getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus status) {
 

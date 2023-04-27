@@ -41,6 +41,9 @@ public class DBRegistry {
             public static final String TABLE_NAME = "GeneratedChat";
             public static final String chat_id = "chat_id";
             public static final String finish_reason = "finish_reason";
+            public static final String completion_tokens = "completion_tokens";
+            public static final String prompt_tokens = "prompt_tokens";
+            public static final String total_tokens = "total_tokens";
 
         }
 
