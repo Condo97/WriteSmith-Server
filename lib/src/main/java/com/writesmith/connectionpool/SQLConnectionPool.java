@@ -28,7 +28,7 @@ public class SQLConnectionPool implements ISQLConncetionPool {
     @Override
     public synchronized Connection getConnection() throws InterruptedException {
         System.out.println(poolConnections.size());
-        if (poolConnections.isEmpty())
+        while (poolConnections.isEmpty())
             wait();
         Connection connection = poolConnections.pop();
         usedConnections.offer(connection);
@@ -39,6 +39,6 @@ public class SQLConnectionPool implements ISQLConncetionPool {
     public synchronized void releaseConnection(Connection connection) {
         usedConnections.remove(connection);
         poolConnections.offer(connection);
-        notify();
+        notifyAll();
     }
 }

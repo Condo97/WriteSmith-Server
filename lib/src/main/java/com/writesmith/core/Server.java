@@ -80,7 +80,7 @@ public class Server {
     }
 
     /***
-     * Get Conversation
+     * Get Chat
      *
      * Gets a conversation from OpenAI using the given messages map array.
      *
@@ -126,7 +126,7 @@ public class Server {
     }
 
     /***
-     * Get Chat
+     * Get Chat Legacy
      *
      * Gets a response from OpenAI using the given prompt. Checks for AuthToken existence and if the user is premium or free. It may validate the Receipt with Apple if the request is outside the cooldown period.
      *

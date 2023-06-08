@@ -31,7 +31,7 @@ public class Main {
         }
 
         // Set up SQLConnectionPoolInstance
-        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, MAX_THREADS * 2);
+        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, MAX_THREADS * 4);
 
         // Set up Policy static file location
         staticFiles.location("/policies");

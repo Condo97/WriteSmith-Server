@@ -16,7 +16,7 @@ public class SQLConnectionPoolInstance {
         return instance.getConnection();
     }
 
-    public synchronized static void releaseConnection(Connection connection) {
+    public static void releaseConnection(Connection connection) {
         instance.releaseConnection(connection);
     }
 }
