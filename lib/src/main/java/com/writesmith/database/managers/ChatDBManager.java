@@ -3,7 +3,6 @@ package com.writesmith.database.managers;
 import com.writesmith.database.DBManager;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
-import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 

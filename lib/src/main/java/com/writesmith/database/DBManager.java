@@ -8,6 +8,7 @@ import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 import sqlcomponentizer.preparedstatement.ComponentizedPreparedStatement;
 import sqlcomponentizer.preparedstatement.SQLTokens;
+import sqlcomponentizer.preparedstatement.component.OrderByComponent;
 import sqlcomponentizer.preparedstatement.component.PSComponent;
 import sqlcomponentizer.preparedstatement.component.columns.As;
 import sqlcomponentizer.preparedstatement.component.columns.aggregate.Count;
@@ -15,6 +16,7 @@ import sqlcomponentizer.preparedstatement.component.condition.SQLOperatorConditi
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 import sqlcomponentizer.preparedstatement.statement.InsertIntoComponentizedPreparedStatementBuilder;
 import sqlcomponentizer.preparedstatement.statement.SelectComponentizedPreparedStatementBuilder;
+import sqlcomponentizer.preparedstatement.statement.UpdateComponentizedPreparedStatementBuilder;
 
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
@@ -25,8 +27,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static sqlcomponentizer.dbserializer.DBSerializer.getTableMap;
-
 public class DBManager {
 
     /* Insert and Deep Insert */
@@ -34,7 +34,7 @@ public class DBManager {
     public static void insert(Object object) throws DBSerializerException, IllegalAccessException, SQLException, InterruptedException, DBSerializerPrimaryKeyMissingException, InvocationTargetException {
         // Get table name and table map
         String tableName = DBSerializer.getTableName(object.getClass());
-        Map<String, Object> tableMap = getTableMap(object);
+        Map<String, Object> tableMap = DBSerializer.getTableMap(object);
 
         // Get if should generate primary key
         boolean shouldGeneratePrimaryKey = false;
@@ -116,27 +116,27 @@ public class DBManager {
 
     /* Get All Objects Where */
 
-    public static List<Object> getAllByPrimaryKey(Class dbClass, Object primaryKey) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, IllegalAccessException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+    public static <T> List<T> selectAllByPrimaryKey(Class<T> dbClass, Object primaryKey) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, IllegalAccessException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         String primaryKeyName = DBSerializer.getPrimaryKeyName(dbClass);
 
-        return getAllWhere(dbClass, primaryKeyName, SQLOperators.EQUAL, primaryKey);
+        return selectAllWhere(dbClass, primaryKeyName, SQLOperators.EQUAL, primaryKey);
     }
 
-    public static List<Object> getAllWhere(Class dbClass, String whereCol, SQLOperators operator, Object whereVal) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        return getAllWhere(dbClass, Map.of(whereCol, whereVal), operator);
+    public static <T> List<T> selectAllWhere(Class<T> dbClass, String whereCol, SQLOperators operator, Object whereVal) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        return selectAllWhere(dbClass, Map.of(whereCol, whereVal), operator);
     }
 
-    public static List<Object> getAllWhere(Class dbClass, Map<String, Object> colValMap, SQLOperators commonOperator) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public static <T> List<T> selectAllWhere(Class<T> dbClass, Map<String, Object> colValMap, SQLOperators commonOperator) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         // Create PS Component List
         List<PSComponent> sqlConditions = new ArrayList<>();
 
         // Add SQLOperatorConditions for each colValMap with the commonOperator
         colValMap.forEach((k, v) -> sqlConditions.add(new SQLOperatorCondition(k, commonOperator, v)));
 
-        return getAllWhere(dbClass, sqlConditions);
+        return selectAllWhere(dbClass, sqlConditions);
     }
 
-    public static List<Object> getAllWhere(Class dbClass, List<PSComponent> sqlConditions) throws DBSerializerException, InterruptedException, SQLException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public static <T> List<T> selectAllWhere(Class<T> dbClass, List<PSComponent> sqlConditions) throws DBSerializerException, InterruptedException, SQLException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         // Get tableName
         String tableName = DBSerializer.getTableName(dbClass);
 
@@ -146,6 +146,39 @@ public class DBManager {
                 .where(sqlConditions)
                 .build();
 
+        return select(dbClass, cps);
+    }
+
+    public static <T> List<T> selectAllWhereOrderByLimit(Class<T> dbClass, String whereCol, SQLOperators operator, Object whereVal, List<String> orderByColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        return selectAllWhereOrderByLimit(dbClass, Map.of(whereCol, whereVal), operator, orderByColumns, direction, limit);
+    }
+
+    public static <T> List<T> selectAllWhereOrderByLimit(Class<T> dbClass, Map<String, Object> whereColValMap, SQLOperators commonOperator, List<String> orderByColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        // Create PS Component List
+        List<PSComponent> sqlConditions = new ArrayList<>();
+
+        // Add SQLOperatorConditions for each colValMap with the commonOperator
+        whereColValMap.forEach((k, v) -> sqlConditions.add(new SQLOperatorCondition(k, commonOperator, v)));
+
+        return selectAllWhereOrderByLimit(dbClass, sqlConditions, orderByColumns, direction, limit);
+    }
+
+    public static <T> List<T> selectAllWhereOrderByLimit(Class<T> dbClass, List<PSComponent> sqlConditions, List<String> orderBoColumns, OrderByComponent.Direction direction, Integer limit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        // Get tableName
+        String tableName = DBSerializer.getTableName(dbClass);
+
+        //Create Select CPS
+        ComponentizedPreparedStatement cps = SelectComponentizedPreparedStatementBuilder.forTable(tableName)
+                .select(SQLTokens.ALL)
+                .where(sqlConditions)
+                .orderBy(direction, orderBoColumns)
+                .limit(limit)
+                .build();
+
+        return select(dbClass, cps);
+    }
+
+    protected static <T> List<T> select(Class<T> dbClass, ComponentizedPreparedStatement cps) throws InterruptedException, DBSerializerException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException {
         // Get connection from pool and query
         Connection conn = SQLConnectionPoolInstance.getConnection();
         try {
@@ -153,7 +186,7 @@ public class DBManager {
             List<Map<String, Object>> resultMaps = DBClient.query(conn, cps);
 
             // Create resultArray
-            List<Object> resultArray = new ArrayList<>();
+            List<T> resultArray = new ArrayList<>();
 
             // Deserialize to array of objects of the class dbClass
             for (Map<String, Object> resultMap: resultMaps) {
@@ -169,6 +202,10 @@ public class DBManager {
             System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
+    }
+
+    public static <T> T asdf() {
+        return (T)"asdf";
     }
 
     /* Count Object Where */
@@ -236,7 +273,7 @@ public class DBManager {
         return countWithComponentizedPreparedStatement(cps, tempID);
     }
 
-    private static Long countWithComponentizedPreparedStatement(ComponentizedPreparedStatement cps, String generatedKeyIdentifier) throws InterruptedException, SQLException {
+    protected static Long countWithComponentizedPreparedStatement(ComponentizedPreparedStatement cps, String generatedKeyIdentifier) throws InterruptedException, SQLException {
 
         // Get connection from pool and query
         Connection conn = SQLConnectionPoolInstance.getConnection();
@@ -297,4 +334,44 @@ public class DBManager {
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
+
+    /* Update Where */
+
+    public static void updateWhere(Class dbClass, String toUpdateCol, Object newVal, String whereCol, SQLOperators operator, Object whereVal) throws DBSerializerException, SQLException, InterruptedException {
+        updateWhere(
+                dbClass,
+                Map.of(
+                        toUpdateCol, newVal
+                ),
+                Map.of(
+                        whereCol, whereVal
+                ),
+                operator
+        );
+    }
+
+    public static void updateWhere(Class dbClass, Map<String, Object> toUpdateColValMap, Map<String, Object> whereColValMap, SQLOperators commonOperator) throws InterruptedException, DBSerializerException, SQLException {
+        String tableName = DBSerializer.getTableName(dbClass);
+
+        ComponentizedPreparedStatement cps = UpdateComponentizedPreparedStatementBuilder.forTable(tableName)
+                .set(toUpdateColValMap)
+                .where(whereColValMap, commonOperator)
+                .build();
+
+        update(dbClass, cps);
+    }
+
+    protected static void update(Class dbClass, ComponentizedPreparedStatement cps) throws InterruptedException, SQLException {
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+        try {
+            DBClient.update(conn, cps);
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            // Release connection instance
+            SQLConnectionPoolInstance.releaseConnection(conn);
+//            System.out.println("released");
+        }
+    }
+
 }

@@ -1,6 +1,5 @@
 package com.writesmith.model.database.objects;
 
-import com.writesmith.database.DBObject;
 import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.Sender;
 import sqlcomponentizer.dbserializer.DBColumn;
@@ -9,7 +8,7 @@ import sqlcomponentizer.dbserializer.DBSerializable;
 import java.time.LocalDateTime;
 
 @DBSerializable(tableName = DBRegistry.Table.Chat.TABLE_NAME)
-public class Chat extends DBObject {
+public class Chat {
 
     @DBColumn(name = DBRegistry.Table.Chat.chat_id, primaryKey = true)
     private Integer id;

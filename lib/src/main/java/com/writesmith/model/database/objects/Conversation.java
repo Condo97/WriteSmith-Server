@@ -1,12 +1,11 @@
 package com.writesmith.model.database.objects;
 
-import com.writesmith.database.DBObject;
 import com.writesmith.model.database.DBRegistry;
 import sqlcomponentizer.dbserializer.DBColumn;
 import sqlcomponentizer.dbserializer.DBSerializable;
 
 @DBSerializable(tableName = DBRegistry.Table.Conversation.TABLE_NAME)
-public class Conversation extends DBObject {
+public class Conversation {
 
     @DBColumn(name = DBRegistry.Table.Conversation.conversation_id, primaryKey = true)
     private Integer id;

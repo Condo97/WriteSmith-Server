@@ -75,6 +75,7 @@ public class Main {
         });
 
         exception(Exception.class, (error, req, res) -> {
+            error.printStackTrace();
             System.out.println("The request: " + req.body());
             error.printStackTrace();
 
@@ -98,10 +99,11 @@ public class Main {
 
     private static void configureHttp(boolean dev) {
         // POST Functions
-        post(Constants.REGISTER_USER_URI, Server::registerUser);
         post(Constants.GET_CHAT_URI, Server::getChat);
-        post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI, Server::validateAndUpdateReceipt);
+        post(Constants.GET_IS_PREMIUM_URI, Server::getIsPremium);
         post(Constants.GET_REMAINING_URI, Server::getRemainingChats);
+        post(Constants.REGISTER_USER_URI, Server::registerUser);
+        post(Constants.REGISTER_TRANSACTION_URI, Server::registerTransaction);
 
         // Get Constants
         post(Constants.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetImportantConstantsResponse())));
@@ -110,7 +112,7 @@ public class Main {
         // Legacy Functions
         post(Constants.GET_DISPLAY_PRICE_URI, (req, res) -> new ObjectMapper().writeValueAsString( new BodyResponse(ResponseStatus.SUCCESS, new LegacyGetDisplayPriceResponse())));
         post(Constants.GET_SHARE_URL_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new LegacyGetShareURLResponse())));
-
+        post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI_LEGACY, Server::validateAndUpdateReceipt);
 
         // dev functions
         if (dev) {

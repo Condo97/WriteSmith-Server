@@ -10,7 +10,7 @@ import com.writesmith.common.exceptions.PreparedStatementMissingArgumentExceptio
 import com.writesmith.deprecated.helpers.IMutableInteger;
 import com.writesmith.common.IntegerFromBoolean;
 import com.writesmith.deprecated.helpers.MutableInteger;
-import com.writesmith.core.iapvalidation.RecentReceiptValidator;
+import com.writesmith.core.apple.iapvalidation.RecentReceiptValidator;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
 import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
@@ -35,15 +35,15 @@ public class OpenAIGPTChatFiller {
 
     public static IntegerFromBoolean getCapFromPremium = t -> t ? Constants.Cap_Chat_Daily_Paid_Legacy : Constants.Cap_Chat_Daily_Free;
 
-    public static void fillChatIfAble(ChatLegacy chatLegacy) throws SQLException, OpenAIGPTException, CapReachedException, PreparedStatementMissingArgumentException, IOException, InterruptedException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+    public static void fillChatIfAble(ChatLegacy chatLegacy, Boolean usePaidModel) throws SQLException, OpenAIGPTException, CapReachedException, PreparedStatementMissingArgumentException, IOException, InterruptedException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // Get validated and updated receipt
         Receipt receipt = RecentReceiptValidator.getAndValidateMostRecentReceipt(chatLegacy);
-        fillChatIfAble(chatLegacy, receipt);
+        fillChatIfAble(chatLegacy, receipt, usePaidModel);
     }
 
-    public static void fillChatIfAble(ChatLegacy chatLegacy, Receipt receipt) throws SQLException, OpenAIGPTException, CapReachedException, PreparedStatementMissingArgumentException, IOException, InterruptedException, DBSerializerException {
+    public static void fillChatIfAble(ChatLegacy chatLegacy, Receipt receipt, Boolean usePaidModel) throws SQLException, OpenAIGPTException, CapReachedException, PreparedStatementMissingArgumentException, IOException, InterruptedException, DBSerializerException {
         // We want that Integer bc if something extends it they should be able to know the count :) But also maybe we can just say it's a way to set the count? if -1 then let it auto set the count or sumptn?
-        fillChatIfAble(chatLegacy, receipt, new MutableInteger(-1));
+        fillChatIfAble(chatLegacy, receipt, new MutableInteger(-1), usePaidModel);
     }
 
     /***
@@ -59,7 +59,7 @@ public class OpenAIGPTChatFiller {
      * @throws CapReachedException
      * @throws OpenAIGPTException
      */
-    protected static void fillChatIfAble(ChatLegacy chatLegacy, Receipt receipt, IMutableInteger count) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException, CapReachedException, OpenAIGPTException, DBSerializerException {
+    protected static void fillChatIfAble(ChatLegacy chatLegacy, Receipt receipt, IMutableInteger count, Boolean usePaidModel) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException, CapReachedException, OpenAIGPTException, DBSerializerException {
         // Get cooldown end timestamp TODO
 
         // Verify cooldown end timestamp is before current date, otherwise throw exception TODO
@@ -86,8 +86,9 @@ public class OpenAIGPTChatFiller {
         // Get the token limit if there is one
         int tokenLimit = isPremium ? Constants.Response_Token_Limit_Paid : Constants.Response_Token_Limit_Free;
 
-        // Get model name for tier
-        String modelName = isPremium ? Constants.PAID_MODEL_NAME : Constants.DEFAULT_MODEL_NAME;
+        // Get model name for paid if using paid and isPremium or free
+        String modelName = isPremium && usePaidModel ? Constants.PAID_MODEL_NAME : Constants.DEFAULT_MODEL_NAME;
+//        String modelName = isPremium ? Constants.PAID_MODEL_NAME : Constants.DEFAULT_MODEL_NAME;
 
         // GENERATE THE CHAT! :)
         fillChat(chatLegacy, modelName, tokenLimit);

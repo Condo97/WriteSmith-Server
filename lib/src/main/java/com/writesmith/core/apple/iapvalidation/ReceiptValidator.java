@@ -1,4 +1,4 @@
-package com.writesmith.core.iapvalidation;
+package com.writesmith.core.apple.iapvalidation;
 
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;

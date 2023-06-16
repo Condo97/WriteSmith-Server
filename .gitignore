@@ -12,3 +12,5 @@ build
 
 # Ignore testing keystore
 /chitchatserver.com.jks
+/keys/SubscriptionKey_PJ323P8QVH.p8
+/lib/keys/

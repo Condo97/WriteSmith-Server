@@ -18,10 +18,6 @@ public final class Constants {
     public static final String YEARLY_PRICE = "49.99";
     public static final String YEARLY_NAME = "chitchatultrayearly";
 
-    /* Timeouts and Delays */
-    public static final int Delay_Seconds_Free = 15;
-    public static final int Delay_Seconds_Paid = 0;
-
     /* Tiered Limits */
     public static final int Response_Token_Limit_Free = 80;
     public static final int Response_Token_Limit_Paid = 1000;
@@ -29,7 +25,8 @@ public final class Constants {
     public static final int Context_Character_Limit_Free = 800;
     public static final int Context_Character_Limit_Paid = 2000;
 
-    public static final int Delay_Seconds_Premium_Check = 60;
+    /* Delays and Cooldowns */
+    public static final int Transaction_Status_Apple_Update_Cooldown = 60;
 
     /* Caps */
     public static final int Cap_Free_Total_Essays = 3; // This is just a constant sent to the device, which handles everything
@@ -38,42 +35,38 @@ public final class Constants {
     public static final int Cap_Chat_Daily_Paid_Legacy = -1; //-1 is unlimited
 
     /* URIs for HTTPSServer */
-    public static final String GET_CONVERSATION_URI = "/getConversation";
-    public static final String GET_REMAINING_URI = "/getRemaining";
-    public static final String GENERATE_IMAGE_URI = "/generateImage";
-    public static final String REGISTER_USER_URI = "/registerUser";
-    public static final String VALIDATE_AND_UPDATE_RECEIPT_URI = "/validateAndUpdateReceipt";
-
-    public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
-    public static final String GET_PRODUCTS_URI = "/getProducts";
-
-    public static final String QUICK_VALIDATE_PREMIUM_URI = "/quickValidateUserIsPremium";
+    public static final String GET_CHAT_URI = "/getChat";
     public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
-    public static final String PRIVACY_POLICY_URI = "/privacyPolicy.html";
-    public static final String TERMS_AND_CONDITIONS_URI = "/termsAndConditions.html";
-    public static final String PRINT_ALL_ACTIVE_SUBSCRIPTIONS_URI = "/printAllActiveSubscriptions";
+    public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
+    public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
+    public static final String GET_REMAINING_URI = "/getRemaining";
+    public static final String REGISTER_USER_URI = "/registerUser";
+    public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
 
     /* Legacy URIs for HTTPServer */
-    public static final String GET_CHAT_URI = "/getChat";
     public static final String GET_DISPLAY_PRICE_URI = "/getDisplayPrice";
     public static final String GET_SHARE_URL_URI = "/getShareURL";
+    public static final String VALIDATE_AND_UPDATE_RECEIPT_URI_LEGACY = "/validateAndUpdateReceipt";
 
     /* Share URL */
     public static final String SHARE_URL = "https://apps.apple.com/us/app/chit-chat-ai-writing-author/id1664039953";
 
     /* Policy Retrieval Constants */
-    public static final int JSON_RETRIEVAL = 0;
-    public static final int PRIVACY_POLICY_RETRIEVAL = 1;
-    public static final int TERMS_AND_CONDITIONS_RETRIEVAL = 2;
-    public static final String PRIVACY_POLICY_LOCATION = "policies/privacy.html";
-    public static final String TERMS_AND_CONDITIONS_LOCATION = "policies/termsandconditions.html";
 
     /* MySQL Constants */
     public static final String MYSQL_URL = "jdbc:mysql://localhost:3306/chitchat_schema";
 
     /* Apple Server Constants */
-    public static final String Sandbox_Apple_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
-    public static final String Apple_URL = "https://buy.itunes.apple.com/verifyReceipt";
+    public static final String Apple_Sandbox_Storekit_Base_URL = "https://api.storekit-sandbox.itunes.apple.com";
+    public static final String Apple_Storekit_Base_URL = "https://api.storekit.itunes.apple.com";
+    public static final String Apple_In_Apps_URL_Path = "/inApps";
+    public static final String Apple_V1_URL_Path = "/v1";
+    public static final String Apple_Subscriptions_URL_Path = "/subscriptions";
+    public static final String Apple_Get_Subscription_Status_V1_Full_URL_Path = Apple_In_Apps_URL_Path + Apple_V1_URL_Path + Apple_Subscriptions_URL_Path;
+    public static final String Apple_SubscriptionKey_JWS_Path = "keys/SubscriptionKey_PJ323P8QVH.p8";
+
+    public static final String Sandbox_Apple_Verify_Receipt_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
+    public static final String Apple_Verify_Receipt_URL = "https://buy.itunes.apple.com/verifyReceipt";
     public static long APPLE_TIMEOUT_MINUTES = 4;
 
     /* ChatSonic Server Constants */
@@ -83,29 +76,9 @@ public final class Constants {
     public static URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
     public static long AI_TIMEOUT_MINUTES = 4;
     public static String DEFAULT_MODEL_NAME = "gpt-3.5-turbo";//"gpt-4";
-    public static String PAID_MODEL_NAME = "gpt-3.5-turbo";//"gpt-4";
+    public static String PAID_MODEL_NAME = "gpt-4";
     public static String DEFAULT_BEHAVIOR = null;
     public static Role LEGACY_DEFAULT_ROLE = Role.USER;
     public static int DEFAULT_TEMPERATURE = 0;
-
-    /* Success and Exceptions */
-    public static final int SUCCESS_Success = 1;
-    public static final int SUCCESS_JSONException = 4;
-    public static final int SUCCESS_OddRetrievalValue = 10;
-    public static final int SUCCESS_IOException = 45;
-    public static final int SUCCESS_InterruptedException = 46;
-    public static final int SUCCESS_SQLException = 47;
-    public static final int SUCCESS_MissingRowException = 48;
-    public static final int SUCCESS_DuplicateRowException = 49;
-    public static final int SUCCESS_InvalidIndexException = 50;
-    public static final int SUCCESS_GenerateCapException = 51;
-    public static final int SUCCESS_CooldownException = 52;
-    public static final int SUCCESS_UnavailableQualityException = 53;
-    public static final int SUCCESS_ChatSaveException = 54;
-    public static final int SUCCESS_ReceiptExistsException = 55;
-    public static final int SUCCESS_GenerateErrorException = 56;
-    public static final int SUCCESS_StillGeneratingException = 57;
-    public static final int SUCCESS_SomethingWeirdHappenedException = 69;
-    public static final int SUCCESS_UnhandledException = 99;
 
 }

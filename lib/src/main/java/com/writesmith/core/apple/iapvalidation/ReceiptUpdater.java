@@ -1,4 +1,4 @@
-package com.writesmith.core.iapvalidation;
+package com.writesmith.core.apple.iapvalidation;
 
 import com.writesmith.database.DBManager;
 import com.writesmith.model.database.objects.Receipt;
@@ -9,6 +9,7 @@ import com.writesmith.common.exceptions.PreparedStatementMissingArgumentExceptio
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
+import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -43,7 +44,8 @@ public class ReceiptUpdater {
 
         ReceiptValidator.validateReceipt(newReceipt); // one call 💪
 
-        if (shouldInsert) DBManager.deepInsert(newReceipt);
+        if (shouldInsert)
+            DBManager.deepInsert(newReceipt);
         else {
             // Update receipt
             Map<String, Object> colValMapToUpdate = Map.of(
@@ -55,7 +57,9 @@ public class ReceiptUpdater {
                     "receipt_id", newReceipt.getID()
             );
 
-            newReceipt.updateWhere(colValMapToUpdate, whereColValMap);
+//            newReceipt.updateWhere(colValMapToUpdate, whereColValMap);
+            DBManager.updateWhere(Receipt.class, colValMapToUpdate, whereColValMap, SQLOperators.EQUAL);
         }
     }
+
 }

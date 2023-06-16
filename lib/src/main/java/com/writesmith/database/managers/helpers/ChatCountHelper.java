@@ -7,7 +7,6 @@ import com.writesmith.model.database.objects.Chat;
 import com.writesmith.model.database.objects.Conversation;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.preparedstatement.component.PSComponent;
-import sqlcomponentizer.preparedstatement.component.condition.SQLNullCondition;
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperatorCondition;
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 

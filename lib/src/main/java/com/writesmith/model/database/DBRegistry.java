@@ -41,9 +41,23 @@ public class DBRegistry {
             public static final String TABLE_NAME = "GeneratedChat";
             public static final String chat_id = "chat_id";
             public static final String finish_reason = "finish_reason";
+            public static final String model_name = "model_name";
             public static final String completion_tokens = "completion_tokens";
             public static final String prompt_tokens = "prompt_tokens";
             public static final String total_tokens = "total_tokens";
+
+        }
+
+        public class Transaction {
+
+            public static final String TABLE_NAME = "Transaction";
+            public static final String transaction_id = "transaction_id";
+            public static final String user_id = "user_id";
+            public static final String appstore_transaction_id = "appstore_transaction_id";
+            public static final String transaction_date = "transaction_date";
+            public static final String record_date = "record_date";
+            public static final String check_date = "check_date";
+            public static final String status = "status";
 
         }
 

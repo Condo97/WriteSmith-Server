@@ -60,6 +60,9 @@ dependencies {
 
     // MySQL Connector
     implementation 'mysql:mysql-connector-java:8.0.30'
+
+    // java-jwt for JWT
+    implementation 'com.auth0:java-jwt:4.4.0'
 }
 
 tasks.named('test') {
