@@ -17,7 +17,7 @@ public class ConversationDBManager extends DBManager {
 
     public static Conversation getFirstByPrimaryKey(Object primaryKey) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         // Get all objects by primary key
-        List<Object> allByPrimaryKey = DBManager.getAllByPrimaryKey(Conversation.class, primaryKey);
+        List<Conversation> allByPrimaryKey = DBManager.selectAllByPrimaryKey(Conversation.class, primaryKey);
 
         // If there is at least one object, return the first
         if (allByPrimaryKey.size() > 0)
@@ -50,16 +50,7 @@ public class ConversationDBManager extends DBManager {
 
     public static List<Chat> getChatsInDB(Conversation conversation) throws DBSerializerException, SQLException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // Create chat list from DB
-        List<Chat> chats = new ArrayList<>();
-
-        // Get chat objects from DB as object list
-        List<Object> chatsAsObjects = DBManager.getAllWhere(Chat.class, DBRegistry.Table.Chat.conversation_id, SQLOperators.EQUAL, conversation.getID());
-
-        // Add all Chats to chat list
-        chatsAsObjects.forEach(v -> {
-            if (v instanceof Chat)
-                chats.add((Chat)v);
-        });
+        List<Chat> chats = DBManager.selectAllWhere(Chat.class, DBRegistry.Table.Chat.conversation_id, SQLOperators.EQUAL, conversation.getID());
 
         return chats;
     }

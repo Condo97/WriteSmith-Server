@@ -1,10 +1,9 @@
 package com.writesmith.core.generation.openai;
 
+import com.writesmith.database.managers.ConversationDBManager;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
 import com.writesmith.model.database.objects.Conversation;
-import com.writesmith.database.managers.ConversationDBManager;
-import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.model.database.objects.GeneratedChat;
 import com.writesmith.model.http.client.openaigpt.Role;
 import com.writesmith.model.http.client.openaigpt.RoleMapper;
@@ -13,7 +12,6 @@ import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCo
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
 import com.writesmith.model.http.client.openaigpt.response.prompt.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
-import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -24,7 +22,7 @@ import java.util.List;
 
 public class OpenAIChatGenerator {
 
-    public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, String model, Integer temperature, Integer tokenLimit) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
+    public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, String modelName, Integer temperature, Integer tokenLimit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
         // Get all chats in conversation
         List<Chat> chats = ConversationDBManager.getChatsInDB(conversation, contextCharacterLimit);
 
@@ -41,7 +39,7 @@ public class OpenAIChatGenerator {
 
         // Create OpenAIGPTPromptRequest messageRequests and default values
         OpenAIGPTChatCompletionRequest request = new OpenAIGPTChatCompletionRequest(
-                model,
+                modelName,
                 tokenLimit,
                 temperature,
                 messageRequests
@@ -63,6 +61,7 @@ public class OpenAIChatGenerator {
                 return new GeneratedChat(
                         chat,
                         response.getChoices()[0].getFinish_reason(),
+                        modelName,
                         response.getUsage().getCompletion_tokens(),
                         response.getUsage().getPrompt_tokens(),
                         response.getUsage().getTotal_tokens()

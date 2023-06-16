@@ -100,7 +100,8 @@ public class Main {
         // POST Functions
         post(Constants.REGISTER_USER_URI, Server::registerUser);
         post(Constants.GET_CHAT_URI, Server::getChat);
-        post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI, Server::validateAndUpdateReceipt);
+        post(Constants.REGISTER_TRANSACTION_URI, Server::registerTransaction);
+        post(Constants.VALIDATE_AND_UPDATE_RECEIPT_URI_LEGACY, Server::validateAndUpdateReceipt);
         post(Constants.GET_REMAINING_URI, Server::getRemainingChats);
 
         // Get Constants

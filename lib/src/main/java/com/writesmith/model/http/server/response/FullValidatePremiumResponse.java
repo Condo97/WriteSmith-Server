@@ -1,13 +1,14 @@
 package com.writesmith.model.http.server.response;
 
-public class ValidateAndUpdateReceiptResponse {
+public class FullValidatePremiumResponse {
+
     boolean isPremium;
 
-    public ValidateAndUpdateReceiptResponse() {
+    public FullValidatePremiumResponse() {
 
     }
 
-    public ValidateAndUpdateReceiptResponse(boolean isPremium) {
+    public FullValidatePremiumResponse(boolean isPremium) {
         this.isPremium = isPremium;
     }
 
@@ -18,4 +19,5 @@ public class ValidateAndUpdateReceiptResponse {
     public void setIsPremium(boolean isPremium) {
         isPremium = isPremium;
     }
+
 }

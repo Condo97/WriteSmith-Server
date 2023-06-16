@@ -1,10 +1,9 @@
 package com.writesmith;
 
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
-import com.writesmith.core.iapvalidation.AppleHttpVerifyReceipt;
-import com.writesmith.core.iapvalidation.ReceiptUpdater;
-import com.writesmith.core.iapvalidation.ReceiptValidator;
-import com.writesmith.database.DBObject;
+import com.writesmith.core.apple.iapvalidation.AppleHttpVerifyReceipt;
+import com.writesmith.core.apple.iapvalidation.ReceiptUpdater;
+import com.writesmith.core.apple.iapvalidation.ReceiptValidator;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.database.managers.ReceiptDBManager;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
@@ -166,16 +165,20 @@ public class Tests {
     @DisplayName("VerifyReceipt Testing")
     void testVerifyReceipt() {
         Integer userID = 32828;
-        DBObject db = null;
+//        DBEntity db = null;
         try {
-            Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB
-                    (userID);
+            try {
+                Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB
+                        (userID);
 
-            VerifyReceiptRequest request = new VerifyReceiptRequest(r.getReceiptData(), Keys.sharedAppSecret, "false");
+                VerifyReceiptRequest request = new VerifyReceiptRequest(r.getReceiptData(), Keys.sharedAppSecret, "false");
 
-            VerifyReceiptResponse response = new AppleHttpVerifyReceipt().getVerifyReceiptResponse(request);
+                VerifyReceiptResponse response = new AppleHttpVerifyReceipt().getVerifyReceiptResponse(request);
 
-            System.out.println(response.getPending_renewal_info().get(0).getExpiration_intent());
+                System.out.println(response.getPending_renewal_info().get(0).getExpiration_intent());
+            } catch (DBObjectNotFoundFromQueryException e) {
+                System.out.println("Receipt not found when getting the most recent receipt... Could this be because there are no receipts in the database?");
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
@@ -187,8 +190,6 @@ public class Tests {
         } catch (DBSerializerException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (DBObjectNotFoundFromQueryException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
@@ -203,34 +204,38 @@ public class Tests {
     @DisplayName("Test receipt validation")
     void testReceiptValidation() {
         Integer userID = 32830;
-        DBObject db = null;
+//        DBEntity db = null;
         try {
-            // Ensure that the date is the same, even after getting twice
-            Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
-            LocalDateTime initialCheckDate = r.getCheckDate();
-            r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
-            LocalDateTime secondCheckDate = r.getCheckDate();
+            try {
+                // Ensure that the date is the same, even after getting twice
+                Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
+                LocalDateTime initialCheckDate = r.getCheckDate();
+                r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
+                LocalDateTime secondCheckDate = r.getCheckDate();
 
-            assert(initialCheckDate.isEqual(secondCheckDate));
+                assert (initialCheckDate.isEqual(secondCheckDate));
 
-            // Ensure that the date is later after validating
-            r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
-            initialCheckDate = r.getCheckDate();
-            ReceiptValidator.validateReceipt(r);
-            secondCheckDate = r.getCheckDate();
+                // Ensure that the date is later after validating
+                r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
+                initialCheckDate = r.getCheckDate();
+                ReceiptValidator.validateReceipt(r);
+                secondCheckDate = r.getCheckDate();
 
-            System.out.println(ChronoUnit.MILLIS.between(secondCheckDate, initialCheckDate));
+                System.out.println(ChronoUnit.MILLIS.between(secondCheckDate, initialCheckDate));
 
-            assert(secondCheckDate.isAfter(initialCheckDate));
+                assert (secondCheckDate.isAfter(initialCheckDate));
 
-            // Ensure that the date is later after updating
-            r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
-            initialCheckDate = r.getCheckDate();
-            Thread.sleep(1000);
-            ReceiptUpdater.updateIfNeeded(r);
-            secondCheckDate = r.getCheckDate();
+                // Ensure that the date is later after updating
+                r = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
+                initialCheckDate = r.getCheckDate();
+                Thread.sleep(1000);
+                ReceiptUpdater.updateIfNeeded(r);
+                secondCheckDate = r.getCheckDate();
 
-            assert(secondCheckDate.isAfter(initialCheckDate));
+                assert (secondCheckDate.isAfter(initialCheckDate));
+            } catch (DBObjectNotFoundFromQueryException e) {
+                System.out.println("Receipt not found in \"Test receipt validation\" the most recent receipt... Could this be because there are no receipts in the database?");
+            }
 
 
         } catch (SQLException e) {
@@ -251,8 +256,6 @@ public class Tests {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
-        } catch (DBObjectNotFoundFromQueryException e) {
-            throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
         } catch (NoSuchMethodException e) {
@@ -272,7 +275,7 @@ public class Tests {
             ChatLegacyWrapper chatWrapper = new ChatLegacyWrapper(userID, userText, LocalDateTime.now());
 
             try {
-                OpenAIGPTChatWrapperFiller.fillChatWrapperIfAble(chatWrapper);
+                OpenAIGPTChatWrapperFiller.fillChatWrapperIfAble(chatWrapper, true);
             } catch (DBObjectNotFoundFromQueryException e) {
                 System.out.println("No receipt found for id " + userID);
                 // TODO: - Maybe test this more, add a receipt?

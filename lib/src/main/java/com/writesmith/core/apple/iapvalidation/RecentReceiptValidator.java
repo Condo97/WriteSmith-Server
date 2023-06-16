@@ -1,4 +1,4 @@
-package com.writesmith.core.iapvalidation;
+package com.writesmith.core.apple.iapvalidation;
 
 import com.writesmith.Constants;
 import com.writesmith.model.database.objects.ChatLegacy;
@@ -33,7 +33,7 @@ public class RecentReceiptValidator extends ReceiptValidator {
 
 
         // If current timestamp - receipt timestamp is greater than Delay_Seconds_Premium_Check
-        if (LocalDateTime.now().minus(Duration.ofSeconds(Constants.Delay_Seconds_Premium_Check)).isBefore(receipt.getCheckDate())) {
+        if (LocalDateTime.now().minus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)).isBefore(receipt.getCheckDate())) {
             // Checks with Apple and updates receipt in database accordingly!
             validateReceipt(receipt);
         }

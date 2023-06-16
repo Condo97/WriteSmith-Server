@@ -1,4 +1,4 @@
-package com.writesmith.core.iapvalidation;
+package com.writesmith.core.apple.iapvalidation;
 
 import com.fasterxml.jackson.databind.*;
 import com.writesmith.Constants;
@@ -14,7 +14,7 @@ import java.net.URI;
 public class AppleHttpVerifyReceipt extends HttpsClientHelper {
 
     public VerifyReceiptResponse getVerifyReceiptResponse(Object requestObject) throws IOException, InterruptedException, AppleItunesResponseException {
-        return getVerifyReceiptResponse(requestObject, URI.create(Constants.Apple_URL));
+        return getVerifyReceiptResponse(requestObject, URI.create(Constants.Apple_Verify_Receipt_URL));
     }
 
     public VerifyReceiptResponse getVerifyReceiptResponse(Object requestObject, URI uri) throws IOException, InterruptedException, AppleItunesResponseException {
@@ -25,7 +25,7 @@ public class AppleHttpVerifyReceipt extends HttpsClientHelper {
 
             // If it is in the sandbox, then try again with the sandbox URI
             if (verifyReceiptResponse.getStatus() == 21007) {
-                return getVerifyReceiptResponse(requestObject, URI.create(Constants.Sandbox_Apple_URL));
+                return getVerifyReceiptResponse(requestObject, URI.create(Constants.Sandbox_Apple_Verify_Receipt_URL));
             }
 
             return verifyReceiptResponse;

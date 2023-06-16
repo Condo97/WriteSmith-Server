@@ -1,12 +1,11 @@
 package com.writesmith.model.database.objects;
 
-import com.writesmith.database.DBObject;
 import com.writesmith.model.database.DBRegistry;
 import sqlcomponentizer.dbserializer.DBColumn;
 import sqlcomponentizer.dbserializer.DBSerializable;
 
 @DBSerializable(tableName = DBRegistry.Table.User_AuthToken.TABLE_NAME)
-public class User_AuthToken extends DBObject {
+public class User_AuthToken {
 
     @DBColumn(name = DBRegistry.Table.User_AuthToken.user_id, primaryKey = true)
     private Integer userID;

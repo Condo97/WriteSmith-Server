@@ -2,22 +2,22 @@ package com.writesmith.model.generation.objects;
 
 import com.writesmith.model.database.objects.GeneratedChat;
 
-public class GrantedGeneratedChat {
+public class WSChat {
 
-    private GeneratedChat generatedChat;
+    private GeneratedChat openAIGeneratedChat;
     private Long remaining;
 
-    public GrantedGeneratedChat(GeneratedChat generatedChat, Long remaining) {
-        this.generatedChat = generatedChat;
+    public WSChat(GeneratedChat openAIGeneratedChat, Long remaining) {
+        this.openAIGeneratedChat = openAIGeneratedChat;
         this.remaining = remaining;
     }
 
     public GeneratedChat getGeneratedChat() {
-        return generatedChat;
+        return openAIGeneratedChat;
     }
 
-    public void setGeneratedChat(GeneratedChat generatedChat) {
-        this.generatedChat = generatedChat;
+    public void setGeneratedChat(GeneratedChat openAIGeneratedChat) {
+        this.openAIGeneratedChat = openAIGeneratedChat;
     }
 
     public Long getRemaining() {

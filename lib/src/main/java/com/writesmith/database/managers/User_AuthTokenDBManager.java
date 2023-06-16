@@ -2,22 +2,38 @@ package com.writesmith.database.managers;
 
 import com.writesmith.database.DBManager;
 import com.writesmith.database.managers.helpers.AuthTokenGenerator;
+import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
+import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
+import java.util.List;
 
 public class User_AuthTokenDBManager extends DBManager {
 
     public static User_AuthToken getFromDB(String authToken) throws DBSerializerException, SQLException, IllegalAccessException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException {
-        User_AuthToken u_aT = new User_AuthToken(null, authToken);
-        u_aT.fillWhereColumnNameAndObject("auth_token", u_aT.getAuthToken()); // TODO: - Is there a way to not use plain text here, maybe somehow just use the row or something? Or just use the plain text and look up the id by annotation? Maybe that is better, then it verifies the text
+        List<User_AuthToken> u_aTs = DBManager.selectAllWhere(
+                User_AuthToken.class,
+                DBRegistry.Table.User_AuthToken.auth_token,
+                SQLOperators.EQUAL,
+                authToken
+        );
 
-        return u_aT;
+        // If there are no u_aTs, throw an exception
+        if (u_aTs.size() == 0)
+            throw new DBObjectNotFoundFromQueryException("No most recent user_authToken found!");
+
+        // If there is more than one u_aTs, it shouldn't be a functionality issue at this moment but print to console to see how widespread this is
+        if (u_aTs.size() > 1)
+            System.out.println("More than one user_authToken found when getting most recent User_AuthToken, even though there is a limit of one transaction.. This should never be seen!");
+
+        // Return first u_aT
+        return u_aTs.get(0);
     }
 
     public static User_AuthToken createInDB() throws AutoIncrementingDBObjectExistsException, DBSerializerException, DBSerializerPrimaryKeyMissingException, IllegalAccessException, SQLException, InterruptedException, InvocationTargetException {

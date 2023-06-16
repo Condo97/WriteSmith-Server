@@ -1,9 +1,16 @@
 package com.writesmith.model.http.server.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+//@JsonInclude(JsonInclude.Include.NON_NULL);
 public class GetChatResponse {
-    String output, finishReason;
-    Integer conversationID;
-    Long remaining;
+    private String output, finishReason;
+    private Integer conversationID;
+    private Long remaining;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String modelNameDebug;
 
     public GetChatResponse() {
 
@@ -14,6 +21,10 @@ public class GetChatResponse {
         this.finishReason = finishReason;
         this.conversationID = conversationID;
         this.remaining = remaining;
+    }
+
+    public void setModelNameDebug(String modelNameDebug) {
+        this.modelNameDebug = modelNameDebug;
     }
 
     public String getOutput() {
@@ -31,6 +42,10 @@ public class GetChatResponse {
 
     public Long getRemaining() {
         return remaining;
+    }
+
+    public String getModelNameDebug() {
+        return modelNameDebug;
     }
 
 }

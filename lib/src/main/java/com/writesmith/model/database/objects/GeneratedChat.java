@@ -14,6 +14,9 @@ public class GeneratedChat {
     @DBColumn(name = DBRegistry.Table.GeneratedChat.finish_reason)
     private String finish_reason;
 
+    @DBColumn(name = DBRegistry.Table.GeneratedChat.model_name)
+    private String modelName;
+
     @DBColumn(name = DBRegistry.Table.GeneratedChat.completion_tokens)
     private Integer completionTokens;
 
@@ -31,9 +34,10 @@ public class GeneratedChat {
 
     }
 
-    public GeneratedChat(Chat chat, String finish_reason, Integer completionTokens, Integer promptTokens, Integer totalTokens) {
+    public GeneratedChat(Chat chat, String finish_reason, String modelName, Integer completionTokens, Integer promptTokens, Integer totalTokens) {
         this.chat = chat;
         this.finish_reason = finish_reason;
+        this.modelName = modelName;
         this.completionTokens = completionTokens;
         this.promptTokens = promptTokens;
         this.totalTokens = totalTokens;
@@ -57,6 +61,10 @@ public class GeneratedChat {
 
     public String getFinish_reason() {
         return finish_reason;
+    }
+
+    public String getModelName() {
+        return modelName;
     }
 
     public void setFinish_reason(String finish_reason) {

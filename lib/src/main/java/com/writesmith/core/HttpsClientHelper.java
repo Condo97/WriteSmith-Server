@@ -12,6 +12,31 @@ import java.util.function.Consumer;
 
 public class HttpsClientHelper {
 
+    protected static JsonNode sendGET(HttpClient client, URI uri) throws IOException, InterruptedException {
+        return sendGET(client, uri, v->{});
+    }
+
+    protected static JsonNode sendGET(HttpClient client, URI uri, Consumer<HttpRequest.Builder> httpRequestBuilder) throws IOException, InterruptedException {
+        // Build the request
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .GET()
+                .uri(uri)
+                .setHeader("Content-Type", "application/json");
+
+        // Add headers from consumer
+        httpRequestBuilder.accept(requestBuilder);
+
+        System.out.println(uri);
+
+        // Get response and parse and return
+        HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+
+        System.out.println("RESPONSE STATUS CODE:\n" + response.statusCode());
+        System.out.println("RESPONSE BODY:\n" + response.body());
+
+        return new ObjectMapper().readValue(response.body(), JsonNode.class);
+    }
+
     protected static JsonNode sendPOST(Object requestObject, HttpClient client, URI uri) throws IOException, InterruptedException {
         return sendPOST(requestObject, client, uri, v->{});
     }

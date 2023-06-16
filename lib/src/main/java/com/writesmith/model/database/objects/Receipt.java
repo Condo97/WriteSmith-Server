@@ -1,6 +1,5 @@
 package com.writesmith.model.database.objects;
 
-import com.writesmith.database.DBObject;
 import com.writesmith.model.database.DBRegistry;
 import sqlcomponentizer.dbserializer.DBColumn;
 import sqlcomponentizer.dbserializer.DBSerializable;
@@ -8,7 +7,7 @@ import sqlcomponentizer.dbserializer.DBSerializable;
 import java.time.LocalDateTime;
 
 @DBSerializable(tableName = DBRegistry.Table.Receipt.TABLE_NAME)
-public class Receipt extends DBObject {
+public class Receipt {
 
     @DBColumn(name = DBRegistry.Table.Receipt.receipt_id, primaryKey = true)
     private Integer id;
