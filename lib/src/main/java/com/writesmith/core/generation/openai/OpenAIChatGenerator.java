@@ -5,12 +5,13 @@ import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
 import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
+import com.writesmith.model.generation.OpenAIGPTModels;
 import com.writesmith.model.http.client.openaigpt.Role;
 import com.writesmith.model.http.client.openaigpt.RoleMapper;
 import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
-import com.writesmith.model.http.client.openaigpt.response.prompt.OpenAIGPTChatCompletionResponse;
+import com.writesmith.model.http.client.openaigpt.response.prompt.http.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;
@@ -22,28 +23,9 @@ import java.util.List;
 
 public class OpenAIChatGenerator {
 
-    public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, String modelName, Integer temperature, Integer tokenLimit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
-        // Get all chats in conversation
-        List<Chat> chats = ConversationDBManager.getChatsInDB(conversation, contextCharacterLimit);
-
-        // Create OpenAIGPTPromptMessageRequests
-        List<OpenAIGPTChatCompletionMessageRequest> messageRequests = new ArrayList<>();
-
-        // Append behavior as system message request as first object in messageRequests if not null and not blank
-        if (conversation.getBehavior() != null && !conversation.getBehavior().equals("")) {
-            messageRequests.add(new OpenAIGPTChatCompletionMessageRequest(Role.SYSTEM, conversation.getBehavior()));
-        }
-
-        // Append chats as message requests maintaining order
-        chats.forEach(v -> messageRequests.add(new OpenAIGPTChatCompletionMessageRequest(RoleMapper.getRole(v.getSender()), v.getText())));
-
-        // Create OpenAIGPTPromptRequest messageRequests and default values
-        OpenAIGPTChatCompletionRequest request = new OpenAIGPTChatCompletionRequest(
-                modelName,
-                tokenLimit,
-                temperature,
-                messageRequests
-        );
+    public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, OpenAIGPTModels model, Integer temperature, Integer tokenLimit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
+        // Create the request
+        OpenAIGPTChatCompletionRequest request = OpenAIGPTChatCompletionRequestFactory.with(conversation, contextCharacterLimit, model, temperature, tokenLimit);
 
         // Get response from OpenAIGPTHttpHelper
         try {
@@ -61,7 +43,7 @@ public class OpenAIChatGenerator {
                 return new GeneratedChat(
                         chat,
                         response.getChoices()[0].getFinish_reason(),
-                        modelName,
+                        model.name,
                         response.getUsage().getCompletion_tokens(),
                         response.getUsage().getPrompt_tokens(),
                         response.getUsage().getTotal_tokens()

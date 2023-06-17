@@ -16,7 +16,7 @@ import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
 import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
-import com.writesmith.model.http.client.openaigpt.response.prompt.OpenAIGPTChatCompletionResponse;
+import com.writesmith.model.http.client.openaigpt.response.prompt.http.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.preparedstatement.component.PSComponent;
 import sqlcomponentizer.preparedstatement.component.condition.SQLNullCondition;

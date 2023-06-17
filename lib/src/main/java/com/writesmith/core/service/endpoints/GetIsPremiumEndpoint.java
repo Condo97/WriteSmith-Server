@@ -1,4 +1,4 @@
-package com.writesmith.core.endpoints;
+package com.writesmith.core.service.endpoints;
 
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.writesmith.common.exceptions.*;
-import com.writesmith.core.endpoints.*;
+import com.writesmith.core.service.endpoints.*;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.server.response.*;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
@@ -68,15 +68,15 @@ public class Server {
     /***
      * Get Chat
      *
-     * Gets a conversation from OpenAI using the given messages map array.
-     *
-     * Messages Map Keys:
-     * ai - Gets mapped to "assistant" in the OpenAI call, should be used to give context to the conversation
-     * user - *default* Gets mapped to "user" in the OpenAI call, should contain the latest prompt to be generated and any more context required
+     * Gets a chat from OpenAI using the given inputs.
      *
      * Request: {
      *     authToken: String - Authentication token, generated from registerUser
      *     inputText: String - The given prompt
+     *     behavior: String - The behavior the AI should assume for the conversation
+     *     conversationID: Integer - The conversationID to include conversation in query
+     *     usePaidModel: Boolean - Ask the server to use the premium model, will default to free model if authToken is not linked to a premium Transaction or Receipt
+     *     debug: Boolean - Include and print more data in response and console
      * }
      *
      * Response: {

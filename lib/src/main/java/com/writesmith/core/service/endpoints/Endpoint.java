@@ -1,4 +1,4 @@
-package com.writesmith.core.endpoints;
+package com.writesmith.core.service.endpoints;
 
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.response.BodyResponse;

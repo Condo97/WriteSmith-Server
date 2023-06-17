@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.Server;
+import com.writesmith.core.service.websockets.GetChatWebSocket;
 import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.keys.Keys;
@@ -30,6 +31,9 @@ public class Main {
             e.printStackTrace();
         }
 
+        // Configure web sockets
+        configureWebSockets();
+
         // Set up SQLConnectionPoolInstance
         SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, MAX_THREADS * 4);
 
@@ -43,14 +47,14 @@ public class Main {
         // Set up SSL
         secure("chitchatserver.com.jks", Keys.sslPassword, null, null);
 
-        // Set up v1 path
-        path("/v1", () -> configureHttp());
+        // Set up https v1 path
+        path("/v1", () -> configureHttpEndpoints());
 
-        // Set up dev path
-        path("/dev", () -> configureHttp(true));
+        // Set up https dev path
+        path("/dev", () -> configureHttpEndpoints(true));
 
         // Set up legacy / path, though technically I think configureHttp() can be just left plain there in the method without the path call
-        configureHttp();
+        configureHttpEndpoints();
 
         // Exception Handling
         exception(JsonMappingException.class, (error, req, res) -> {
@@ -93,11 +97,24 @@ public class Main {
         });
     }
 
-    private static void configureHttp() {
-        configureHttp(false);
+    private static void configureWebSockets() {
+        // TODO: Do constants and make this better :O
+        /* v1 */
+        final String v1Path = "/v1";
+
+        webSocket(v1Path + Constants.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+
+        /* dev */
+        final String devPath = "/dev";
+
+        webSocket(devPath + Constants.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
     }
 
-    private static void configureHttp(boolean dev) {
+    private static void configureHttpEndpoints() {
+        configureHttpEndpoints(false);
+    }
+
+    private static void configureHttpEndpoints(boolean dev) {
         // POST Functions
         post(Constants.GET_CHAT_URI, Server::getChat);
         post(Constants.GET_IS_PREMIUM_URI, Server::getIsPremium);

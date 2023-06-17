@@ -1,6 +1,7 @@
 package com.writesmith.model.http.server.request;
 
 public class GetChatRequest extends AuthRequest {
+
     private String inputText, behavior;
     private Integer conversationID;
     private Boolean usePaidModel, debug;
@@ -10,7 +11,16 @@ public class GetChatRequest extends AuthRequest {
 
     }
 
-//    public GetChatRequest(String authToken, String inputText, String behavior) {
+    public GetChatRequest(String authToken, String inputText, String behavior, Integer conversationID, Boolean usePaidModel, Boolean debug) {
+        super(authToken);
+        this.inputText = inputText;
+        this.behavior = behavior;
+        this.conversationID = conversationID;
+        this.usePaidModel = usePaidModel;
+        this.debug = debug;
+    }
+
+    //    public GetChatRequest(String authToken, String inputText, String behavior) {
 //        super(authToken);
 //        this.inputText = inputText;
 //        this.behavior = behavior;

@@ -8,7 +8,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.WebSocket;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class HttpsClientHelper {
 
@@ -58,4 +60,28 @@ public class HttpsClientHelper {
 
         return new ObjectMapper().readValue(response.body(), JsonNode.class);
     }
+
+    protected static Stream<String> sendPOSTStream(Object requestObject, HttpClient client, URI uri) throws IOException, InterruptedException {
+        return sendPOSTStream(requestObject, client, uri, v->{});
+    }
+
+    protected static Stream<String> sendPOSTStream(Object requestObject, HttpClient client, URI uri, Consumer<HttpRequest.Builder> httpRequestBuilder) throws IOException, InterruptedException {
+        // Take the input JSON as string
+        String requestString = new ObjectMapper().writeValueAsString(requestObject);
+
+        // Build the request
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(requestString))
+                .uri(uri)
+                .setHeader("Content-Type", "application/json");
+
+        // To add headers
+        httpRequestBuilder.accept(requestBuilder);
+
+        // Get streamHttpResponse and return stream from the body
+        HttpResponse<Stream<String>> streamHttpResponse = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofLines());
+
+        return streamHttpResponse.body();
+    }
+
 }

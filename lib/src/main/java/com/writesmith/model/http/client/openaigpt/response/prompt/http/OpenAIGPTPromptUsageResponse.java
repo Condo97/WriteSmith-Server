@@ -1,4 +1,4 @@
-package com.writesmith.model.http.client.openaigpt.response.prompt;
+package com.writesmith.model.http.client.openaigpt.response.prompt.http;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.writesmith.model.http.client.openaigpt.response.OpenAIGPTResponse;

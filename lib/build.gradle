@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    // Spark for HTTPS server
+    // Javalin for HTTPS server
     implementation 'com.sparkjava:spark-core:2.9.4'
 
     // SQLComponentizer for SQL handling

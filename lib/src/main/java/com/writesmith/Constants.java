@@ -36,6 +36,7 @@ public final class Constants {
 
     /* URIs for HTTPSServer */
     public static final String GET_CHAT_URI = "/getChat";
+    public static final String GET_CHAT_STREAM_URI = "/getChatStream";
     public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
     public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
     public static final String GET_IS_PREMIUM_URI = "/getIsPremium";

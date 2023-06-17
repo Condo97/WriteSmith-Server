@@ -14,6 +14,8 @@ import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.model.database.objects.Transaction;
+import com.writesmith.model.generation.OpenAIGPTModelTierSpecification;
+import com.writesmith.model.generation.OpenAIGPTModels;
 import com.writesmith.model.generation.objects.WSChat;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
@@ -33,7 +35,7 @@ import java.sql.SQLException;
 
 public class WSGenerationService {
 
-    public static WSChat generate(Conversation conversation, Boolean usePaidModel) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, CapReachedException, OpenAIGPTException, IOException, AppStoreStatusResponseException, UnrecoverableKeyException, DBSerializerPrimaryKeyMissingException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBObjectNotFoundFromQueryException {
+    public static WSChat generate(Conversation conversation, OpenAIGPTModels requestedModel) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, CapReachedException, OpenAIGPTException, IOException, AppStoreStatusResponseException, UnrecoverableKeyException, DBSerializerPrimaryKeyMissingException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBObjectNotFoundFromQueryException {
         // Get cooldown end timestamp TODO
 
         // Verify cooldown and timestamp is before current date, otherwise throw exception TODO
@@ -48,19 +50,19 @@ public class WSGenerationService {
         if (remaining != null && remaining <= 0) throw new CapReachedException("Cap reached for user");
 
         // Get the token limit if there is one
-        int tokenLimit = isPremium ? Constants.Response_Token_Limit_Paid : Constants.Response_Token_Limit_Free;
+        int tokenLimit = WSGenerationTierLimits.getTokenLimit(isPremium);
 
         // Get context character limit if there is one
-        int contextCharacterLimit = isPremium ? Constants.Context_Character_Limit_Paid : Constants.Context_Character_Limit_Free;
+        int contextCharacterLimit = WSGenerationTierLimits.getContextCharacterLimit(isPremium);
 
-        // Get model name for paid if using paid and isPremium or free
-        String modelName = isPremium && usePaidModel ? Constants.PAID_MODEL_NAME : Constants.DEFAULT_MODEL_NAME;
+        // Use the requested model or if it is out of the premium tier use the default model
+        OpenAIGPTModels model = WSGenerationTierLimits.getOfferedModelForTier(requestedModel, isPremium);
 
         // Generate the chat with context
         GeneratedChat openAIGeneratedChat = OpenAIChatGenerator.generateFromConversation(
                 conversation,
                 contextCharacterLimit,
-                modelName,
+                model,
                 Constants.DEFAULT_TEMPERATURE,
                 tokenLimit
         );
