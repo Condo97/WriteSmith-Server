@@ -11,11 +11,16 @@ import com.writesmith.common.exceptions.PreparedStatementMissingArgumentExceptio
 import com.writesmith.core.WSGenerationTierLimits;
 import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
+import com.writesmith.core.generation.openai.GeneratedChatBuilder;
 import com.writesmith.core.generation.openai.OpenAIGPTChatCompletionRequestFactory;
 import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
+import com.writesmith.core.service.BodyResponseFactory;
+import com.writesmith.database.DBManager;
+import com.writesmith.database.managers.ChatDBManager;
 import com.writesmith.database.managers.ConversationDBManager;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.Conversation;
+import com.writesmith.model.database.objects.GeneratedChat;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.generation.OpenAIGPTModels;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
@@ -25,6 +30,7 @@ import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIG
 import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIGPTPromptChoiceDeltaStreamResponse;
 import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIGPTPromptUsageResponse;
 import com.writesmith.model.http.server.request.GetChatRequest;
+import com.writesmith.model.http.server.response.BodyResponse;
 import com.writesmith.model.http.server.response.GetChatResponse;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
@@ -119,6 +125,9 @@ public class GetChatWebSocket {
                     true
             );
 
+            // Create empty GeneraetdChat to build and save to database as OpenAI stream is processed
+            GeneratedChatBuilder generatedChatBuilder = new GeneratedChatBuilder();
+
             // Do stream request with OpenAI right here for now TODO:
             Stream<String> stream = OpenAIGPTHttpsClientHelper.postChatCompletionStream(completionRequest);
 
@@ -142,11 +151,20 @@ public class GetChatWebSocket {
                             streamResponse.getChoices()[0].getDelta().getContent(),
                             streamResponse.getChoices()[0].getFinish_reason(),
                             conversation.getID(),
-                            remaining - 1
+                            (remaining == null ? -1 : remaining - 1)
                     );
 
-                    // Send GetChatResponse
-                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(getChatResponse));
+                    // Create success BodyResponse with getChatResponse
+                    BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(getChatResponse);
+
+                    // Send BodyResponse
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+
+                    // Add text received and finishReason if each not null to generatedChatBuilder for DB TODO: Make this better lol
+                    if (getChatResponse.getOutput() != null)
+                        generatedChatBuilder.addText(getChatResponse.getOutput());
+                    if (getChatResponse.getFinishReason() != null && !getChatResponse.getFinishReason().equals(""))
+                        generatedChatBuilder.setFinishReason(getChatResponse.getFinishReason());
 
                 } catch (JsonMappingException | JsonParseException e) {
                     // TODO: If cannot map response as JSON, skip for now, this is fine as there is only one format for the response as far as I know now
@@ -157,13 +175,23 @@ public class GetChatWebSocket {
                 }
             });
 
-            // Parse the stream and save to database and stuff
+            // Create GeneratedChat and deep insert into DB TODO: Fix token count and stuff
+            GeneratedChat gc = generatedChatBuilder.build(
+                    conversation.getID(),
+                    model,
+                    null,
+                    null,
+                    null
+            );
 
-            // Close session
-            session.close();
+            DBManager.deepInsert(gc);
+
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
+        } finally {
+            // Close session
+            session.close();
         }
     }
 
@@ -203,8 +231,8 @@ public class GetChatWebSocket {
         } catch (NumberFormatException e) {
             conversationID = null;
         }
-        boolean usePaidModel = objectMap.containsKey(usePaidModelKey) && objectMap.get(usePaidModelKey).equals(booleanTrueValueString);
-        boolean debug = objectMap.containsKey(debugKey) && objectMap.get(debugKey).equals(booleanTrueValueString);
+        boolean usePaidModel = objectMap.containsKey(usePaidModelKey) && objectMap.get(usePaidModelKey).size() > 0 && objectMap.get(usePaidModelKey).get(0).equals(booleanTrueValueString);
+        boolean debug = objectMap.containsKey(debugKey) && objectMap.get(debugKey).size() > 0 && objectMap.get(debugKey).get(0).equals(booleanTrueValueString);
 
         GetChatRequest gcr = new GetChatRequest(
                 authToken,

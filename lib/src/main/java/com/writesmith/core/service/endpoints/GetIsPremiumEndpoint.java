@@ -3,6 +3,7 @@ package com.writesmith.core.service.endpoints;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSPremiumValidator;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
@@ -23,7 +24,7 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 
-public class GetIsPremiumEndpoint extends Endpoint {
+public class GetIsPremiumEndpoint {
 
     public static BodyResponse getIsPremium(AuthRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get u_aT from authRequest
@@ -36,7 +37,7 @@ public class GetIsPremiumEndpoint extends Endpoint {
         IsPremiumResponse isPremiumResponse = new IsPremiumResponse(isPremium);
 
         // Build and return success body response with isPremiumResponse
-        return createSuccessBodyResponse(isPremiumResponse);
+        return BodyResponseFactory.createSuccessBodyResponse(isPremiumResponse);
     }
 
 }

@@ -2,6 +2,7 @@ package com.writesmith.core.service.endpoints;
 
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
 import com.writesmith.model.database.objects.Transaction;
@@ -23,7 +24,7 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 
-public class RegisterTransactionEndpoint extends Endpoint {
+public class RegisterTransactionEndpoint {
 
     public static BodyResponse registerTransaction(RegisterTransactionRequest registerTransactionRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException, AppStoreStatusResponseException {
         // Get the user_authToken object to get the user id
@@ -42,7 +43,7 @@ public class RegisterTransactionEndpoint extends Endpoint {
         IsPremiumResponse fvpr = new IsPremiumResponse(isPremium);
 
         // Create and return successful body response with full validate premium response
-        return createSuccessBodyResponse(fvpr);
+        return BodyResponseFactory.createSuccessBodyResponse(fvpr);
     }
 
 }

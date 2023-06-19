@@ -3,6 +3,7 @@ package com.writesmith.core.service.endpoints;
 import com.writesmith.Constants;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSGenerationService;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.DBManager;
 import com.writesmith.database.managers.ChatDBManager;
 import com.writesmith.database.managers.ConversationDBManager;
@@ -10,7 +11,6 @@ import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.*;
 import com.writesmith.model.generation.OpenAIGPTModels;
@@ -24,7 +24,6 @@ import com.writesmith.model.http.server.response.BodyResponse;
 import com.writesmith.model.http.server.response.GetChatResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
-import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -38,10 +37,9 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.Map;
 import java.util.Random;
 
-public class GetChatEndpoint extends Endpoint {
+public class GetChatEndpoint {
 
     private static final String[] responses = {"I'd love to keep chatting, but my program uses a lot of computer power. Please upgrade to unlock unlimited chats.",
             "Thank you for chatting with me. To continue, please upgrade to unlimited chats.",
@@ -131,7 +129,7 @@ public class GetChatEndpoint extends Endpoint {
         }
 
         // Create body response with responseStatus TODO: This status should be in getChatResponse so that bodyResponse can be assembled by Server
-        return createBodyResponse(responseStatus, getChatResponse);
+        return BodyResponseFactory.createBodyResponse(responseStatus, getChatResponse);
 
     }
 

@@ -4,6 +4,7 @@ import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.apple.iapvalidation.ReceiptUpdater;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.model.database.objects.User_AuthToken;
@@ -18,7 +19,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 
-public class ValidateAndUpdateReceiptEndpoint extends Endpoint {
+public class ValidateAndUpdateReceiptEndpoint {
 
     public static BodyResponse validateAndUpdateReceipt(RegisterTransactionRequest registerTransactionRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, DBSerializerPrimaryKeyMissingException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, AutoIncrementingDBObjectExistsException {
         // Get u_aT
@@ -31,7 +32,7 @@ public class ValidateAndUpdateReceiptEndpoint extends Endpoint {
         // Get vpResponse from receipt and return in success body response
         IsPremiumResponse vpResponse = new IsPremiumResponse(!receipt.isExpired());
 
-        return createSuccessBodyResponse(vpResponse);
+        return BodyResponseFactory.createSuccessBodyResponse(vpResponse);
     }
 
 }

@@ -1,6 +1,7 @@
 package com.writesmith.core.service.endpoints;
 
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.http.server.response.AuthResponse;
@@ -11,7 +12,7 @@ import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 
-public class RegisterUserEndpoint extends Endpoint {
+public class RegisterUserEndpoint {
 
     public static BodyResponse registerUser() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, IllegalAccessException, InvocationTargetException {
         // Get AuthToken from Database by registering new user
@@ -20,7 +21,7 @@ public class RegisterUserEndpoint extends Endpoint {
         // Prepare and return new bodyResponse object
         AuthResponse registerUserResponse = new AuthResponse(u_aT.getAuthToken());
 
-        return createSuccessBodyResponse(registerUserResponse);
+        return BodyResponseFactory.createSuccessBodyResponse(registerUserResponse);
     }
 
 }

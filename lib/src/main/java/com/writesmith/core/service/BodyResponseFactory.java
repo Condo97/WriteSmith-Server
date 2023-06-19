@@ -1,15 +1,15 @@
-package com.writesmith.core.service.endpoints;
+package com.writesmith.core.service;
 
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.response.BodyResponse;
 
-public abstract class Endpoint {
+public class BodyResponseFactory {
 
-    protected static BodyResponse createSuccessBodyResponse(Object object) {
+    public static BodyResponse createSuccessBodyResponse(Object object) {
         return createBodyResponse(ResponseStatus.SUCCESS, object);
     }
 
-    protected static BodyResponse createBodyResponse(ResponseStatus status, Object object) {
+    public static BodyResponse createBodyResponse(ResponseStatus status, Object object) {
         return new BodyResponse(status, object);
     }
 

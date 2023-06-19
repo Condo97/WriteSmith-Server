@@ -4,6 +4,7 @@ import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
@@ -24,7 +25,7 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 
-public class GetRemainingChatsEndpoint extends Endpoint {
+public class GetRemainingChatsEndpoint {
 
     public static BodyResponse getRemaining(AuthRequest authRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get u_aT from authRequest
@@ -42,7 +43,7 @@ public class GetRemainingChatsEndpoint extends Endpoint {
         GetRemainingResponse getRemainingResponse = new GetRemainingResponse(remaining);
 
         // Build and return success body response with getRemainingResponse
-        return createSuccessBodyResponse(getRemainingResponse);
+        return BodyResponseFactory.createSuccessBodyResponse(getRemainingResponse);
         
     }
 
