@@ -92,14 +92,14 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String getChat(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, AutoIncrementingDBObjectExistsException, OpenAIGPTException, CapReachedException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static String getChat(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, OpenAIGPTException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         GetChatRequest gcRequest;
 
         // Try to parse the gcRequest from req.body
         try {
             gcRequest = new ObjectMapper().readValue(req.body(), GetChatRequest.class);
         } catch (JsonMappingException | JsonParseException e) {
-            System.out.println("The request: " + req.body());
+            System.out.println("Exception when Getting Chat.. The request: " + req.body());
             e.printStackTrace();
             throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
         }

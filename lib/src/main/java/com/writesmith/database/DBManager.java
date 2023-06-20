@@ -199,7 +199,6 @@ public class DBManager {
         } catch (SQLException e) {
             throw e;
         } finally {
-            System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
@@ -297,7 +296,6 @@ public class DBManager {
             throw e;
         } finally {
             // Release connection instance
-            System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
@@ -330,7 +328,6 @@ public class DBManager {
             throw e;
         } finally {
             // Release connection instance
-            System.out.println("released");
             SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }

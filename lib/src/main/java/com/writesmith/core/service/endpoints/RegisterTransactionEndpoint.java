@@ -23,6 +23,9 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatterBuilder;
+import java.util.Date;
 
 public class RegisterTransactionEndpoint {
 
@@ -38,6 +41,10 @@ public class RegisterTransactionEndpoint {
 
         // Get isPremium
         boolean isPremium = AppStoreSubscriptionStatusToIsPremiumAdapter.getIsPremium(transaction.getStatus());
+
+                // TODO: Just logging to see things, remove and make a better logging system!
+                if (isPremium == true)
+                    System.out.println("User " + u_aT.getUserID() + " just registered a transaction at " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
 
         // Create full validate premium response
         IsPremiumResponse fvpr = new IsPremiumResponse(isPremium);

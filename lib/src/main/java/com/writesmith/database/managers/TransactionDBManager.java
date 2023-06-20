@@ -44,8 +44,6 @@ public class TransactionDBManager extends DBManager {
                 1
         );
 
-        System.out.println("Transactions size: " + transactions.size());
-
         // If there are no transactions, return null
         if (transactions.size() == 0)
             return null;

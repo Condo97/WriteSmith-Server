@@ -22,6 +22,7 @@ import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.GetChatRequest;
 import com.writesmith.model.http.server.response.BodyResponse;
 import com.writesmith.model.http.server.response.GetChatResponse;
+import com.writesmith.model.service.GetChatCapReachedResponses;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -41,13 +42,7 @@ import java.util.Random;
 
 public class GetChatEndpoint {
 
-    private static final String[] responses = {"I'd love to keep chatting, but my program uses a lot of computer power. Please upgrade to unlock unlimited chats.",
-            "Thank you for chatting with me. To continue, please upgrade to unlimited chats.",
-            "I hope I was able to help. If you'd like to keep chatting, please subscribe for unlimited chats. There's a 3 day free trial!",
-            "You are appreciated. You are loved. Show us some support and subscribe to keep chatting.",
-            "Upgrade today for unlimited chats and a free 3 day trial!"};
-
-    public static BodyResponse getChat(GetChatRequest request) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, IllegalAccessException, DBObjectNotFoundFromQueryException, OpenAIGPTException, IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static BodyResponse getChat(GetChatRequest request) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException, DBObjectNotFoundFromQueryException, OpenAIGPTException, IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         /* SETUP */
         // Get User_AuthToken for userID
         User_AuthToken u_aT = User_AuthTokenDBManager.getFromDB(request.getAuthToken());
@@ -116,16 +111,11 @@ public class GetChatEndpoint {
             /* CAP REACHED */
             // If the cap was reached, then respond with ResponseStatus.CAP_REACHED_ERROR and cap reached response
 
-            int randomIndex = new Random().nextInt(responses.length - 1);
-
-            // Get random aiChatTextResponse from array
-            String aiChatTextResponse = responses[randomIndex];
-
             // Set response status to cap reached error
             responseStatus = ResponseStatus.CAP_REACHED_ERROR;
 
             // Set the getChatResponse with the random response, null finish reason, and 0 remaining since the cap was reached TODO: Is this 0 fine here?
-            getChatResponse = new GetChatResponse(aiChatTextResponse, null, null, 0l);
+            getChatResponse = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), null, null, 0l);
         }
 
         // Create body response with responseStatus TODO: This status should be in getChatResponse so that bodyResponse can be assembled by Server

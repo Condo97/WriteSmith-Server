@@ -13,7 +13,7 @@ public class GeneratedChatBuilder {
     private String finishReason;
 
     public GeneratedChatBuilder() {
-
+        text = "";
     }
 
     public void addText(String text) {

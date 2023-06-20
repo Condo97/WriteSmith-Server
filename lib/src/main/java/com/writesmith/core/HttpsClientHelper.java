@@ -28,13 +28,8 @@ public class HttpsClientHelper {
         // Add headers from consumer
         httpRequestBuilder.accept(requestBuilder);
 
-        System.out.println(uri);
-
         // Get response and parse and return
         HttpResponse<String> response = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
-
-        System.out.println("RESPONSE STATUS CODE:\n" + response.statusCode());
-        System.out.println("RESPONSE BODY:\n" + response.body());
 
         return new ObjectMapper().readValue(response.body(), JsonNode.class);
     }

@@ -27,7 +27,8 @@ public class SQLConnectionPool implements ISQLConncetionPool {
 
     @Override
     public synchronized Connection getConnection() throws InterruptedException {
-        System.out.println(poolConnections.size());
+        if (poolConnections.size() < usedConnections.size())
+            System.out.println("SQLConnectionPool Getting Squeezed! " + poolConnections.size() + " connections left...");
         while (poolConnections.isEmpty())
             wait();
         Connection connection = poolConnections.pop();

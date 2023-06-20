@@ -34,4 +34,21 @@ public class ChatCountHelper {
         );
     }
 
+//    public static Long countTodaysGeneratedChats(Integer userID) throws DBSerializerException, InterruptedException, SQLException {
+//        // Build SQL conditions
+//        SQLOperatorCondition userIDCondition = new SQLOperatorCondition(DBRegistry.Table.Conversation.user_id, SQLOperators.EQUAL, userID);
+//        SQLOperatorCondition senderNotUserCondition = new SQLOperatorCondition(DBRegistry.Table.Chat.sender, SQLOperators.NOT_EQUAL, Sender.USER.toString());
+//        SQLOperatorCondition dateCondition = new SQLOperatorCondition(DBRegistry.Table.Chat.date, SQLOperators.GREATER_THAN, LocalDateTime.now().minus(Duration.ofDays(1)));
+//
+//        List<PSComponent> sqlConditions = List.of(userIDCondition, senderNotUserCondition, dateCondition);
+//
+//        // Get chats from today for the conversation, need to do an inner join with Chat
+//        return DBManager.countObjectWhereInnerJoin(
+//                Conversation.class,
+//                sqlConditions,
+//                Chat.class,
+//                DBRegistry.Table.Conversation.conversation_id
+//        );
+//    }
+
 }

@@ -16,7 +16,6 @@ import com.writesmith.core.generation.openai.OpenAIGPTChatCompletionRequestFacto
 import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
 import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.database.DBManager;
-import com.writesmith.database.managers.ChatDBManager;
 import com.writesmith.database.managers.ConversationDBManager;
 import com.writesmith.database.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.Conversation;
@@ -27,11 +26,11 @@ import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusRes
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
 import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIGPTChatCompletionStreamResponse;
-import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIGPTPromptChoiceDeltaStreamResponse;
-import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIGPTPromptUsageResponse;
+import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.GetChatRequest;
 import com.writesmith.model.http.server.response.BodyResponse;
 import com.writesmith.model.http.server.response.GetChatResponse;
+import com.writesmith.model.service.GetChatCapReachedResponses;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
@@ -53,6 +52,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +98,8 @@ public class GetChatWebSocket {
             Long remaining = ChatRemainingCalculator.calculateRemaining(conversation.getUserID(), isPremium);
 
             // If remaining is not null (infinite) and less than 0, throw CapReachedException
-            if (remaining != null && remaining <= 0) throw new CapReachedException("Cap reached for user");
+            if (remaining != null && remaining <= 0)
+                throw new CapReachedException("Cap reached for user");
 
             // Get the token limit if there is one
             int tokenLimit = WSGenerationTierLimits.getTokenLimit(isPremium);
@@ -139,7 +141,6 @@ public class GetChatWebSocket {
                     if (response.length() >= dataPrefixToRemove.length() && response.substring(0, dataPrefixToRemove.length()).equals(dataPrefixToRemove))
                         response = response.substring(dataPrefixToRemove.length(), response.length());
 
-                    System.out.println(response);
                     // Get response as JsonNode
                     JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
 
@@ -185,6 +186,24 @@ public class GetChatWebSocket {
             );
 
             DBManager.deepInsert(gc);
+
+            // Print log to console
+            printStreamedGeneratedChatDoBetterLoggingLol(gc);
+
+        } catch (CapReachedException e) {
+            /* TODO: Do the major annotations and rework all of this to be better lol */
+            // Send BodyResponse with cap reached error and GetChatResponse with cap reached response
+//            GetChatResponse gcr = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), null, null, 0l); TODO: Reinstate this after new app build has been published so that it works properly and is cleaner here.. unless this implementation is better and the "limit" just needs to be a constant somewhere
+            GetChatResponse gcr = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), "limit", null, 0l);
+            ResponseStatus rs = ResponseStatus.CAP_REACHED_ERROR;
+
+            BodyResponse br = BodyResponseFactory.createBodyResponse(rs, gcr);
+
+            // Send BodyResponse
+            session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+
+            // Print stream chat generation cap reached TODO: Move this and make logging better
+            System.out.println("Chat Stream Cap Reached " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -281,7 +300,7 @@ public class GetChatWebSocket {
     }
 
 
-    protected static void dothestream() {
+    protected static void dothestreamtesting() {
         URI uri = null;
         try {
             uri = new URI("https://api.openai.com/v1/chat/completions");
@@ -325,6 +344,29 @@ public class GetChatWebSocket {
 //            });
         });
 
+    }
+
+    // TODO: Better logging lol
+    private void printStreamedGeneratedChatDoBetterLoggingLol(GeneratedChat gc) {
+        final int maxLength = 40;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date();
+
+        String output = gc.getChat().getText();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Chat ");
+        sb.append(gc.getChat().getId());
+        sb.append(" Streamed ");
+        sb.append(sdf.format(date));
+        sb.append("\t");
+        sb.append(output.length() >= maxLength ? output.substring(0, maxLength) : output);
+        sb.append("... ");
+        sb.append(output.length());
+        sb.append(" chars");
+
+        System.out.println(sb.toString());
     }
 
 }
