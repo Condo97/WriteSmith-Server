@@ -1,4 +1,4 @@
-package com.writesmith.model.generation.objects;
+package com.writesmith.model.generation;
 
 import com.writesmith.model.database.objects.GeneratedChat;
 

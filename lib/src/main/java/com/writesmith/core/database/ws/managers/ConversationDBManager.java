@@ -1,6 +1,6 @@
-package com.writesmith.database.managers;
+package com.writesmith.core.database.ws.managers;
 
-import com.writesmith.database.DBManager;
+import com.writesmith.core.database.DBManager;
 import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
@@ -12,7 +12,6 @@ import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

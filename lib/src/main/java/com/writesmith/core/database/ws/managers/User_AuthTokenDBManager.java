@@ -1,7 +1,7 @@
-package com.writesmith.database.managers;
+package com.writesmith.core.database.ws.managers;
 
-import com.writesmith.database.DBManager;
-import com.writesmith.database.managers.helpers.AuthTokenGenerator;
+import com.writesmith.core.database.DBManager;
+import com.writesmith.core.database.ws.managers.helpers.AuthTokenGenerator;
 import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;

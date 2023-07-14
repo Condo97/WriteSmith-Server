@@ -1,6 +1,6 @@
 package com.writesmith;
 
-import com.writesmith.model.http.client.openaigpt.Role;
+import com.oaigptconnector.model.Role;
 
 import java.net.URI;
 
@@ -35,14 +35,21 @@ public final class Constants {
     public static final int Cap_Chat_Daily_Paid_Legacy = -1; //-1 is unlimited
 
     /* URIs for HTTPSServer */
-    public static final String GET_CHAT_URI = "/getChat";
-    public static final String GET_CHAT_STREAM_URI = "/getChatStream";
-    public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
-    public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
-    public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
-    public static final String GET_REMAINING_URI = "/getRemaining";
-    public static final String REGISTER_USER_URI = "/registerUser";
-    public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
+    class URIs {
+        class Function {
+            private static final String SUBDIRECTORY_PREFIX = "/func";
+            public static final String CREATE_RECIPE_IDEA = SUBDIRECTORY_PREFIX + "/createRecipeIdea";
+            public static final String MAKE_RECIPE = SUBDIRECTORY_PREFIX + "/makeRecipeFromIdea";
+        }
+        public static final String GET_CHAT_URI = "/getChat";
+        public static final String GET_CHAT_STREAM_URI = "/getChatStream";
+        public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
+        public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
+        public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
+        public static final String GET_REMAINING_URI = "/getRemaining";
+        public static final String REGISTER_USER_URI = "/registerUser";
+        public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
+    }
 
     /* Legacy URIs for HTTPServer */
     public static final String GET_DISPLAY_PRICE_URI = "/getDisplayPrice";

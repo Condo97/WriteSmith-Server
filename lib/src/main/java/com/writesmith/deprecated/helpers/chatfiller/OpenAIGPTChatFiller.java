@@ -1,7 +1,13 @@
 package com.writesmith.deprecated.helpers.chatfiller;
 
+import com.oaigptconnector.core.OpenAIGPTHttpsClientHelper;
+import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequest;
+import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequestMessage;
+import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.database.DBManager;
+import com.writesmith.core.database.DBManager;
+import com.writesmith.keys.Keys;
 import com.writesmith.model.database.objects.ChatLegacy;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.common.exceptions.CapReachedException;
@@ -12,11 +18,6 @@ import com.writesmith.common.IntegerFromBoolean;
 import com.writesmith.deprecated.helpers.MutableInteger;
 import com.writesmith.core.apple.iapvalidation.RecentReceiptValidator;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
-import com.writesmith.model.http.client.openaigpt.response.prompt.http.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.preparedstatement.component.PSComponent;
 import sqlcomponentizer.preparedstatement.component.condition.SQLNullCondition;
@@ -108,11 +109,11 @@ public class OpenAIGPTChatFiller {
     private static void fillChat(ChatLegacy chatLegacy, String modelName, int tokenLimit) throws OpenAIGPTException, IOException, InterruptedException {
         OpenAIGPTHttpsClientHelper helper = new OpenAIGPTHttpsClientHelper();
 
-        OpenAIGPTChatCompletionMessageRequest promptMessageRequest = new OpenAIGPTChatCompletionMessageRequest(Constants.LEGACY_DEFAULT_ROLE, chatLegacy.getUserText());
-        OpenAIGPTChatCompletionRequest promptRequest = new OpenAIGPTChatCompletionRequest(modelName, tokenLimit, Constants.DEFAULT_TEMPERATURE, Arrays.asList(promptMessageRequest));
+        OAIGPTChatCompletionRequestMessage promptMessageRequest = new OAIGPTChatCompletionRequestMessage(Constants.LEGACY_DEFAULT_ROLE, chatLegacy.getUserText());
+        OAIGPTChatCompletionRequest promptRequest = new OAIGPTChatCompletionRequest(modelName, tokenLimit, Constants.DEFAULT_TEMPERATURE, Arrays.asList(promptMessageRequest));
 
         try {
-            OpenAIGPTChatCompletionResponse response = helper.postChatCompletion(promptRequest);
+            OAIGPTChatCompletionResponse response = helper.postChatCompletion(promptRequest, Keys.openAiAPI);
             if (response.getChoices().length > 0) {
                 chatLegacy.setAiText(response.getChoices()[0].getMessage().getContent());
                 chatLegacy.setFinishReason(response.getChoices()[0].getFinish_reason());

@@ -1,7 +1,6 @@
-package com.writesmith.database.managers;
+package com.writesmith.core.database.ws.managers;
 
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.database.DBManager;
+import com.writesmith.core.database.DBManager;
 import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.objects.Transaction;
 import sqlcomponentizer.dbserializer.DBSerializerException;

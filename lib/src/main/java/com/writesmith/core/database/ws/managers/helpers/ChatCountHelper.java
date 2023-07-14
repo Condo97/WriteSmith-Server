@@ -1,6 +1,6 @@
-package com.writesmith.database.managers.helpers;
+package com.writesmith.core.database.ws.managers.helpers;
 
-import com.writesmith.database.DBManager;
+import com.writesmith.core.database.DBManager;
 import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;

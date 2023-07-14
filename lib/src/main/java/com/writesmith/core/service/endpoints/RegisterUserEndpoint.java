@@ -2,7 +2,7 @@ package com.writesmith.core.service.endpoints;
 
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.database.managers.User_AuthTokenDBManager;
+import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.http.server.response.AuthResponse;
 import com.writesmith.model.http.server.response.BodyResponse;

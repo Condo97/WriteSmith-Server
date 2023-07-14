@@ -42,6 +42,9 @@ dependencies {
 //    implementation 'com.github.Condo97:SQLComponentizer:-SNAPSHOT'
     implementation 'com.github.condo97:SQLComponentizer:1.0.0'
 
+    // OIAGPTConnector for OpenAI GPT handling
+    implementation 'com.github.condo97:OAIGPTConnector:1.0.0'
+
     // Use JUnit Jupiter for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.1'
 

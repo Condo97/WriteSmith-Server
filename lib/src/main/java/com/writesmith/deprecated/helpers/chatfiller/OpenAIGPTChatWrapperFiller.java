@@ -1,5 +1,6 @@
 package com.writesmith.deprecated.helpers.chatfiller;
 
+import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.deprecated.helpers.IMutableInteger;
 import com.writesmith.deprecated.helpers.MutableInteger;
@@ -8,7 +9,6 @@ import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.apple.iapvalidation.RecentReceiptValidator;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;

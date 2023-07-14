@@ -1,5 +1,11 @@
 package com.writesmith;
 
+import com.oaigptconnector.core.OpenAIGPTHttpsClientHelper;
+import com.oaigptconnector.model.Role;
+import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequest;
+import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequestMessage;
+import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.apple.iapvalidation.AppleHttpVerifyReceipt;
 import com.writesmith.core.apple.iapvalidation.ReceiptUpdater;
@@ -8,11 +14,11 @@ import com.writesmith.core.service.endpoints.GetIsPremiumEndpoint;
 import com.writesmith.core.service.endpoints.RegisterTransactionEndpoint;
 import com.writesmith.core.service.endpoints.RegisterUserEndpoint;
 import com.writesmith.core.service.endpoints.ValidateAndUpdateReceiptEndpoint;
-import com.writesmith.database.managers.TransactionDBManager;
-import com.writesmith.database.managers.User_AuthTokenDBManager;
+import com.writesmith.core.database.ws.managers.TransactionDBManager;
+import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.AppStoreSubscriptionStatus;
 import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.database.managers.ReceiptDBManager;
+import com.writesmith.core.database.ws.managers.ReceiptDBManager;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
@@ -24,7 +30,6 @@ import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusRes
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.model.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
-import com.writesmith.model.http.client.openaigpt.Role;
 import com.writesmith.model.http.server.request.AuthRequest;
 import com.writesmith.model.http.server.request.RegisterTransactionRequest;
 import com.writesmith.model.http.server.response.AuthResponse;
@@ -35,11 +40,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.keys.Keys;
-import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
-import com.writesmith.model.http.client.openaigpt.response.prompt.http.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.DBClient;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
@@ -151,9 +151,8 @@ public class Tests {
     @DisplayName("HttpHelper Testing")
     void testBasicHttpRequest() {
         HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
-//        GenerateChatRequest gcr = new GenerateChatRequest(Constants.Model_Name, "prompt", Constants.Temperature, Constants.Token_Limit_Paid);
-        OpenAIGPTChatCompletionMessageRequest promptMessageRequest = new OpenAIGPTChatCompletionMessageRequest(Role.USER, "write me a short joke");
-        OpenAIGPTChatCompletionRequest promptRequest = new OpenAIGPTChatCompletionRequest("gpt-3.5-turbo", 100, 0.7, Arrays.asList(promptMessageRequest));
+        OAIGPTChatCompletionRequestMessage promptMessageRequest = new OAIGPTChatCompletionRequestMessage(Role.USER, "write me a short joke");
+        OAIGPTChatCompletionRequest promptRequest = new OAIGPTChatCompletionRequest("gpt-3.5-turbo", 100, 0.7, Arrays.asList(promptMessageRequest));
         Consumer<HttpRequest.Builder> c = requestBuilder -> {
             requestBuilder.setHeader("Authorization", "Bearer " + Keys.openAiAPI);
         };
@@ -161,7 +160,7 @@ public class Tests {
         OpenAIGPTHttpsClientHelper httpHelper = new OpenAIGPTHttpsClientHelper();
 
         try {
-            OpenAIGPTChatCompletionResponse response = httpHelper.postChatCompletion(promptRequest);
+            OAIGPTChatCompletionResponse response = httpHelper.postChatCompletion(promptRequest, Keys.openAiAPI);
             System.out.println(response.getChoices()[0].getMessage().getContent());
 
         } catch (OpenAIGPTException e) {
@@ -178,7 +177,6 @@ public class Tests {
     @DisplayName("VerifyReceipt Testing")
     void testVerifyReceipt() {
         Integer userID = 32828;
-//        DBEntity db = null;
         try {
             try {
                 Receipt r = ReceiptDBManager.getMostRecentReceiptFromDB
@@ -416,6 +414,31 @@ public class Tests {
         // Verify results
 //        assert(ipr2.getIsPremium() == expectedIsPremiumValue2);
     }
+
+//    @Test
+//    @DisplayName("Test Create Recipe Idea Endpoint")
+//    void testCreateRecipeIdeaEndpoint() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, OpenAIGPTException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AutoIncrementingDBObjectExistsException {
+//        // Register user
+//        BodyResponse registerUserBR = RegisterUserEndpoint.registerUser();
+//        AuthResponse aResponse = (AuthResponse)registerUserBR.getBody();
+//
+//        // Get authToken
+//        String authToken = aResponse.getAuthToken();
+//
+//        // Create create recipe idea request
+//        CreateRecipeIdeaRequest request = new CreateRecipeIdeaRequest(
+//                authToken,
+//                List.of("onions, potatoes, peas"),
+//                List.of("salad"),
+//                0
+//        );
+//
+//        System.out.println("Request:\n" + new ObjectMapper().writeValueAsString(request));
+//
+//        BodyResponse br = CreateRecipeIdeaEndpoint.createRecipeIdea(request);
+//
+//        System.out.println("Response:\n" + new ObjectMapper().writeValueAsString(br));
+//    }
 
     @Test
     @DisplayName("Misc Modifyable")

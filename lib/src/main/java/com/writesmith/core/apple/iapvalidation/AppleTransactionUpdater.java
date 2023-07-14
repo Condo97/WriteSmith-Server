@@ -1,23 +1,19 @@
 package com.writesmith.core.apple.iapvalidation;
 
-import com.writesmith.database.managers.TransactionDBManager;
 import com.writesmith.model.database.AppStoreSubscriptionStatus;
 import com.writesmith.model.database.objects.Transaction;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.response.status.AppStoreStatusResponse;
 import com.writesmith.model.http.client.apple.itunes.response.status.AppStoreStatusResponseLastTransactionItem;
 import com.writesmith.model.http.client.apple.itunes.response.status.AppStoreStatusResponseSubscriptionGroupIdentifierItem;
-import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 
 public class AppleTransactionUpdater {

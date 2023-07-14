@@ -1,25 +1,18 @@
 package com.writesmith.core;
 
+import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.Constants;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
-import com.writesmith.core.apple.iapvalidation.RecentReceiptValidator;
-import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
 import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
 import com.writesmith.core.generation.openai.OpenAIChatGenerator;
-import com.writesmith.database.managers.TransactionDBManager;
-import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
 import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
-import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.model.database.objects.Transaction;
-import com.writesmith.model.generation.OpenAIGPTModelTierSpecification;
-import com.writesmith.model.generation.OpenAIGPTModels;
-import com.writesmith.model.generation.objects.WSChat;
+import com.writesmith.model.generation.WSChat;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 

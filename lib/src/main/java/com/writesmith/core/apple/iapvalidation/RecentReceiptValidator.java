@@ -3,7 +3,7 @@ package com.writesmith.core.apple.iapvalidation;
 import com.writesmith.Constants;
 import com.writesmith.model.database.objects.ChatLegacy;
 import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.database.managers.ReceiptDBManager;
+import com.writesmith.core.database.ws.managers.ReceiptDBManager;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;

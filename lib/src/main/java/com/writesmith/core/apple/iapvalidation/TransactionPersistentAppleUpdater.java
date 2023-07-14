@@ -1,7 +1,7 @@
 package com.writesmith.core.apple.iapvalidation;
 
 import com.writesmith.Constants;
-import com.writesmith.database.managers.TransactionDBManager;
+import com.writesmith.core.database.ws.managers.TransactionDBManager;
 import com.writesmith.model.database.objects.Transaction;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;

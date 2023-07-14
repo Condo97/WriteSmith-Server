@@ -1,35 +1,34 @@
 package com.writesmith.core.generation.openai;
 
-import com.writesmith.database.managers.ConversationDBManager;
+import com.oaigptconnector.core.OpenAIGPTHttpsClientHelper;
+import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequest;
+import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
+import com.writesmith.keys.Keys;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
 import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
-import com.writesmith.model.generation.OpenAIGPTModels;
-import com.writesmith.model.http.client.openaigpt.Role;
-import com.writesmith.model.http.client.openaigpt.RoleMapper;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionMessageRequest;
-import com.writesmith.model.http.client.openaigpt.response.prompt.http.OpenAIGPTChatCompletionResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 public class OpenAIChatGenerator {
 
+    /***
+     * Gets ChatCompletionResponse from OpenAI API postChatCompletion and turns it into a Generated Chat
+     */
     public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, OpenAIGPTModels model, Integer temperature, Integer tokenLimit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
         // Create the request
-        OpenAIGPTChatCompletionRequest request = OpenAIGPTChatCompletionRequestFactory.with(conversation, contextCharacterLimit, model, temperature, tokenLimit);
+        OAIGPTChatCompletionRequest request = OpenAIGPTChatCompletionRequestFactory.with(conversation, contextCharacterLimit, model, temperature, tokenLimit);
 
         // Get response from OpenAIGPTHttpHelper
         try {
-            OpenAIGPTChatCompletionResponse response = OpenAIGPTHttpsClientHelper.postChatCompletion(request);
+            OAIGPTChatCompletionResponse response = OpenAIGPTHttpsClientHelper.postChatCompletion(request, Keys.openAiAPI);
 
             // Return first choice if it exists
             if (response.getChoices().length > 0) {

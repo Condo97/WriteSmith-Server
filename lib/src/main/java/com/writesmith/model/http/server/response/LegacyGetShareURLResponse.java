@@ -12,4 +12,5 @@ public class LegacyGetShareURLResponse {
     public String getShareURL() {
         return shareURL;
     }
+
 }

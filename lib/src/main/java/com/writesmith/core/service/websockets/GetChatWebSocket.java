@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oaigptconnector.core.OpenAIGPTHttpsClientHelper;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequest;
+import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
@@ -13,19 +17,16 @@ import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
 import com.writesmith.core.generation.openai.GeneratedChatBuilder;
 import com.writesmith.core.generation.openai.OpenAIGPTChatCompletionRequestFactory;
-import com.writesmith.core.generation.openai.OpenAIGPTHttpsClientHelper;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.database.DBManager;
-import com.writesmith.database.managers.ConversationDBManager;
-import com.writesmith.database.managers.User_AuthTokenDBManager;
+import com.writesmith.core.database.DBManager;
+import com.writesmith.core.database.ws.managers.ConversationDBManager;
+import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
+import com.writesmith.keys.Keys;
 import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
 import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.generation.OpenAIGPTModels;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.client.openaigpt.request.prompt.OpenAIGPTChatCompletionRequest;
-import com.writesmith.model.http.client.openaigpt.response.prompt.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.GetChatRequest;
 import com.writesmith.model.http.server.response.BodyResponse;
@@ -118,7 +119,7 @@ public class GetChatWebSocket {
             OpenAIGPTModels model = WSGenerationTierLimits.getOfferedModelForTier(requestedModel, isPremium);
 
             // Create OpenAIGPTChatCompletionRequest
-            OpenAIGPTChatCompletionRequest completionRequest = OpenAIGPTChatCompletionRequestFactory.with(
+            OAIGPTChatCompletionRequest completionRequest = OpenAIGPTChatCompletionRequestFactory.with(
                     conversation,
                     contextCharacterLimit,
                     model,
@@ -131,7 +132,7 @@ public class GetChatWebSocket {
             GeneratedChatBuilder generatedChatBuilder = new GeneratedChatBuilder();
 
             // Do stream request with OpenAI right here for now TODO:
-            Stream<String> stream = OpenAIGPTHttpsClientHelper.postChatCompletionStream(completionRequest);
+            Stream<String> stream = OpenAIGPTHttpsClientHelper.postChatCompletionStream(completionRequest, Keys.openAiAPI);
 
             // Parse OpenAIGPTChatCompletionStreamResponse then convert to GetChatResponse and send it in BodyResponse as response :-)
             stream.forEach(response -> {

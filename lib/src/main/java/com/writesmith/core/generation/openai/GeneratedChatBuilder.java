@@ -1,9 +1,9 @@
 package com.writesmith.core.generation.openai;
 
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
 import com.writesmith.model.database.objects.GeneratedChat;
-import com.writesmith.model.generation.OpenAIGPTModels;
 
 import java.time.LocalDateTime;
 

@@ -4,7 +4,7 @@ import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.database.managers.User_AuthTokenDBManager;
+import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;

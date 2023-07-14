@@ -1,23 +1,22 @@
 package com.writesmith.core.service.endpoints;
 
+import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.Constants;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSGenerationService;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.database.DBManager;
-import com.writesmith.database.managers.ChatDBManager;
-import com.writesmith.database.managers.ConversationDBManager;
-import com.writesmith.database.managers.User_AuthTokenDBManager;
-import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.core.database.DBManager;
+import com.writesmith.core.database.ws.managers.ChatDBManager;
+import com.writesmith.core.database.ws.managers.ConversationDBManager;
+import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.*;
-import com.writesmith.model.generation.OpenAIGPTModels;
-import com.writesmith.model.generation.objects.WSChat;
+import com.writesmith.model.generation.WSChat;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.GetChatRequest;
 import com.writesmith.model.http.server.response.BodyResponse;
@@ -38,7 +37,6 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.Random;
 
 public class GetChatEndpoint {
 

@@ -18,4 +18,5 @@ public class GetIAPStuffResponse {
     public String[] getProductIDs() {
         return productIDs;
     }
+
 }

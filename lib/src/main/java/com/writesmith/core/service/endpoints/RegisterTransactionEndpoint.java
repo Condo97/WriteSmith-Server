@@ -3,7 +3,7 @@ package com.writesmith.core.service.endpoints;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.database.managers.User_AuthTokenDBManager;
+import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
 import com.writesmith.model.database.objects.Transaction;
 import com.writesmith.model.database.objects.User_AuthToken;
@@ -24,7 +24,6 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatterBuilder;
 import java.util.Date;
 
 public class RegisterTransactionEndpoint {

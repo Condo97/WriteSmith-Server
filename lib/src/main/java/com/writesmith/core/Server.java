@@ -4,12 +4,13 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.common.exceptions.*;
 import com.writesmith.core.service.endpoints.*;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
+import com.writesmith.model.http.server.request.func.CreateRecipeIdeaRequest;
 import com.writesmith.model.http.server.response.*;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.AuthRequest;
 import com.writesmith.model.http.server.request.RegisterTransactionRequest;
@@ -30,12 +31,57 @@ import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 
 public class Server {
-    private static final String[] responses = {"I'd love to keep chatting, but my program uses a lot of computer power. Please upgrade to unlock unlimited chats.",
-            "Thank you for chatting with me. To continue, please upgrade to unlimited chats.",
-            "I hope I was able to help. If you'd like to keep chatting, please subscribe for unlimited chats. There's a 3 day free trial!",
-            "You are appreciated. You are loved. Show us some support and subscribe to keep chatting.",
-            "Upgrade today for unlimited chats and a free 3 day trial!"};
 
+    public class Func {
+
+        /***
+         * Get Recipe Idea
+         *
+         * Generates a recipe idea from the given ingredients and modifier text
+         *
+         * Request: {
+         *      authToken: String - Authentication token for the user
+         *      ingredients: String[] - List of ingredients to use
+         *      expandIngredients: Integer - Value of 0-4 denoting how much to expand ingredients
+         *      modifiers: String[] - Additional modifiers to be appended to the generation query
+         * }
+         *
+         * Response: {
+         *      Body: {
+         *          name: String - Name of the recipe idea
+         *          summary: String - A summary of the recipe idea
+         *          cuisineType: String - A cuisine type for the recipe idea
+         *          ingredients: String[] - List of ingredients needed for the recipe idea
+         *          equipment: String[] - List of equipment needed for the recipe idea
+         *      }
+         *      Success: Integer - Integer denoting success, 1 if successful
+         * }
+         *
+         *
+         * @param request Request object given by Spark
+         * @param response Response object given by Spark
+         * @return Value of JSON response as String
+         */
+        public static String createRecipeIdea(Request request, Response response) throws IOException, MalformedJSONException {
+            // Try to parse GetRecipeIdeaRequest
+            CreateRecipeIdeaRequest griRequest;
+
+            try {
+                griRequest = new ObjectMapper().readValue(request.body(), CreateRecipeIdeaRequest.class);
+            } catch (JsonMappingException | JsonParseException e) {
+                System.out.println("Error when Getting Recipe Idea.. The request: " + request.body());
+                e.printStackTrace();
+                throw new MalformedJSONException("Malformed JSON - " + e.getMessage());
+            }
+
+            // Get bodyResponse with generated recipe idea
+
+
+
+            return "";
+        }
+
+    }
 
     /***
      * Register User

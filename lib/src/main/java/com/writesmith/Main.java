@@ -2,10 +2,10 @@ package com.writesmith;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.Server;
 import com.writesmith.core.service.websockets.GetChatWebSocket;
-import com.writesmith.model.http.client.openaigpt.exception.OpenAIGPTException;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.keys.Keys;
 import com.writesmith.model.http.server.response.*;
@@ -102,12 +102,12 @@ public class Main {
         /* v1 */
         final String v1Path = "/v1";
 
-        webSocket(v1Path + Constants.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
 
         /* dev */
         final String devPath = "/dev";
 
-        webSocket(devPath + Constants.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
     }
 
     private static void configureHttpEndpoints() {
@@ -116,15 +116,17 @@ public class Main {
 
     private static void configureHttpEndpoints(boolean dev) {
         // POST Functions
-        post(Constants.GET_CHAT_URI, Server::getChat);
-        post(Constants.GET_IS_PREMIUM_URI, Server::getIsPremium);
-        post(Constants.GET_REMAINING_URI, Server::getRemainingChats);
-        post(Constants.REGISTER_USER_URI, Server::registerUser);
-        post(Constants.REGISTER_TRANSACTION_URI, Server::registerTransaction);
+        post(Constants.URIs.GET_CHAT_URI, Server::getChat);
+        post(Constants.URIs.GET_IS_PREMIUM_URI, Server::getIsPremium);
+        post(Constants.URIs.GET_REMAINING_URI, Server::getRemainingChats);
+        post(Constants.URIs.REGISTER_USER_URI, Server::registerUser);
+        post(Constants.URIs.REGISTER_TRANSACTION_URI, Server::registerTransaction);
+
+        post(Constants.URIs.Function.CREATE_RECIPE_IDEA, Server.Func::createRecipeIdea);
 
         // Get Constants
-        post(Constants.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetImportantConstantsResponse())));
-        post(Constants.GET_IAP_STUFF_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetIAPStuffResponse())));
+        post(Constants.URIs.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetImportantConstantsResponse())));
+        post(Constants.URIs.GET_IAP_STUFF_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetIAPStuffResponse())));
 
         // Legacy Functions
         post(Constants.GET_DISPLAY_PRICE_URI, (req, res) -> new ObjectMapper().writeValueAsString( new BodyResponse(ResponseStatus.SUCCESS, new LegacyGetDisplayPriceResponse())));

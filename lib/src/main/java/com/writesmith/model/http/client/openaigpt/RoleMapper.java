@@ -1,5 +1,6 @@
 package com.writesmith.model.http.client.openaigpt;
 
+import com.oaigptconnector.model.Role;
 import com.writesmith.model.database.Sender;
 
 public class RoleMapper {

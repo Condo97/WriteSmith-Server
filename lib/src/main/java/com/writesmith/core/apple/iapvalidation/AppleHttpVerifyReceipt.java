@@ -1,8 +1,8 @@
 package com.writesmith.core.apple.iapvalidation;
 
 import com.fasterxml.jackson.databind.*;
+import com.oaigptconnector.core.HttpsClientHelper;
 import com.writesmith.Constants;
-import com.writesmith.core.HttpsClientHelper;
 import com.writesmith.model.http.client.apple.AppleHttpClient;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.client.apple.itunes.response.error.AppleItunesErrorResponse;

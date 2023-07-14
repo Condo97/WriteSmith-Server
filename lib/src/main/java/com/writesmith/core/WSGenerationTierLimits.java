@@ -1,8 +1,8 @@
 package com.writesmith.core;
 
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.Constants;
 import com.writesmith.model.generation.OpenAIGPTModelTierSpecification;
-import com.writesmith.model.generation.OpenAIGPTModels;
 
 public class WSGenerationTierLimits {
 

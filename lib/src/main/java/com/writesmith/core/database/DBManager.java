@@ -1,4 +1,4 @@
-package com.writesmith.database;
+package com.writesmith.core.database;
 
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import sqlcomponentizer.DBClient;

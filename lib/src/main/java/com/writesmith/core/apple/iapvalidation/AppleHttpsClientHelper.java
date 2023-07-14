@@ -6,8 +6,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oaigptconnector.core.HttpsClientHelper;
 import com.writesmith.Constants;
-import com.writesmith.core.HttpsClientHelper;
+import com.writesmith.keys.Keys;
 import com.writesmith.model.http.client.apple.AppleHttpClient;
 import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.response.status.AppStoreStatusResponse;
@@ -120,7 +121,7 @@ public class AppleHttpsClientHelper extends HttpsClientHelper {
 //                .withExpiresAt(new Date())
 //                .withNotBefore(new Date())
                 .withPayload(Map.of(
-                        "iss", "69a6de86-7e2c-47e3-e053-5b8c7c11a4d1",
+                        "iss", Keys.appStoreConnectIssuerID,
                         "iat", System.currentTimeMillis() / 1000l,
                         "exp", System.currentTimeMillis() / 1000l + 80,
                         "aud", "appstoreconnect-v1",
@@ -128,7 +129,7 @@ public class AppleHttpsClientHelper extends HttpsClientHelper {
                 ))
                 .withHeader(Map.of(
                         "alg", "ES256",
-                        "kid", "PJ323P8QVH",
+                        "kid", Keys.appStoreConnectPrivateKeyID,
                         "typ", "JWT"
                 ))
                 .sign(algorithm);

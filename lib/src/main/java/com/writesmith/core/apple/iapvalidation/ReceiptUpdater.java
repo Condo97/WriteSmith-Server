@@ -1,8 +1,8 @@
 package com.writesmith.core.apple.iapvalidation;
 
-import com.writesmith.database.DBManager;
+import com.writesmith.core.database.DBManager;
 import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.database.managers.ReceiptDBManager;
+import com.writesmith.core.database.ws.managers.ReceiptDBManager;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;

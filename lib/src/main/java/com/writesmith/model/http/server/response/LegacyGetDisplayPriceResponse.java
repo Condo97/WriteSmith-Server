@@ -27,4 +27,5 @@ public class LegacyGetDisplayPriceResponse {
     public String getMonthlyDisplayPrice() {
         return monthlyDisplayPrice;
     }
+
 }
