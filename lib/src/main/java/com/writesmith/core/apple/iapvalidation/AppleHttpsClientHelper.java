@@ -125,7 +125,7 @@ public class AppleHttpsClientHelper extends HttpsClientHelper {
                         "iat", System.currentTimeMillis() / 1000l,
                         "exp", System.currentTimeMillis() / 1000l + 80,
                         "aud", "appstoreconnect-v1",
-                        "bid", "com.acapplications.ChitChat"
+                        "bid", Constants.Apple_Bundle_ID
                 ))
                 .withHeader(Map.of(
                         "alg", "ES256",

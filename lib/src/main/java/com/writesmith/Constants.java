@@ -65,6 +65,7 @@ public final class Constants {
     public static final String MYSQL_URL = "jdbc:mysql://localhost:3306/chitchat_schema";
 
     /* Apple Server Constants */
+    public static final String Apple_Bundle_ID = "com.acapplications.ChitChat";
     public static final String Apple_Sandbox_Storekit_Base_URL = "https://api.storekit-sandbox.itunes.apple.com";
     public static final String Apple_Storekit_Base_URL = "https://api.storekit.itunes.apple.com";
     public static final String Apple_In_Apps_URL_Path = "/inApps";
