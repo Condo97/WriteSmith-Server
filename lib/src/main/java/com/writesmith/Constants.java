@@ -20,10 +20,10 @@ public final class Constants {
 
     /* Tiered Limits */
     public static final int Response_Token_Limit_Free = 80;
-    public static final int Response_Token_Limit_Paid = 1000;
+    public static final int Response_Token_Limit_Paid = 1200;
 
     public static final int Context_Character_Limit_Free = 800;
-    public static final int Context_Character_Limit_Paid = 2000;
+    public static final int Context_Character_Limit_Paid = 4000;
 
     /* Delays and Cooldowns */
     public static final int Transaction_Status_Apple_Update_Cooldown = 60;

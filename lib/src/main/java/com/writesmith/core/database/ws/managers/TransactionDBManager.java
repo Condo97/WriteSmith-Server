@@ -20,8 +20,8 @@ public class TransactionDBManager extends DBManager {
 
         // If most recent transaction is not null and parameter transaction ID matches most recent transaction ID, update, otherwise insert
         if (mostRecentTransaction != null && mostRecentTransaction.getAppstoreTransactionID().equals(transaction.getAppstoreTransactionID())) {
-            // Update
-            updateCheckedStatus(transaction);
+            // Update most recent transaction
+            updateCheckedStatus(mostRecentTransaction);
         } else {
             // Insert
             insert(transaction);
