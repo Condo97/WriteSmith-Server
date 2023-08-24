@@ -1,6 +1,7 @@
-package com.writesmith.core.database.ws.managers.helpers;
+package com.writesmith.core.database.dao.helpers;
 
-import com.writesmith.core.database.DBManager;
+import com.dbclient.DBManager;
+import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.model.database.DBRegistry;
 import com.writesmith.model.database.Sender;
 import com.writesmith.model.database.objects.Chat;
@@ -10,6 +11,7 @@ import sqlcomponentizer.preparedstatement.component.PSComponent;
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperatorCondition;
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -17,7 +19,17 @@ import java.util.List;
 
 public class ChatCountHelper {
 
-    public static Long countTodaysGeneratedChats(Integer userID) throws DBSerializerException, InterruptedException, SQLException {
+    public static Long countTodaysGeneratedChats(Integer userID) throws DBSerializerException, SQLException, InterruptedException {
+        // TODO: Should this pool access be here? Can we move this to GeneratedChatDAO and use GeneratedChatDAO, or is this a special case because it uses both Conversation and Chat, and not GeneratedChat, so would an independent class like this be the best case, and therefore should this have a pool or what?
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+        try {
+            return countTodaysGeneratedChats(conn, userID);
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
+        }
+    }
+
+    public static Long countTodaysGeneratedChats(Connection conn, Integer userID) throws DBSerializerException, InterruptedException, SQLException {
         // Build SQL conditions
         SQLOperatorCondition userIDCondition = new SQLOperatorCondition(DBRegistry.Table.Conversation.user_id, SQLOperators.EQUAL, userID);
         SQLOperatorCondition senderNotUserCondition = new SQLOperatorCondition(DBRegistry.Table.Chat.sender, SQLOperators.NOT_EQUAL, Sender.USER.toString());
@@ -27,6 +39,7 @@ public class ChatCountHelper {
 
         // Get chats from today for the conversation, need to do an inner join with Chat
         return DBManager.countObjectWhereInnerJoin(
+                conn,
                 Conversation.class,
                 sqlConditions,
                 Chat.class,

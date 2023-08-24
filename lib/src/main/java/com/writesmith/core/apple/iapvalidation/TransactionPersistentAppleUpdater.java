@@ -1,9 +1,9 @@
 package com.writesmith.core.apple.iapvalidation;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.writesmith.Constants;
-import com.writesmith.core.database.ws.managers.TransactionDBManager;
+import com.writesmith.core.database.dao.pooled.TransactionDAOPooled;
 import com.writesmith.model.database.objects.Transaction;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -67,7 +67,7 @@ public class TransactionPersistentAppleUpdater {
 
     public static Transaction getCooldownControlledAppleUpdatedMostRecentTransaction(Integer userID) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, UnrecoverableKeyException, DBSerializerPrimaryKeyMissingException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get most recent transaction from database
-        Transaction mostRecentTransaction = TransactionDBManager.getMostRecent(userID);
+        Transaction mostRecentTransaction = TransactionDAOPooled.getMostRecent(userID);
 
         // If most recent transaction is null, return null
         if (mostRecentTransaction == null)
@@ -85,7 +85,7 @@ public class TransactionPersistentAppleUpdater {
 
     public static Transaction getAppleUpdatedMostRecentTransaction(Integer userID) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, UnrecoverableKeyException, DBSerializerPrimaryKeyMissingException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get most recent transaction from database
-        Transaction mostRecentTransaction = TransactionDBManager.getMostRecent(userID);
+        Transaction mostRecentTransaction = TransactionDAOPooled.getMostRecent(userID);
 
         // Update and save Apple transaction status
         updateAndSaveAppleTransactionStatus(mostRecentTransaction);
@@ -98,7 +98,7 @@ public class TransactionPersistentAppleUpdater {
         AppleTransactionUpdater.updateTransactionStatusFromApple(transaction);
 
         // Insert or update transaction in database
-        TransactionDBManager.insertOrUpdateByMostRecentTransactionID(transaction);
+        TransactionDAOPooled.insertOrUpdateByMostRecentTransactionID(transaction);
     }
 
 }

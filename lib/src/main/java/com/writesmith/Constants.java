@@ -22,8 +22,8 @@ public final class Constants {
     public static final int Response_Token_Limit_Free = 80;
     public static final int Response_Token_Limit_Paid = 1200;
 
-    public static final int Context_Character_Limit_Free = 800;
-    public static final int Context_Character_Limit_Paid = 4000;
+    public static final int Character_Limit_Free = 800;
+    public static final int Character_Limit_Paid = 5400;
 
     /* Delays and Cooldowns */
     public static final int Transaction_Status_Apple_Update_Cooldown = 60;
@@ -41,6 +41,8 @@ public final class Constants {
             public static final String CREATE_RECIPE_IDEA = SUBDIRECTORY_PREFIX + "/createRecipeIdea";
             public static final String MAKE_RECIPE = SUBDIRECTORY_PREFIX + "/makeRecipeFromIdea";
         }
+
+        public static final String DELETE_CHAT_URI = "/deleteChat";
         public static final String GET_CHAT_URI = "/getChat";
         public static final String GET_CHAT_STREAM_URI = "/getChatStream";
         public static final String GET_IAP_STUFF_URI = "/getIAPStuff";

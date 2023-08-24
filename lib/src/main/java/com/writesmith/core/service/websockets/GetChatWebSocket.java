@@ -1,12 +1,13 @@
 package com.writesmith.core.service.websockets;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oaigptconnector.core.OpenAIGPTHttpsClientHelper;
+import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequest;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
 import com.writesmith.common.exceptions.CapReachedException;
@@ -14,18 +15,21 @@ import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSGenerationTierLimits;
 import com.writesmith.core.WSPremiumValidator;
+import com.writesmith.core.database.dao.factory.ChatFactoryDAO;
+import com.writesmith.core.database.dao.factory.GeneratedChatFactoryDAO;
+import com.writesmith.core.database.dao.pooled.ChatDAOPooled;
+import com.writesmith.core.database.dao.pooled.ConversationDAOPooled;
+import com.writesmith.core.database.dao.pooled.GeneratedChatDAOPooled;
+import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
-import com.writesmith.core.generation.openai.GeneratedChatBuilder;
 import com.writesmith.core.generation.openai.OpenAIGPTChatCompletionRequestFactory;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.core.database.DBManager;
-import com.writesmith.core.database.ws.managers.ConversationDBManager;
-import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.keys.Keys;
+import com.writesmith.model.database.Sender;
+import com.writesmith.model.database.objects.Chat;
 import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
 import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.GetChatRequest;
@@ -44,9 +48,11 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -54,10 +60,12 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @WebSocket
@@ -87,16 +95,27 @@ public class GetChatWebSocket {
             GetChatRequest gcr = parseHeaders(session.getUpgradeRequest().getHeaders());
 
             // Get u_aT for userID
-            User_AuthToken u_aT = User_AuthTokenDBManager.getFromDB(gcr.getAuthToken());
+            User_AuthToken u_aT = User_AuthTokenDAOPooled.get(gcr.getAuthToken());
 
             // Get isPremium
             boolean isPremium = WSPremiumValidator.getIsPremium(u_aT.getUserID());
 
             // Get conversation
-            Conversation conversation = ConversationDBManager.get(u_aT.getUserID(), gcr.getConversationID(), gcr.getInputText(), gcr.getBehavior());
+            Conversation conversation = ConversationDAOPooled.get(u_aT.getUserID(), gcr.getConversationID(), gcr.getBehavior());
+
+            // Parse input text to remove url encoded spaces and returns and stuff
+            String inputText = URLDecoder.decode(gcr.getInputText(), StandardCharsets.UTF_8);
+
+            // Create input chat
+            Chat inputChat = ChatFactoryDAO.create(
+                    conversation.getConversation_id(),
+                    Sender.USER,
+                    inputText,
+                    LocalDateTime.now()
+            );
 
             // Get remaining
-            Long remaining = ChatRemainingCalculator.calculateRemaining(conversation.getUserID(), isPremium);
+            Long remaining = ChatRemainingCalculator.calculateRemaining(conversation.getUser_id(), isPremium);
 
             // If remaining is not null (infinite) and less than 0, throw CapReachedException
             if (remaining != null && remaining <= 0)
@@ -119,7 +138,7 @@ public class GetChatWebSocket {
             OpenAIGPTModels model = WSGenerationTierLimits.getOfferedModelForTier(requestedModel, isPremium);
 
             // Create OpenAIGPTChatCompletionRequest
-            OAIGPTChatCompletionRequest completionRequest = OpenAIGPTChatCompletionRequestFactory.with(
+            OAIChatCompletionRequest completionRequest = OpenAIGPTChatCompletionRequestFactory.with(
                     conversation,
                     contextCharacterLimit,
                     model,
@@ -128,11 +147,24 @@ public class GetChatWebSocket {
                     true
             );
 
-            // Create empty GeneraetdChat to build and save to database as OpenAI stream is processed
-            GeneratedChatBuilder generatedChatBuilder = new GeneratedChatBuilder();
+//            // Create empty GeneraetdChat to build and save to database as OpenAI stream is processed
+//            GeneratedChatBuilder generatedChatBuilder = new GeneratedChatBuilder();
+            // Create GeneratedChat and deep insert into DB TODO: Fix token count and stuff
+            Chat chat = ChatFactoryDAO.createBlankAISent(conversation.getConversation_id());
+            GeneratedChat gc = GeneratedChatFactoryDAO.create(
+                    chat,
+                    model,
+                    null,
+                    null,
+                    null
+            );
+
+            // Create variables for text and finishReason, which will be set to the generatedChat after the stream is done
+            StringBuilder generatedOutput = new StringBuilder();
+            AtomicReference<String> finishReason = new AtomicReference<>("");
 
             // Do stream request with OpenAI right here for now TODO:
-            Stream<String> stream = OpenAIGPTHttpsClientHelper.postChatCompletionStream(completionRequest, Keys.openAiAPI);
+            Stream<String> stream = OAIClient.postChatCompletionStream(completionRequest, Keys.openAiAPI);
 
             // Parse OpenAIGPTChatCompletionStreamResponse then convert to GetChatResponse and send it in BodyResponse as response :-)
             stream.forEach(response -> {
@@ -152,7 +184,9 @@ public class GetChatWebSocket {
                     GetChatResponse getChatResponse = new GetChatResponse(
                             streamResponse.getChoices()[0].getDelta().getContent(),
                             streamResponse.getChoices()[0].getFinish_reason(),
-                            conversation.getID(),
+                            conversation.getConversation_id(),
+                            inputChat.getId(),
+                            gc.getChat().getId(),
                             (remaining == null ? -1 : remaining - 1)
                     );
 
@@ -164,9 +198,9 @@ public class GetChatWebSocket {
 
                     // Add text received and finishReason if each not null to generatedChatBuilder for DB TODO: Make this better lol
                     if (getChatResponse.getOutput() != null)
-                        generatedChatBuilder.addText(getChatResponse.getOutput());
+                        generatedOutput.append(getChatResponse.getOutput());
                     if (getChatResponse.getFinishReason() != null && !getChatResponse.getFinishReason().equals(""))
-                        generatedChatBuilder.setFinishReason(getChatResponse.getFinishReason());
+                        finishReason.set(getChatResponse.getFinishReason());
 
                 } catch (JsonMappingException | JsonParseException e) {
                     // TODO: If cannot map response as JSON, skip for now, this is fine as there is only one format for the response as far as I know now
@@ -177,16 +211,13 @@ public class GetChatWebSocket {
                 }
             });
 
-            // Create GeneratedChat and deep insert into DB TODO: Fix token count and stuff
-            GeneratedChat gc = generatedChatBuilder.build(
-                    conversation.getID(),
-                    model,
-                    null,
-                    null,
-                    null
-            );
+            // Set generated chat text and update in database
+            gc.getChat().setText(generatedOutput.toString());
+            ChatDAOPooled.updateText(gc.getChat());
 
-            DBManager.deepInsert(gc);
+            // Set finish reason and update in database
+            gc.setFinish_reason(finishReason.get());
+            GeneratedChatDAOPooled.updateFinishReason(gc);
 
             // Print log to console
             printStreamedGeneratedChatDoBetterLoggingLol(gc);
@@ -195,7 +226,7 @@ public class GetChatWebSocket {
             /* TODO: Do the major annotations and rework all of this to be better lol */
             // Send BodyResponse with cap reached error and GetChatResponse with cap reached response
 //            GetChatResponse gcr = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), null, null, 0l); TODO: Reinstate this after new app build has been published so that it works properly and is cleaner here.. unless this implementation is better and the "limit" just needs to be a constant somewhere
-            GetChatResponse gcr = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), "limit", null, 0l);
+            GetChatResponse gcr = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), "limit", null, null, null, 0l);
             ResponseStatus rs = ResponseStatus.CAP_REACHED_ERROR;
 
             BodyResponse br = BodyResponseFactory.createBodyResponse(rs, gcr);
@@ -361,11 +392,13 @@ public class GetChatWebSocket {
         sb.append(gc.getChat().getId());
         sb.append(" Streamed ");
         sb.append(sdf.format(date));
-        sb.append("\t");
-        sb.append(output.length() >= maxLength ? output.substring(0, maxLength) : output);
-        sb.append("... ");
-        sb.append(output.length());
-        sb.append(" chars");
+        if (output != null) {
+            sb.append("\t");
+            sb.append(output.length() >= maxLength ? output.substring(0, maxLength) : output);
+            sb.append("... ");
+            sb.append(output.length());
+            sb.append(" chars");
+        }
 
         System.out.println(sb.toString());
     }

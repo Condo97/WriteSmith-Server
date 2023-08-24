@@ -8,10 +8,10 @@ import sqlcomponentizer.dbserializer.DBSerializable;
 public class Conversation {
 
     @DBColumn(name = DBRegistry.Table.Conversation.conversation_id, primaryKey = true)
-    private Integer id;
+    private Integer conversation_id;
 
     @DBColumn(name = DBRegistry.Table.Conversation.user_id)
-    private Integer userID;
+    private Integer user_id;
 
     @DBColumn(name = DBRegistry.Table.Conversation.behavior)
     private String behavior;
@@ -21,31 +21,32 @@ public class Conversation {
 
     }
 
-    public Conversation(Integer userID, String behavior) {
-        this.userID = userID;
+    public Conversation(Integer user_id, String behavior) {
+        this.user_id = user_id;
         this.behavior = behavior;
     }
 
-    public Conversation(Integer id, Integer userID, String behavior) {
-        this.id = id;
-        this.userID = userID;
+    public Conversation(Integer conversation_id, Integer user_id, String behavior) {
+        this.conversation_id = conversation_id;
+        this.user_id = user_id;
         this.behavior = behavior;
     }
 
-    public Integer getID() {
-        return id;
+
+    public Integer getConversation_id() {
+        return conversation_id;
     }
 
-    public void setId(Integer id) {
-        this.id = id;
+    public void setConversation_id(Integer conversation_id) {
+        this.conversation_id = conversation_id;
     }
 
-    public Integer getUserID() {
-        return userID;
+    public Integer getUser_id() {
+        return user_id;
     }
 
-    public void setUserID(Integer userID) {
-        this.userID = userID;
+    public void setUser_id(Integer user_id) {
+        this.user_id = user_id;
     }
 
     public String getBehavior() {

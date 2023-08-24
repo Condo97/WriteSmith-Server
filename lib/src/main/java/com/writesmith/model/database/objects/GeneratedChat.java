@@ -36,6 +36,7 @@ public class GeneratedChat {
 
     public GeneratedChat(Chat chat, String finish_reason, String modelName, Integer completionTokens, Integer promptTokens, Integer totalTokens) {
         this.chat = chat;
+        chat_id = chat.getId();
         this.finish_reason = finish_reason;
         this.modelName = modelName;
         this.completionTokens = completionTokens;
@@ -49,6 +50,7 @@ public class GeneratedChat {
 
     public void setChat(Chat chat) {
         this.chat = chat;
+        chat_id = chat.getId();
     }
 
     public Integer getChat_id() {

@@ -1,13 +1,13 @@
 package com.writesmith.core.service.endpoints;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSPremiumValidator;
+import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.server.request.AuthRequest;
 import com.writesmith.model.http.server.response.BodyResponse;
@@ -29,7 +29,7 @@ public class GetRemainingChatsEndpoint {
 
     public static BodyResponse getRemaining(AuthRequest authRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get u_aT from authRequest
-        User_AuthToken u_aT = User_AuthTokenDBManager.getFromDB(authRequest.getAuthToken());
+        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(authRequest.getAuthToken());
 
         // Get isPremium
         boolean isPremium = WSPremiumValidator.getIsPremium(u_aT.getUserID());

@@ -12,6 +12,7 @@ public class DBRegistry {
             public static final String sender = "sender";
             public static final String text = "text";
             public static final String date = "date";
+            public static final String deleted = "deleted";
 
         }
 

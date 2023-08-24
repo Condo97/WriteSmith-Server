@@ -1,8 +1,9 @@
 package com.writesmith.core.apple.iapvalidation;
 
-import com.writesmith.core.database.DBManager;
+import com.dbclient.DBManager;
+import com.writesmith.connectionpool.SQLConnectionPoolInstance;
+import com.writesmith.core.database.dao.pooled.ReceiptDAOPooled;
 import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.core.database.ws.managers.ReceiptDBManager;
 import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
@@ -13,6 +14,7 @@ import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -28,7 +30,7 @@ public class ReceiptUpdater {
         Receipt recentReceipt = null;
         try {
             // TODO: - Maybe the receipt should just return as null rather than throw this exception...
-            recentReceipt = ReceiptDBManager.getMostRecentReceiptFromDB(newReceipt.getUserID());
+            recentReceipt = ReceiptDAOPooled.getMostRecent(newReceipt.getUserID());
         } catch (DBObjectNotFoundFromQueryException e) {
             shouldInsert = true;
         }
@@ -44,21 +46,27 @@ public class ReceiptUpdater {
 
         ReceiptValidator.validateReceipt(newReceipt); // one call 💪
 
-        if (shouldInsert)
-            DBManager.deepInsert(newReceipt);
-        else {
-            // Update receipt
-            Map<String, Object> colValMapToUpdate = Map.of(
-                    "expired", newReceipt.isExpired(),
-                    "check_date", newReceipt.getCheckDate()
-            );
+        // TODO: Where else can I put this and how can I improve this?
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+        try {
+            if (shouldInsert)
+                DBManager.deepInsert(conn, newReceipt);
+            else {
+                // Update receipt
+                Map<String, Object> colValMapToUpdate = Map.of(
+                        "expired", newReceipt.isExpired(),
+                        "check_date", newReceipt.getCheckDate()
+                );
 
-            Map<String, Object> whereColValMap = Map.of(
-                    "receipt_id", newReceipt.getID()
-            );
+                Map<String, Object> whereColValMap = Map.of(
+                        "receipt_id", newReceipt.getID()
+                );
 
 //            newReceipt.updateWhere(colValMapToUpdate, whereColValMap);
-            DBManager.updateWhere(Receipt.class, colValMapToUpdate, whereColValMap, SQLOperators.EQUAL);
+                DBManager.updateWhere(conn, Receipt.class, colValMapToUpdate, whereColValMap, SQLOperators.EQUAL);
+            }
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
         }
     }
 

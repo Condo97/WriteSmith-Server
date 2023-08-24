@@ -2,7 +2,7 @@ package com.writesmith.core.generation.calculators;
 
 import com.writesmith.Constants;
 import com.writesmith.common.IntegerFromBoolean;
-import com.writesmith.core.database.ws.managers.helpers.ChatCountHelper;
+import com.writesmith.core.database.dao.helpers.ChatCountHelper;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.sql.SQLException;

@@ -1,0 +1,49 @@
+package com.writesmith.core.service.endpoints;
+
+import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.common.exceptions.ValidationException;
+import com.writesmith.core.database.dao.pooled.ChatDAOPooled;
+import com.writesmith.core.database.dao.pooled.ConversationDAOPooled;
+import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.core.service.StatusResponseFactory;
+import com.writesmith.model.database.objects.Chat;
+import com.writesmith.model.database.objects.Conversation;
+import com.writesmith.model.database.objects.User_AuthToken;
+import com.writesmith.model.http.server.request.DeleteChatRequest;
+import com.writesmith.model.http.server.response.StatusResponse;
+import sqlcomponentizer.dbserializer.DBSerializerException;
+import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
+
+import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLException;
+
+public class DeleteChatEndpoint {
+
+    public static StatusResponse deleteChat(DeleteChatRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, DBSerializerPrimaryKeyMissingException, ValidationException {
+        /* Get userID */
+        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
+
+        // TODO: The chatID and userID verification can be done by a delete where inner join
+        /* Get Chat */
+        Chat chat = ChatDAOPooled.getFirstByPrimaryKey(request.getChatID());
+
+        /* Get Conversation */
+        Conversation conversation = ConversationDAOPooled.getFirstByPrimaryKey(chat.getConversationID());
+
+        /* If userID does not equal Conversation userID, throw validation error */
+        if (!u_aT.getUserID().equals(conversation.getUser_id()))
+            // TODO: Handle errors better
+            throw new ValidationException("User ID does not match Conversation ID");
+
+        /* Delete chat */
+        // Set chat deleted to true
+        chat.setDeleted(true);
+
+        // Update deleted in database with new deleted value
+        ChatDAOPooled.updateDeleted(chat);
+
+        // Create and return success status response
+        return StatusResponseFactory.createSuccessStatusResponse();
+    }
+
+}

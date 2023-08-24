@@ -1,21 +1,25 @@
 package com.writesmith.core.service.endpoints;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.Constants;
-import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
-import com.writesmith.core.WSGenerationService;
-import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.core.database.DBManager;
-import com.writesmith.core.database.ws.managers.ChatDBManager;
-import com.writesmith.core.database.ws.managers.ConversationDBManager;
-import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.common.exceptions.CapReachedException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
+import com.writesmith.core.WSGenerationService;
+import com.writesmith.core.database.dao.factory.ChatFactoryDAO;
+import com.writesmith.core.database.dao.factory.ConversationFactoryDAO;
+import com.writesmith.core.database.dao.pooled.ConversationDAOPooled;
+import com.writesmith.core.database.dao.pooled.GeneratedChatDAOPooled;
+import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.core.service.BodyResponseFactory;
 import com.writesmith.model.database.Sender;
-import com.writesmith.model.database.objects.*;
+import com.writesmith.model.database.objects.Chat;
+import com.writesmith.model.database.objects.Conversation;
+import com.writesmith.model.database.objects.GeneratedChat;
+import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.generation.WSChat;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.server.ResponseStatus;
 import com.writesmith.model.http.server.request.GetChatRequest;
@@ -43,15 +47,15 @@ public class GetChatEndpoint {
     public static BodyResponse getChat(GetChatRequest request) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException, DBObjectNotFoundFromQueryException, OpenAIGPTException, IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         /* SETUP */
         // Get User_AuthToken for userID
-        User_AuthToken u_aT = User_AuthTokenDBManager.getFromDB(request.getAuthToken());
+        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 
         /* GET CONVERSATION */
-        Conversation conversation = ConversationDBManager.get(u_aT.getUserID(), request.getConversationID(), request.getInputText(), request.getBehavior());
+        Conversation conversation = ConversationDAOPooled.get(u_aT.getUserID(), request.getConversationID(), request.getBehavior());
 
         /* CREATE IN DB */
-        // Save chat to database by createInDB
-        ChatDBManager.createInDB(
-                conversation.getID(),
+        // Save input chat to database by createInDB
+        Chat inputChat = ChatFactoryDAO.create(
+                conversation.getConversation_id(),
                 Sender.USER,
                 request.getInputText(),
                 LocalDateTime.now()
@@ -77,9 +81,7 @@ public class GetChatEndpoint {
             WSChat wsChat = WSGenerationService.generate(conversation, model);
 
             // Save the Chat
-            DBManager.deepInsert(wsChat.getGeneratedChat(), true);
-
-            // Calculate remaining TODO: this is a second DB call for countToday's chats, should this be combined?
+            GeneratedChatDAOPooled.insert(wsChat.getGeneratedChat());
 
             // Set the responseStatus as successful
             responseStatus = ResponseStatus.SUCCESS;
@@ -98,7 +100,7 @@ public class GetChatEndpoint {
             printGeneratedChat(wsChat.getGeneratedChat());
 
             // Construct and return the GetChatResponse
-            getChatResponse = new GetChatResponse(aiChatTextResponse, wsChat.getGeneratedChat().getFinish_reason(), conversation.getID(), remainingNotNull);
+            getChatResponse = new GetChatResponse(aiChatTextResponse, wsChat.getGeneratedChat().getFinish_reason(), conversation.getConversation_id(), inputChat.getId(), wsChat.getGeneratedChat().getChat().getId(), remainingNotNull);
 
             // Add debug field(s) if necessary
             if (request.getDebug() != null && request.getDebug()) {
@@ -113,7 +115,7 @@ public class GetChatEndpoint {
             responseStatus = ResponseStatus.CAP_REACHED_ERROR;
 
             // Set the getChatResponse with the random response, null finish reason, and 0 remaining since the cap was reached TODO: Is this 0 fine here?
-            getChatResponse = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), null, null, 0l);
+            getChatResponse = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), null, null, null, null, 0l);
         }
 
         // Create body response with responseStatus TODO: This status should be in getChatResponse so that bodyResponse can be assembled by Server
@@ -126,7 +128,7 @@ public class GetChatEndpoint {
             behavior = Constants.DEFAULT_BEHAVIOR;
         }
 
-        return ConversationDBManager.createInDB(userID, behavior);
+        return ConversationFactoryDAO.create(userID, behavior);
     }
 
     //TODO Count the words and move to another class
@@ -136,7 +138,7 @@ public class GetChatEndpoint {
         int maxLength = 40;
 
         String tempAIChatTextResponse = openAIGeneratedChat.getChat().getText().replaceAll("\n","");
-        int chatID = openAIGeneratedChat.getChat_id();
+        int chatID = openAIGeneratedChat.getChat().getId();
         int tokens = openAIGeneratedChat.getCompletionTokens();
 
         System.out.println("Chat " + chatID + " Filled " + sdf.format(date) + "\t" + (tempAIChatTextResponse.length() >= maxLength ? tempAIChatTextResponse.substring(0, maxLength) : tempAIChatTextResponse) + "... " + tokens + " Tokens\ton Thread " + Thread.currentThread().getName());

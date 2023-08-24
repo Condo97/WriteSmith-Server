@@ -1,9 +1,9 @@
 package com.writesmith.core.generation.openai;
 
-import com.oaigptconnector.core.OpenAIGPTHttpsClientHelper;
+import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.oaigptconnector.model.request.chat.completion.OAIGPTChatCompletionRequest;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.keys.Keys;
 import com.writesmith.model.database.Sender;
@@ -24,19 +24,20 @@ public class OpenAIChatGenerator {
      */
     public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, OpenAIGPTModels model, Integer temperature, Integer tokenLimit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
         // Create the request
-        OAIGPTChatCompletionRequest request = OpenAIGPTChatCompletionRequestFactory.with(conversation, contextCharacterLimit, model, temperature, tokenLimit);
+        OAIChatCompletionRequest request = OpenAIGPTChatCompletionRequestFactory.with(conversation, contextCharacterLimit, model, temperature, tokenLimit);
 
         // Get response from OpenAIGPTHttpHelper
         try {
-            OAIGPTChatCompletionResponse response = OpenAIGPTHttpsClientHelper.postChatCompletion(request, Keys.openAiAPI);
+            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(request, Keys.openAiAPI);
 
             // Return first choice if it exists
             if (response.getChoices().length > 0) {
                 Chat chat = new Chat(
-                        conversation.getID(),
+                        conversation.getConversation_id(),
                         Sender.AI,
                         response.getChoices()[0].getMessage().getContent(),
-                        LocalDateTime.now()
+                        LocalDateTime.now(),
+                        false
                 );
 
                 return new GeneratedChat(

@@ -1,13 +1,13 @@
 package com.writesmith.core.service.endpoints;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
+import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
 import com.writesmith.model.database.objects.Transaction;
 import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.server.request.RegisterTransactionRequest;
 import com.writesmith.model.http.server.response.BodyResponse;
 import com.writesmith.model.http.server.response.IsPremiumResponse;
@@ -30,7 +30,7 @@ public class RegisterTransactionEndpoint {
 
     public static BodyResponse registerTransaction(RegisterTransactionRequest registerTransactionRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException, AppStoreStatusResponseException {
         // Get the user_authToken object to get the user id
-        User_AuthToken u_aT = User_AuthTokenDBManager.getFromDB(registerTransactionRequest.getAuthToken());
+        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(registerTransactionRequest.getAuthToken());
 
         // Create transaction with now record date
         Transaction transaction = Transaction.withNowRecordDate(u_aT.getUserID(), registerTransactionRequest.getTransactionId());

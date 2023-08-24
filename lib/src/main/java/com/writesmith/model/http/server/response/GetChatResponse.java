@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 //@JsonInclude(JsonInclude.Include.NON_NULL);
 public class GetChatResponse {
     private String output, finishReason;
-    private Integer conversationID;
+    private Integer conversationID, inputChatID, outputChatID;
     private Long remaining;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -16,10 +16,12 @@ public class GetChatResponse {
 
     }
 
-    public GetChatResponse(String output, String finishReason, Integer conversationID, Long remaining) {
+    public GetChatResponse(String output, String finishReason, Integer conversationID, Integer inputChatID, Integer outputChatID, Long remaining) {
         this.output = output;
         this.finishReason = finishReason;
         this.conversationID = conversationID;
+        this.inputChatID = inputChatID;
+        this.outputChatID = outputChatID;
         this.remaining = remaining;
     }
 
@@ -38,6 +40,14 @@ public class GetChatResponse {
 
     public Integer getConversationID() {
         return conversationID;
+    }
+
+    public Integer getInputChatID() {
+        return inputChatID;
+    }
+
+    public Integer getOutputChatID() {
+        return outputChatID;
     }
 
     public Long getRemaining() {

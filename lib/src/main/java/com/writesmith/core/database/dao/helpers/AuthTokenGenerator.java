@@ -1,4 +1,4 @@
-package com.writesmith.core.database.ws.managers.helpers;
+package com.writesmith.core.database.dao.helpers;
 
 import java.util.Base64;
 import java.util.Random;

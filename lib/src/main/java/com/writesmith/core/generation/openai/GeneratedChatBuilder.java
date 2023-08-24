@@ -29,7 +29,8 @@ public class GeneratedChatBuilder {
                 conversationID,
                 Sender.AI,
                 text,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                false
         );
 
         GeneratedChat generatedChat = new GeneratedChat(

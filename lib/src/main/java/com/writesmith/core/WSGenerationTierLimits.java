@@ -11,7 +11,7 @@ public class WSGenerationTierLimits {
     }
 
     public static int getContextCharacterLimit(boolean isPremium) {
-        return isPremium ? Constants.Context_Character_Limit_Paid : Constants.Context_Character_Limit_Free;
+        return isPremium ? Constants.Character_Limit_Paid : Constants.Character_Limit_Free;
     }
 
     public static OpenAIGPTModels getOfferedModelForTier(OpenAIGPTModels model, boolean isPremium) {

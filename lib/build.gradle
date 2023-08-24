@@ -42,6 +42,9 @@ dependencies {
 //    implementation 'com.github.Condo97:SQLComponentizer:-SNAPSHOT'
     implementation 'com.github.condo97:SQLComponentizer:1.0.0'
 
+    // DBClient for more SQL handling
+    implementation 'com.github.condo97:MySQLDBClient:1.0.0'
+
     // OIAGPTConnector for OpenAI GPT handling
     implementation 'com.github.condo97:OAIGPTConnector:1.0.0'
 
@@ -66,6 +69,13 @@ dependencies {
 
     // java-jwt for JWT
     implementation 'com.auth0:java-jwt:4.4.0'
+
+    // Httpson for handling HTTPS requests with JsonNode and Jackson
+    implementation 'com.github.condo97:Httpson:1.0.0'
+
+    // AppleTransactionClient for handling Apple transactions
+    implementation 'com.github.condo97:AppleTransactionClient:1.0.0'
+
 }
 
 tasks.named('test') {

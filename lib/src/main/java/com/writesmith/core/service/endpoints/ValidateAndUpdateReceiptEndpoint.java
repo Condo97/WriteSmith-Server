@@ -4,8 +4,8 @@ import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.apple.iapvalidation.ReceiptUpdater;
+import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.core.database.ws.managers.User_AuthTokenDBManager;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.model.database.objects.User_AuthToken;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
@@ -23,7 +23,7 @@ public class ValidateAndUpdateReceiptEndpoint {
 
     public static BodyResponse validateAndUpdateReceipt(RegisterTransactionRequest registerTransactionRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, DBSerializerPrimaryKeyMissingException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, AutoIncrementingDBObjectExistsException {
         // Get u_aT
-        User_AuthToken u_aT = User_AuthTokenDBManager.getFromDB(registerTransactionRequest.getAuthToken());
+        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(registerTransactionRequest.getAuthToken());
 
         // Create receipt and update if needed
         Receipt receipt = new Receipt(u_aT.getUserID(), registerTransactionRequest.getReceiptString());

@@ -1,5 +1,6 @@
 package com.writesmith.core;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.Constants;
@@ -11,7 +12,6 @@ import com.writesmith.core.generation.openai.OpenAIChatGenerator;
 import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.GeneratedChat;
 import com.writesmith.model.generation.WSChat;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
@@ -34,10 +34,10 @@ public class WSGenerationService {
         // Verify cooldown and timestamp is before current date, otherwise throw exception TODO
 
         // Get isPremium
-        boolean isPremium = WSPremiumValidator.getIsPremium(conversation.getUserID());
+        boolean isPremium = WSPremiumValidator.getIsPremium(conversation.getUser_id());
 
         // Get remaining
-        Long remaining = ChatRemainingCalculator.calculateRemaining(conversation.getUserID(), isPremium);
+        Long remaining = ChatRemainingCalculator.calculateRemaining(conversation.getUser_id(), isPremium);
 
         // If remaining is not null (infinite) and less than 0, throw CapReachedException
         if (remaining != null && remaining <= 0) throw new CapReachedException("Cap reached for user");
@@ -59,6 +59,8 @@ public class WSGenerationService {
                 Constants.DEFAULT_TEMPERATURE,
                 tokenLimit
         );
+        
+        System.out.println(openAIGeneratedChat.getTotalTokens());
 
         // Subtract 1 from remaining since there was just a chat generated
         if (remaining != null)

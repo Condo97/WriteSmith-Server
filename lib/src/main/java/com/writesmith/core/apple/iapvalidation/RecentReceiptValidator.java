@@ -1,9 +1,9 @@
 package com.writesmith.core.apple.iapvalidation;
 
 import com.writesmith.Constants;
+import com.writesmith.core.database.dao.pooled.ReceiptDAOPooled;
 import com.writesmith.model.database.objects.ChatLegacy;
 import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.core.database.ws.managers.ReceiptDBManager;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
@@ -25,7 +25,7 @@ public class RecentReceiptValidator extends ReceiptValidator {
         // Try to get receipt with userID
         Receipt receipt;
         try {
-            receipt = ReceiptDBManager.getMostRecentReceiptFromDB(userID);
+            receipt = ReceiptDAOPooled.getMostRecent(userID);
         } catch (DBObjectNotFoundFromQueryException e) {
             // Receipt not found
             return null;

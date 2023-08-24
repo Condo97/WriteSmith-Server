@@ -1,14 +1,13 @@
 package com.writesmith.core;
 
+import appletransactionclient.exception.AppStoreStatusResponseException;
 import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.apple.iapvalidation.RecentReceiptValidator;
 import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
 import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
-import com.writesmith.model.database.objects.Conversation;
 import com.writesmith.model.database.objects.Receipt;
 import com.writesmith.model.database.objects.Transaction;
-import com.writesmith.model.http.client.apple.itunes.exception.AppStoreStatusResponseException;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;

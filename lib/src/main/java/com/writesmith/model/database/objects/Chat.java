@@ -25,26 +25,25 @@ public class Chat {
     @DBColumn(name = DBRegistry.Table.Chat.date)
     private LocalDateTime date;
 
+    @DBColumn(name = DBRegistry.Table.Chat.deleted)
+    private Boolean deleted;
+
 
     public Chat() {
 
     }
 
-    public Chat(Integer conversationID, Sender sender, String text, LocalDateTime date) {
-        this.conversationID = conversationID;
-        this.sender = sender;
-        this.text = text;
-        this.date = date;
-
-        id = null;
+    public Chat(Integer conversationID, Sender sender, String text, LocalDateTime date, Boolean deleted) {
+        this(null, conversationID, sender, text, date, deleted);
     }
 
-    public Chat(Integer id, Integer conversationID, Sender sender, String text, LocalDateTime date) {
+    public Chat(Integer id, Integer conversationID, Sender sender, String text, LocalDateTime date, Boolean deleted) {
         this.id = id;
         this.conversationID = conversationID;
         this.sender = sender;
         this.text = text;
         this.date = date;
+        this.deleted = deleted;
     }
 
     public Integer getId() {
@@ -85,6 +84,14 @@ public class Chat {
 
     public void setDate(LocalDateTime date) {
         this.date = date;
+    }
+
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
     }
 
 }

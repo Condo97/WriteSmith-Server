@@ -1,17 +1,17 @@
 package com.writesmith.core.apple.iapvalidation;
 
+import appletransactionclient.http.AppleHttpClient;
 import com.fasterxml.jackson.databind.*;
-import com.oaigptconnector.core.HttpsClientHelper;
 import com.writesmith.Constants;
-import com.writesmith.model.http.client.apple.AppleHttpClient;
 import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
 import com.writesmith.model.http.client.apple.itunes.response.error.AppleItunesErrorResponse;
 import com.writesmith.model.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
+import httpson.Httpson;
 
 import java.io.IOException;
 import java.net.URI;
 
-public class AppleHttpVerifyReceipt extends HttpsClientHelper {
+public class AppleHttpVerifyReceipt extends Httpson {
 
     public VerifyReceiptResponse getVerifyReceiptResponse(Object requestObject) throws IOException, InterruptedException, AppleItunesResponseException {
         return getVerifyReceiptResponse(requestObject, URI.create(Constants.Apple_Verify_Receipt_URL));
