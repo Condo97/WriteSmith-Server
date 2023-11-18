@@ -1,16 +1,16 @@
 package com.writesmith.core.service.endpoints;
 
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.common.exceptions.ValidationException;
-import com.writesmith.core.database.dao.pooled.ChatDAOPooled;
-import com.writesmith.core.database.dao.pooled.ConversationDAOPooled;
-import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.core.service.StatusResponseFactory;
-import com.writesmith.model.database.objects.Chat;
-import com.writesmith.model.database.objects.Conversation;
-import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.server.request.DeleteChatRequest;
-import com.writesmith.model.http.server.response.StatusResponse;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.exceptions.ValidationException;
+import com.writesmith.database.dao.pooled.ChatDAOPooled;
+import com.writesmith.database.dao.pooled.ConversationDAOPooled;
+import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.core.service.response.factory.StatusResponseFactory;
+import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.Conversation;
+import com.writesmith.database.model.objects.User_AuthToken;
+import com.writesmith.core.service.request.DeleteChatRequest;
+import com.writesmith.core.service.response.StatusResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 

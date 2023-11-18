@@ -1,21 +1,22 @@
 package com.writesmith.core;
 
-import appletransactionclient.exception.AppStoreStatusResponseException;
+import appletransactionclient.exception.AppStoreErrorResponseException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
-import com.writesmith.common.exceptions.*;
+import com.writesmith.exceptions.*;
+import com.writesmith.exceptions.responsestatus.MalformedJSONException;
 import com.writesmith.core.service.endpoints.*;
-import com.writesmith.model.http.server.request.DeleteChatRequest;
-import com.writesmith.model.http.server.request.func.CreateRecipeIdeaRequest;
-import com.writesmith.model.http.server.response.*;
-import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.server.ResponseStatus;
-import com.writesmith.model.http.server.request.AuthRequest;
-import com.writesmith.model.http.server.request.RegisterTransactionRequest;
-import com.writesmith.model.http.server.request.GetChatRequest;
+import com.writesmith.core.service.request.DeleteChatRequest;
+import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
+import com.writesmith.core.service.ResponseStatus;
+import com.writesmith.core.service.request.AuthRequest;
+import com.writesmith.core.service.request.RegisterTransactionRequest;
+import com.writesmith._deprecated.getchatrequest.GetChatLegacyRequest;
+import com.writesmith.core.service.response.BodyResponse;
+import com.writesmith.core.service.response.StatusResponse;
 import spark.Request;
 import spark.Response;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -95,12 +96,12 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String getChat(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, OpenAIGPTException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
-        GetChatRequest gcRequest;
+    public static String getChat(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, OpenAIGPTException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+        GetChatLegacyRequest gcRequest;
 
         // Try to parse the gcRequest from req.body
         try {
-            gcRequest = new ObjectMapper().readValue(req.body(), GetChatRequest.class);
+            gcRequest = new ObjectMapper().readValue(req.body(), GetChatLegacyRequest.class);
         } catch (JsonMappingException | JsonParseException e) {
             System.out.println("Exception when Getting Chat.. The request: " + req.body());
             e.printStackTrace();
@@ -142,7 +143,7 @@ public class Server {
         return new ObjectMapper().writeValueAsString(bodyResponse);
     }
 
-    public static Object registerTransaction(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException {
+    public static Object registerTransaction(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException {
         // Parse the request
         RegisterTransactionRequest rtr = new ObjectMapper().readValue(request.body(), RegisterTransactionRequest.class);
 
@@ -203,7 +204,7 @@ public class Server {
      * @param response Response object given by Spark
      * @return Value of JSON represented as String
      */
-    public static Object getIsPremium(Request request, Response response) throws IOException, AppStoreStatusResponseException, DBSerializerPrimaryKeyMissingException, SQLException, DBObjectNotFoundFromQueryException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, UnrecoverableKeyException, DBSerializerException, PreparedStatementMissingArgumentException, AppleItunesResponseException, InvalidKeySpecException, InstantiationException {
+    public static Object getIsPremium(Request request, Response response) throws IOException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, SQLException, DBObjectNotFoundFromQueryException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, UnrecoverableKeyException, DBSerializerException, PreparedStatementMissingArgumentException, AppleItunesResponseException, InvalidKeySpecException, InstantiationException {
         // Process the request
         AuthRequest authRequest = new ObjectMapper().readValue(request.body(), AuthRequest.class);
 
@@ -234,7 +235,7 @@ public class Server {
      * @param response Response object given by Spark
      * @return Value of JSON represented as String
      */
-    public static Object getRemainingChats(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static Object getRemainingChats(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Process the request
         AuthRequest authRequest = new ObjectMapper().readValue(request.body(), AuthRequest.class);
 

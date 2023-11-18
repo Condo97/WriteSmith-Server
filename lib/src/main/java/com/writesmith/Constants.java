@@ -1,6 +1,6 @@
 package com.writesmith;
 
-import com.oaigptconnector.model.Role;
+import com.oaigptconnector.model.CompletionRole;
 
 import java.net.URI;
 
@@ -19,18 +19,28 @@ public final class Constants {
     public static final String YEARLY_NAME = "chitchatultrayearly";
 
     /* Tiered Limits */
-    public static final int Response_Token_Limit_Free = 80;
-    public static final int Response_Token_Limit_Paid = 1200;
+    public static final int Response_Token_Limit_GPT_3_Turbo_Free = 120;
+    public static final int Response_Token_Limit_GPT_3_Turbo_Paid = 1400;
+    public static final int Response_Token_Limit_GPT_4_Free = 400;
+    public static final int Response_Token_Limit_GPT_4_Paid = 1000;
+    public static final int Response_Token_Limit_GPT_4_Vision_Free = 400;
+    public static final int Response_Token_Limit_GPT_4_Vision_Paid = 400;
 
-    public static final int Character_Limit_Free = 800;
-    public static final int Character_Limit_Paid = 5400;
+    public static final int Character_Limit_GPT_3_Turbo_Free = 1000;
+    public static final int Character_Limit_GPT_3_Turbo_Paid = 2800;
+    public static final int Character_Limit_GPT_4_Free = 400;
+    public static final int Character_Limit_GPT_4_Paid = 1400;
+    public static final int Character_Limit_GPT_4_Vision_Free = 1400;
+    public static final int Character_Limit_GPT_4_Vision_Paid = 1400;
+
+    public static final int Image_Token_Count = 800;
 
     /* Delays and Cooldowns */
-    public static final int Transaction_Status_Apple_Update_Cooldown = 60;
+    public static final int Transaction_Status_Apple_Update_Cooldown = 3000;
 
     /* Caps */
     public static final int Cap_Free_Total_Essays = 3; // This is just a constant sent to the device, which handles everything
-    public static final Integer Cap_Chat_Daily_Free = 10;
+    public static final Integer Cap_Chat_Daily_Free = 20;
     public static final Integer Cap_Chat_Daily_Paid = null;
     public static final int Cap_Chat_Daily_Paid_Legacy = -1; //-1 is unlimited
 
@@ -44,7 +54,8 @@ public final class Constants {
 
         public static final String DELETE_CHAT_URI = "/deleteChat";
         public static final String GET_CHAT_URI = "/getChat";
-        public static final String GET_CHAT_STREAM_URI = "/getChatStream";
+        public static final String GET_CHAT_STREAM_URI = "/streamChat";
+        public static final String GET_CHAT_STREAM_URI_LEGACY = "/getChatStream";
         public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
         public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
@@ -87,9 +98,9 @@ public final class Constants {
     public static URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
     public static long AI_TIMEOUT_MINUTES = 4;
     public static String DEFAULT_MODEL_NAME = "gpt-3.5-turbo";//"gpt-4";
-    public static String PAID_MODEL_NAME = "gpt-4";
+    public static String PAID_MODEL_NAME = "gpt-4-1106-preview";
     public static String DEFAULT_BEHAVIOR = null;
-    public static Role LEGACY_DEFAULT_ROLE = Role.USER;
+    public static CompletionRole LEGACY_DEFAULT_ROLE = CompletionRole.USER;
     public static int DEFAULT_TEMPERATURE = 0;
 
 }

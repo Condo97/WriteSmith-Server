@@ -1,11 +1,11 @@
 package com.writesmith.core.service.endpoints;
 
-import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
-import com.writesmith.core.database.dao.factory.User_AuthTokenFactoryDAO;
-import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.server.response.AuthResponse;
-import com.writesmith.model.http.server.response.BodyResponse;
+import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.database.dao.factory.User_AuthTokenFactoryDAO;
+import com.writesmith.core.service.response.factory.BodyResponseFactory;
+import com.writesmith.database.model.objects.User_AuthToken;
+import com.writesmith.core.service.response.AuthResponse;
+import com.writesmith.core.service.response.BodyResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 

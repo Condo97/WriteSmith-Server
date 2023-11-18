@@ -1,17 +1,17 @@
 package com.writesmith.core.service.endpoints;
 
-import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
-import com.writesmith.core.apple.iapvalidation.ReceiptUpdater;
-import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.server.request.RegisterTransactionRequest;
-import com.writesmith.model.http.server.response.BodyResponse;
-import com.writesmith.model.http.server.response.IsPremiumResponse;
+import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
+import com.writesmith.apple.iapvalidation.ReceiptUpdater;
+import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.core.service.response.factory.BodyResponseFactory;
+import com.writesmith.database.model.objects.Receipt;
+import com.writesmith.database.model.objects.User_AuthToken;
+import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
+import com.writesmith.core.service.request.RegisterTransactionRequest;
+import com.writesmith.core.service.response.BodyResponse;
+import com.writesmith.core.service.response.IsPremiumResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 

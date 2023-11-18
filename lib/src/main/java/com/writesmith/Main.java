@@ -6,9 +6,10 @@ import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.Server;
 import com.writesmith.core.service.websockets.GetChatWebSocket;
-import com.writesmith.model.http.server.ResponseStatus;
+import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy;
+import com.writesmith.core.service.ResponseStatus;
 import com.writesmith.keys.Keys;
-import com.writesmith.model.http.server.response.*;
+import com.writesmith.core.service.response.*;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -17,13 +18,28 @@ import static spark.Spark.*;
 
 public class Main {
 
+    private static final String threadArgPrefix = "-t";
+    private static final String connectionsArgPrefix = "-c";
+    private static final String debugArg = "-debug";
+
+
     private static final int MAX_THREADS = 4;
     private static final int MIN_THREADS = 1;
-    private static final int TIMEOUT_MS = -1; //30000;
+    private static final int TIMEOUT_MS = 8000;
 
     private static final int DEFAULT_PORT = 443;
+    private static final int DEBUG_PORT = 2000;
 
     public static void main(String... args) throws SQLException {
+        // Get threads from thread arg or MAX_THREADS
+        int threads = parseArg(args, threadArgPrefix, MAX_THREADS);
+
+        // Get connections from connections arg or double the threads
+        int connections = parseArg(args, connectionsArgPrefix, threads * 2);
+
+        // Get isDebug from debug arg
+        boolean isDebug = argIncluded(args, debugArg);
+
         // Set up MySQL Driver
         try {
             DriverManager.registerDriver(new com.mysql.cj.jdbc.Driver());
@@ -34,15 +50,19 @@ public class Main {
         // Configure web sockets
         configureWebSockets();
 
+//        WebSocketPolicy
+
+        webSocketIdleTimeoutMillis(60 * 1000);
+
         // Set up SQLConnectionPoolInstance
-        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, MAX_THREADS * 4);
+        SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, connections);
 
         // Set up Policy static file location
         staticFiles.location("/policies");
 
         // Set up Spark thread pool and port
-//        threadPool(MAX_THREADS, MIN_THREADS, TIMEOUT_MS);
-        port(DEFAULT_PORT);
+        threadPool(threads, MIN_THREADS, TIMEOUT_MS);
+        port(isDebug ? DEBUG_PORT : DEFAULT_PORT);
 
         // Set up SSL
         secure("chitchatserver.com.jks", Keys.sslPassword, null, null);
@@ -79,7 +99,6 @@ public class Main {
         });
 
         exception(Exception.class, (error, req, res) -> {
-            error.printStackTrace();
             System.out.println("The request: " + req.body());
             error.printStackTrace();
 
@@ -103,11 +122,13 @@ public class Main {
         final String v1Path = "/v1";
 
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY, GetChatWebSocket_Legacy.class);
 
         /* dev */
         final String devPath = "/dev";
 
-        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY, GetChatWebSocket_Legacy.class);
     }
 
     private static void configureHttpEndpoints() {
@@ -138,6 +159,39 @@ public class Main {
         if (dev) {
 
         }
+    }
+
+    private static boolean argIncluded(String[] args, String arg) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals(arg))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static String parseArg(String[] args, String argPrefix, String defaultValue) {
+        for (int i = 0; i < args.length; i++) {
+            if (argIncluded(args, argPrefix) && args.length > i + 1) {
+                return args[i + 1];
+            }
+        }
+
+        return defaultValue;
+    }
+
+    private static int parseArg(String[] args, String argPrefix, int defaultValue) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals(argPrefix) && args.length > i + 1) {
+                try {
+                    return Integer.parseInt(args[i + 1]);
+                } catch (NumberFormatException e) {
+                    System.out.println("Could not parse arg " + argPrefix + ", please make sure it is an int. Will use " + defaultValue + " instead.");
+                }
+            }
+        }
+
+        return defaultValue;
     }
 
 

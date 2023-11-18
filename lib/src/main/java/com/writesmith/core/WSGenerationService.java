@@ -1,18 +1,17 @@
 package com.writesmith.core;
 
-import appletransactionclient.exception.AppStoreStatusResponseException;
+import appletransactionclient.exception.AppStoreErrorResponseException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.Constants;
-import com.writesmith.common.exceptions.CapReachedException;
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
-import com.writesmith.core.generation.calculators.ChatRemainingCalculator;
-import com.writesmith.core.generation.openai.OpenAIChatGenerator;
-import com.writesmith.model.database.objects.Conversation;
-import com.writesmith.model.database.objects.GeneratedChat;
-import com.writesmith.model.generation.WSChat;
-import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
+import com.writesmith.exceptions.CapReachedException;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
+import com.writesmith.util.calculators.ChatRemainingCalculator;
+import com.writesmith.openai.OpenAIChatGenerator;
+import com.writesmith.database.model.objects.Conversation;
+import com.writesmith.database.model.objects.GeneratedChat;
+import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -28,7 +27,7 @@ import java.sql.SQLException;
 
 public class WSGenerationService {
 
-    public static WSChat generate(Conversation conversation, OpenAIGPTModels requestedModel) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, CapReachedException, OpenAIGPTException, IOException, AppStoreStatusResponseException, UnrecoverableKeyException, DBSerializerPrimaryKeyMissingException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBObjectNotFoundFromQueryException {
+    public static WSChat generate(Conversation conversation, OpenAIGPTModels requestedModel) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, CapReachedException, OpenAIGPTException, IOException, AppStoreErrorResponseException, UnrecoverableKeyException, DBSerializerPrimaryKeyMissingException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBObjectNotFoundFromQueryException {
         // Get cooldown end timestamp TODO
 
         // Verify cooldown and timestamp is before current date, otherwise throw exception TODO
@@ -42,11 +41,8 @@ public class WSGenerationService {
         // If remaining is not null (infinite) and less than 0, throw CapReachedException
         if (remaining != null && remaining <= 0) throw new CapReachedException("Cap reached for user");
 
-        // Get the token limit if there is one
-        int tokenLimit = WSGenerationTierLimits.getTokenLimit(isPremium);
-
         // Get context character limit if there is one
-        int contextCharacterLimit = WSGenerationTierLimits.getContextCharacterLimit(isPremium);
+        int contextCharacterLimit = WSGenerationTierLimits.getContextCharacterLimit(requestedModel, isPremium);
 
         // Use the requested model or if it is out of the premium tier use the default model
         OpenAIGPTModels model = WSGenerationTierLimits.getOfferedModelForTier(requestedModel, isPremium);
@@ -57,7 +53,7 @@ public class WSGenerationService {
                 contextCharacterLimit,
                 model,
                 Constants.DEFAULT_TEMPERATURE,
-                tokenLimit
+                isPremium
         );
         
         System.out.println(openAIGeneratedChat.getTotalTokens());

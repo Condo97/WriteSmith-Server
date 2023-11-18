@@ -1,14 +1,13 @@
 package com.writesmith.core;
 
-import appletransactionclient.exception.AppStoreStatusResponseException;
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
-import com.writesmith.core.apple.iapvalidation.RecentReceiptValidator;
-import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
-import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
-import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.model.database.objects.Transaction;
-import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
+import appletransactionclient.exception.AppStoreErrorResponseException;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
+import com.writesmith.apple.iapvalidation.RecentReceiptValidator;
+import com.writesmith.apple.iapvalidation.TransactionPersistentAppleUpdater;
+import com.writesmith.database.model.objects.Receipt;
+import com.writesmith.database.model.objects.Transaction;
+import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -24,7 +23,7 @@ import java.sql.SQLException;
 
 public class WSPremiumValidator {
 
-    public static boolean getIsPremium(Integer userID) throws AppStoreStatusResponseException, DBSerializerPrimaryKeyMissingException, SQLException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, UnrecoverableKeyException, DBSerializerException, InvalidKeySpecException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBObjectNotFoundFromQueryException {
+    public static boolean getIsPremium(Integer userID) throws AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, SQLException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, UnrecoverableKeyException, DBSerializerException, InvalidKeySpecException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBObjectNotFoundFromQueryException {
         // Get most recent Apple updated and saved transaction with cooldown control
         Transaction transaction = TransactionPersistentAppleUpdater.getCooldownControlledAppleUpdatedMostRecentTransaction(userID);
 

@@ -1,16 +1,16 @@
 package com.writesmith.core.service.endpoints;
 
-import appletransactionclient.exception.AppStoreStatusResponseException;
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.core.apple.iapvalidation.TransactionPersistentAppleUpdater;
-import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.core.service.BodyResponseFactory;
-import com.writesmith.model.database.AppStoreSubscriptionStatusToIsPremiumAdapter;
-import com.writesmith.model.database.objects.Transaction;
-import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.server.request.RegisterTransactionRequest;
-import com.writesmith.model.http.server.response.BodyResponse;
-import com.writesmith.model.http.server.response.IsPremiumResponse;
+import appletransactionclient.exception.AppStoreErrorResponseException;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.apple.iapvalidation.TransactionPersistentAppleUpdater;
+import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.core.service.response.factory.BodyResponseFactory;
+import com.writesmith.core.AppStoreSubscriptionStatusToIsPremiumAdapter;
+import com.writesmith.database.model.objects.Transaction;
+import com.writesmith.database.model.objects.User_AuthToken;
+import com.writesmith.core.service.request.RegisterTransactionRequest;
+import com.writesmith.core.service.response.BodyResponse;
+import com.writesmith.core.service.response.IsPremiumResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -28,7 +28,7 @@ import java.util.Date;
 
 public class RegisterTransactionEndpoint {
 
-    public static BodyResponse registerTransaction(RegisterTransactionRequest registerTransactionRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException, AppStoreStatusResponseException {
+    public static BodyResponse registerTransaction(RegisterTransactionRequest registerTransactionRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException, AppStoreErrorResponseException {
         // Get the user_authToken object to get the user id
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(registerTransactionRequest.getAuthToken());
 

@@ -1,40 +1,46 @@
 package com.writesmith;
 
-import appletransactionclient.exception.AppStoreStatusResponseException;
+import appletransactionclient.exception.AppStoreErrorResponseException;
 import com.dbclient.DBClient;
+import com.oaigptconnector.model.CompletionRole;
+import com.oaigptconnector.model.OAIChatCompletionRequestMessageBuilder;
 import com.oaigptconnector.model.OAIClient;
-import com.oaigptconnector.model.Role;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
-import com.writesmith.common.exceptions.AutoIncrementingDBObjectExistsException;
-import com.writesmith.common.exceptions.DBObjectNotFoundFromQueryException;
-import com.writesmith.common.exceptions.PreparedStatementMissingArgumentException;
+import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.database.model.Sender;
+import com.writesmith.database.model.objects.Chat;
+import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
+import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
+import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
-import com.writesmith.core.apple.iapvalidation.AppleHttpVerifyReceipt;
-import com.writesmith.core.apple.iapvalidation.ReceiptUpdater;
-import com.writesmith.core.apple.iapvalidation.ReceiptValidator;
-import com.writesmith.core.database.dao.pooled.ReceiptDAOPooled;
-import com.writesmith.core.database.dao.pooled.TransactionDAOPooled;
-import com.writesmith.core.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.apple.iapvalidation.AppleHttpVerifyReceipt;
+import com.writesmith.apple.iapvalidation.ReceiptUpdater;
+import com.writesmith.apple.iapvalidation.ReceiptValidator;
+import com.writesmith.database.dao.pooled.ReceiptDAOPooled;
+import com.writesmith.database.dao.pooled.TransactionDAOPooled;
+import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.service.endpoints.GetIsPremiumEndpoint;
 import com.writesmith.core.service.endpoints.RegisterTransactionEndpoint;
 import com.writesmith.core.service.endpoints.RegisterUserEndpoint;
 import com.writesmith.core.service.endpoints.ValidateAndUpdateReceiptEndpoint;
 import com.writesmith.keys.Keys;
-import com.writesmith.model.database.AppStoreSubscriptionStatus;
-import com.writesmith.model.database.objects.Receipt;
-import com.writesmith.model.database.objects.Transaction;
-import com.writesmith.model.database.objects.User_AuthToken;
-import com.writesmith.model.http.client.apple.itunes.exception.AppleItunesResponseException;
-import com.writesmith.model.http.client.apple.itunes.request.verifyreceipt.VerifyReceiptRequest;
-import com.writesmith.model.http.client.apple.itunes.response.verifyreceipt.VerifyReceiptResponse;
-import com.writesmith.model.http.server.request.AuthRequest;
-import com.writesmith.model.http.server.request.RegisterTransactionRequest;
-import com.writesmith.model.http.server.response.AuthResponse;
-import com.writesmith.model.http.server.response.BodyResponse;
-import com.writesmith.model.http.server.response.IsPremiumResponse;
+import com.writesmith.database.model.AppStoreSubscriptionStatus;
+import com.writesmith.database.model.objects.Receipt;
+import com.writesmith.database.model.objects.Transaction;
+import com.writesmith.database.model.objects.User_AuthToken;
+import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
+import com.writesmith.apple.iapvalidation.networking.itunes.request.verifyreceipt.VerifyReceiptRequest;
+import com.writesmith.apple.iapvalidation.networking.itunes.response.verifyreceipt.VerifyReceiptResponse;
+import com.writesmith.core.service.request.AuthRequest;
+import com.writesmith.core.service.request.RegisterTransactionRequest;
+import com.writesmith.core.service.response.AuthResponse;
+import com.writesmith.core.service.response.BodyResponse;
+import com.writesmith.core.service.response.IsPremiumResponse;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -64,10 +70,12 @@ import java.sql.Types;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class Tests {
 
@@ -151,7 +159,9 @@ public class Tests {
     @DisplayName("HttpHelper Testing")
     void testBasicHttpRequest() {
         HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
-        OAIChatCompletionRequestMessage promptMessageRequest = new OAIChatCompletionRequestMessage(Role.USER, "write me a short joke");
+        OAIChatCompletionRequestMessage promptMessageRequest = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
+                .addText("write me a short joke")
+                .build();//new OAIChatCompletionRequestMessage(CompletionRole.USER, "write me a short joke");
         OAIChatCompletionRequest promptRequest = OAIChatCompletionRequest.build("gpt-3.5-turbo", 100, 0.7, Arrays.asList(promptMessageRequest));
         Consumer<HttpRequest.Builder> c = requestBuilder -> {
             requestBuilder.setHeader("Authorization", "Bearer " + Keys.openAiAPI);
@@ -321,7 +331,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Validating and Updating Receipt Endpoint and Is Premium Endpoint")
-    void testValidateAndUpdateReceiptEndpointAndIsPremiumEndpoint() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, InvocationTargetException, IllegalAccessException, DBObjectNotFoundFromQueryException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, NoSuchMethodException, InstantiationException, AppStoreStatusResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+    void testValidateAndUpdateReceiptEndpointAndIsPremiumEndpoint() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, InvocationTargetException, IllegalAccessException, DBObjectNotFoundFromQueryException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         /* VALIDATE AND UPDATE RECEIPT ENDPOINT */
         // Input
         final String sampleReceiptId = "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";
@@ -362,7 +372,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Registering Transaction")
-    void testTransactionValidation() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, InvocationTargetException, IllegalAccessException, AppStoreStatusResponseException, UnrecoverableKeyException, DBObjectNotFoundFromQueryException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException {
+    void testTransactionValidation() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, InvocationTargetException, IllegalAccessException, AppStoreErrorResponseException, UnrecoverableKeyException, DBObjectNotFoundFromQueryException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException {
         /* REGISTER TRANSACTION ENDPOINT */
         // Input
         final Long sampleTransactionId = 2000000351816446l;
@@ -410,6 +420,228 @@ public class Tests {
 
         // Verify results
 //        assert(ipr2.getIsPremium() == expectedIsPremiumValue2);
+    }
+
+    @Test
+    @DisplayName("Test WSChatGenerationPreparer")
+    void testWSChatGenerationPreparer() {
+        /*** isPremium False ***/
+        List<Chat> noImageChats = new ArrayList<>();
+        List<Chat> imageChats = new ArrayList<>();
+
+        int chatCharLength = 400;
+        int chatCreationIterations = 20;
+
+        for (int i = 0; i < chatCreationIterations; i++) {
+            Chat noImageChat = new Chat(
+                    -1,
+                    i % 2 == 0 ? Sender.AI : Sender.USER,
+                    "T".repeat(chatCharLength),
+                    null,
+                    null,
+                    LocalDateTime.now(),
+                    false
+            );
+
+            Chat imageChat = new Chat(
+                    -1,
+                    i % 2 == 0 ? Sender.USER : Sender.AI,
+                    i % 2 == 0 ? ("I").repeat(chatCharLength) : null,
+                    "imageData",
+                    null,
+                    LocalDateTime.now(),
+                    false
+            );
+
+            noImageChats.add(noImageChat);
+
+            imageChats.add(noImageChat);
+            imageChats.add(imageChat);
+        }
+
+        // No Image //
+
+        // Get preparedChats for GPT_3.5_Turbo and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc1 = WSChatGenerationPreparer.prepare(
+                    noImageChats,
+                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    false
+            );
+            int pc1CharCount = pc1.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc1ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
+
+            assert (pc1.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc1 characters: " + pc1CharCount + " should be near: " + pc1ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4 and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc2 = WSChatGenerationPreparer.prepare(
+                    noImageChats,
+                    OpenAIGPTModels.GPT_4,
+                    false
+            );
+            int pc2CharCount = pc2.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc2ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
+
+            assert (pc2.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc2 characters: " + pc2CharCount + " should be near: " + pc2ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4_Vision and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc3 = WSChatGenerationPreparer.prepare(
+                    noImageChats,
+                    OpenAIGPTModels.GPT_4_VISION,
+                    false
+            );
+            int pc3CharCount = pc3.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc3ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
+
+            assert (pc3.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc3 characters: " + pc3CharCount + " should be near: " + pc3ExpectedCharCount);
+        }
+
+        // Image //
+
+        // Get preparedChats for GPT_3.5_Turbo and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc4 = WSChatGenerationPreparer.prepare(
+                    imageChats,
+                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    false
+            );
+            int pc4CharCount = pc4.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc4ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
+
+            assert (pc4.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc4 characters: " + pc4CharCount + " should be near: " + pc4ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4 and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc5 = WSChatGenerationPreparer.prepare(
+                    imageChats,
+                    OpenAIGPTModels.GPT_4,
+                    false
+            );
+            int pc5CharCount = pc5.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc5ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
+
+            assert (pc5.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc5 characters: " + pc5CharCount + " should be near: " + pc5ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4_Vision and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc6 = WSChatGenerationPreparer.prepare(
+                    imageChats,
+                    OpenAIGPTModels.GPT_4_VISION,
+                    false
+            );
+            int pc6CharCount = pc6.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc6ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
+
+            assert (pc6.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc6 characters: " + pc6CharCount + " should be near: " + pc6ExpectedCharCount);
+        }
+
+        /*** isPremium True ***/
+
+        // No Image //
+
+        // Get preparedChats for GPT_3.5_Turbo and isPremium true no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo paid character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc7 = WSChatGenerationPreparer.prepare(
+                    noImageChats,
+                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    true
+            );
+            int pc7CharCount = pc7.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc7ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Paid;
+
+            assert (pc7.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
+            System.out.println("pc7 characters: " + pc7CharCount + " should be near: " + pc7ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4 and isPremium true no images, should use GPT_4 and have GPT_4 paid character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc8 = WSChatGenerationPreparer.prepare(
+                    noImageChats,
+                    OpenAIGPTModels.GPT_4,
+                    true
+            );
+            int pc8CharCount = pc8.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc8ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
+
+            assert (pc8.getApprovedModel() == OpenAIGPTModels.GPT_4);
+            System.out.println("pc8 characters: " + pc8CharCount + " should be near: " + pc8ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4_Vision and isPremium true no images, should use GPT_4_Vision and have GPT_4 paid character limit, but this shouldn't happen in production... I think it should just always upgrade, no? The way that it's integrated in the app, it should just send it as GPT_4, and it will auto-upgrade to GPT_4_Vision if there are images TODO: If this is supposed to happen, maybe add different GPT_4_Vision character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc9 = WSChatGenerationPreparer.prepare(
+                    noImageChats,
+                    OpenAIGPTModels.GPT_4_VISION,
+                    true
+            );
+            int pc9CharCount = pc9.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc9ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
+
+            assert (pc9.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
+            System.out.println("pc9 characters: " + pc9CharCount + " should be near: " + pc9ExpectedCharCount);
+        }
+
+        // Image //
+
+        // Get preparedChats for GPT_3.5_Turbo and isPremium true with images, should use defaultVisionModel (GPT_4_Vision) and have GPT_4 paid character limit TODO: Maybe add different GPT_4_Vision character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc10 = WSChatGenerationPreparer.prepare(
+                    imageChats,
+                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    true
+            );
+            int pc10CharCount = pc10.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc10ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
+
+            assert (pc10.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
+            System.out.println("pc10 characters: " + pc10CharCount + " should be near: " + pc10ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4 and isPremium true with images, should use defaultVisionModel (GPT_4_Vision) and have GPT_4 paid character limit TODO: Maybe add different GPT_4_Vision character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc11 = WSChatGenerationPreparer.prepare(
+                    imageChats,
+                    OpenAIGPTModels.GPT_4,
+                    true
+            );
+            int pc11CharCount = pc11.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc11ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
+
+            assert (pc11.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
+            System.out.println("pc11 characters: " + pc11CharCount + " should be near: " + pc11ExpectedCharCount);
+        }
+
+        // Get preparedChats for GPT_4_Vision and isPremium true with images, should use GPT_4_Vision and have GPT_4 paid character limit, but this should never happen if the previous little blurb I wrote is enacted, since the server would always theoretically receive GPT_4 and have it upgraded to vision if there are images TODO: Maybe add different GPT_4_Vision character limit
+        {
+            WSChatGenerationPreparer.PreparedChats pc12 = WSChatGenerationPreparer.prepare(
+                    imageChats,
+                    OpenAIGPTModels.GPT_4_VISION,
+                    true
+            );
+            int pc12CharCount = pc12.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
+            int pc12ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
+
+            assert (pc12.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
+            System.out.println("pc11 characters: " + pc12CharCount + " should be near: " + pc12ExpectedCharCount);
+        }
+    }
+
+    @Test
+    @DisplayName("Test WebSocket Logic")
+    void testWebSocket() {
+        // Register user
     }
 
 //    @Test
