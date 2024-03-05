@@ -2,15 +2,17 @@ package com.writesmith;
 
 import appletransactionclient.exception.AppStoreErrorResponseException;
 import com.dbclient.DBClient;
-import com.oaigptconnector.model.CompletionRole;
-import com.oaigptconnector.model.OAIChatCompletionRequestMessageBuilder;
-import com.oaigptconnector.model.OAIClient;
+import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.core.service.endpoints.*;
+import com.writesmith.core.service.request.FeedbackRequest;
+import com.writesmith.core.service.request.GenerateSuggestionsRequest;
+import com.writesmith.core.service.response.*;
 import com.writesmith.database.model.Sender;
 import com.writesmith.database.model.objects.Chat;
 import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
@@ -23,10 +25,6 @@ import com.writesmith.apple.iapvalidation.ReceiptValidator;
 import com.writesmith.database.dao.pooled.ReceiptDAOPooled;
 import com.writesmith.database.dao.pooled.TransactionDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.core.service.endpoints.GetIsPremiumEndpoint;
-import com.writesmith.core.service.endpoints.RegisterTransactionEndpoint;
-import com.writesmith.core.service.endpoints.RegisterUserEndpoint;
-import com.writesmith.core.service.endpoints.ValidateAndUpdateReceiptEndpoint;
 import com.writesmith.keys.Keys;
 import com.writesmith.database.model.AppStoreSubscriptionStatus;
 import com.writesmith.database.model.objects.Receipt;
@@ -37,9 +35,6 @@ import com.writesmith.apple.iapvalidation.networking.itunes.request.verifyreceip
 import com.writesmith.apple.iapvalidation.networking.itunes.response.verifyreceipt.VerifyReceiptResponse;
 import com.writesmith.core.service.request.AuthRequest;
 import com.writesmith.core.service.request.RegisterTransactionRequest;
-import com.writesmith.core.service.response.AuthResponse;
-import com.writesmith.core.service.response.BodyResponse;
-import com.writesmith.core.service.response.IsPremiumResponse;
 import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -78,6 +73,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Tests {
+
+    private static String authTokenRandom = "DQ4yr8KmudhBWzYPYQe4sM4PSveVrdyQEXOgnmVqMnNBE0NG6SopHgmlYjr2iwtLV5UK7MEf2RA4GCahqGzBHLmws2B+JCYpJ+Gi5wzmqOkfuO+0qJa6slGWnj8RGKO24qHFXe5e4ZDRN9sXpsjxes8YHBZrk92sXV7gYaSZ/3c=";
 
     @BeforeAll
     static void setUp() throws SQLException {
@@ -438,7 +435,6 @@ public class Tests {
                     i % 2 == 0 ? Sender.AI : Sender.USER,
                     "T".repeat(chatCharLength),
                     null,
-                    null,
                     LocalDateTime.now(),
                     false
             );
@@ -447,7 +443,6 @@ public class Tests {
                     -1,
                     i % 2 == 0 ? Sender.USER : Sender.AI,
                     i % 2 == 0 ? ("I").repeat(chatCharLength) : null,
-                    "imageData",
                     null,
                     LocalDateTime.now(),
                     false
@@ -466,6 +461,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc1 = WSChatGenerationPreparer.prepare(
                     noImageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
+                    false,
                     false
             );
             int pc1CharCount = pc1.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -480,6 +476,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc2 = WSChatGenerationPreparer.prepare(
                     noImageChats,
                     OpenAIGPTModels.GPT_4,
+                    false,
                     false
             );
             int pc2CharCount = pc2.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -494,6 +491,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc3 = WSChatGenerationPreparer.prepare(
                     noImageChats,
                     OpenAIGPTModels.GPT_4_VISION,
+                    false,
                     false
             );
             int pc3CharCount = pc3.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -510,7 +508,8 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc4 = WSChatGenerationPreparer.prepare(
                     imageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
-                    false
+                    false,
+                    true
             );
             int pc4CharCount = pc4.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc4ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
@@ -524,6 +523,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc5 = WSChatGenerationPreparer.prepare(
                     imageChats,
                     OpenAIGPTModels.GPT_4,
+                    true,
                     false
             );
             int pc5CharCount = pc5.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -538,6 +538,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc6 = WSChatGenerationPreparer.prepare(
                     imageChats,
                     OpenAIGPTModels.GPT_4_VISION,
+                    true,
                     false
             );
             int pc6CharCount = pc6.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -556,6 +557,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc7 = WSChatGenerationPreparer.prepare(
                     noImageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
+                    false,
                     true
             );
             int pc7CharCount = pc7.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -570,6 +572,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc8 = WSChatGenerationPreparer.prepare(
                     noImageChats,
                     OpenAIGPTModels.GPT_4,
+                    false,
                     true
             );
             int pc8CharCount = pc8.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -584,6 +587,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc9 = WSChatGenerationPreparer.prepare(
                     noImageChats,
                     OpenAIGPTModels.GPT_4_VISION,
+                    false,
                     true
             );
             int pc9CharCount = pc9.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -600,6 +604,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc10 = WSChatGenerationPreparer.prepare(
                     imageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
+                    true,
                     true
             );
             int pc10CharCount = pc10.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -614,6 +619,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc11 = WSChatGenerationPreparer.prepare(
                     imageChats,
                     OpenAIGPTModels.GPT_4,
+                    true,
                     true
             );
             int pc11CharCount = pc11.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -628,6 +634,7 @@ public class Tests {
             WSChatGenerationPreparer.PreparedChats pc12 = WSChatGenerationPreparer.prepare(
                     imageChats,
                     OpenAIGPTModels.GPT_4_VISION,
+                    true,
                     true
             );
             int pc12CharCount = pc12.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -636,6 +643,98 @@ public class Tests {
             assert (pc12.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
             System.out.println("pc11 characters: " + pc12CharCount + " should be near: " + pc12ExpectedCharCount);
         }
+    }
+
+
+
+    @Test
+    @DisplayName("Test Submit Feedback Endpoint")
+    void testSubmitFeedbackEndpoint() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final FeedbackRequest feedbackRequest = new FeedbackRequest(
+                authTokenRandom,
+                "This is the feedback"
+        );
+
+        StatusResponse sr = SubmitFeedbackEndpoint.submitFeedback(feedbackRequest);
+
+        assert(sr != null);
+    }
+
+    @Test
+    @DisplayName("Test Generate Suggestions Endpoint")
+    void testGenerateSuggestionsEndpoint() {
+        List<String> conversation = List.of(
+                "Hi",
+                "How are you?",
+                "I'm good, how are you?",
+                "Good! Do you have any questions?",
+                "Yes, is the earth flat?",
+                "No, the earth is not flat. It is a sphere!"
+        );
+        Integer count = 5;
+
+        final GenerateSuggestionsRequest generateSuggestionsRequest = new GenerateSuggestionsRequest(
+                authTokenRandom,
+                conversation,
+                new ArrayList<String>(),
+                count
+        );
+
+        GenerateSuggestionsResponse generateSuggestionsResponse;
+        try {
+            generateSuggestionsResponse = GenerateSuggestionsEndpoint.generateSuggestions(generateSuggestionsRequest);
+        } catch (DBSerializerException | SQLException | DBObjectNotFoundFromQueryException | InterruptedException |
+                 InvocationTargetException | IllegalAccessException | NoSuchMethodException | InstantiationException |
+                 OAISerializerException | OpenAIGPTException | OAIDeserializerException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println(String.join(", ", generateSuggestionsResponse.getSuggestions()));
+
+        assert(generateSuggestionsResponse.getSuggestions().size() > 0);
+        assert(generateSuggestionsResponse.getSuggestions().size() >= count - 1);
+        assert(generateSuggestionsResponse.getSuggestions().size() <= count + 1);
+    }
+
+    @Test
+    @DisplayName("Test Generate Suggestions Endpoint With Different Than")
+    void testGenerateSuggestionsEndpointWithDifferentThan() {
+        List<String> conversation = List.of(
+                "Hi",
+                "How are you?",
+                "I'm good, how are you?",
+                "Good! Do you have any questions?",
+                "Yes, is evolution real?",
+                "Yes, evolution is real. Humans are animals that have evolved over many billions of years to finally create me!"
+        );
+        List<String> differentThan = List.of(
+                "Did humans evolve from monkeys?",
+                "Where did humans come from?",
+                "How many evolutions were there until modern humans?"
+        );
+        Integer count = 5;
+
+        final GenerateSuggestionsRequest generateSuggestionsRequest = new GenerateSuggestionsRequest(
+                authTokenRandom,
+                conversation,
+                differentThan,
+                count
+        );
+
+        GenerateSuggestionsResponse generateSuggestionsResponse;
+        try {
+            generateSuggestionsResponse = GenerateSuggestionsEndpoint.generateSuggestions(generateSuggestionsRequest);
+        } catch (DBSerializerException | SQLException | DBObjectNotFoundFromQueryException | InterruptedException |
+                 InvocationTargetException | IllegalAccessException | NoSuchMethodException | InstantiationException |
+                 OAISerializerException | OpenAIGPTException | OAIDeserializerException | IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println(String.join(", ", generateSuggestionsResponse.getSuggestions()));
+
+        assert(generateSuggestionsResponse.getSuggestions().size() > 0);
+        assert(generateSuggestionsResponse.getSuggestions().size() >= count - 1);
+        assert(generateSuggestionsResponse.getSuggestions().size() <= count + 1);
     }
 
     @Test

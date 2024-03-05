@@ -5,15 +5,16 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.oaigptconnector.model.OAIDeserializerException;
+import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
+import com.writesmith.core.service.request.*;
+import com.writesmith.core.service.response.factory.BodyResponseFactory;
 import com.writesmith.exceptions.*;
 import com.writesmith.exceptions.responsestatus.MalformedJSONException;
 import com.writesmith.core.service.endpoints.*;
-import com.writesmith.core.service.request.DeleteChatRequest;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import com.writesmith.core.service.ResponseStatus;
-import com.writesmith.core.service.request.AuthRequest;
-import com.writesmith.core.service.request.RegisterTransactionRequest;
 import com.writesmith._deprecated.getchatrequest.GetChatLegacyRequest;
 import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.StatusResponse;
@@ -67,6 +68,24 @@ public class Server {
         StatusResponse sr = DeleteChatEndpoint.deleteChat(dcRequest);
 
         return new ObjectMapper().writeValueAsString(sr);
+    }
+
+    public static String generateSuggestions(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        GenerateSuggestionsRequest gsRequest;
+
+        try {
+            gsRequest = new ObjectMapper().readValue(req.body(), GenerateSuggestionsRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Generating Suggestions.. The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
+        }
+
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(
+                GenerateSuggestionsEndpoint.generateSuggestions(gsRequest)
+        );
+        
+        return new ObjectMapper().writeValueAsString(br);
     }
 
     /***
@@ -150,6 +169,33 @@ public class Server {
         BodyResponse bodyResponse = RegisterTransactionEndpoint.registerTransaction(rtr);
 
         return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
+    /***
+     * Submit Feedback
+     *
+     * Stores feedback :)
+     *
+     * Request: {
+     *     authToken: String - Authentication token, generated from registerUser
+     *     feedback: String - The feedback
+     * }
+     *
+     * Response: {
+     *     Success: Integer - Integer denoting success, 1 if successful
+     * }
+     *
+     * @param request Request object given by Spark
+     * @param response Response object given by Spark
+     * @return Value of JSON represented as String
+     */
+    public static Object submitFeedback(Request request, Response response) throws IOException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        // Get feedbackRequest
+        FeedbackRequest feedbackRequest = new ObjectMapper().readValue(request.body(), FeedbackRequest.class);
+
+        StatusResponse sr = SubmitFeedbackEndpoint.submitFeedback(feedbackRequest);
+
+        return new ObjectMapper().writeValueAsString(sr);
     }
 
     /***

@@ -34,6 +34,7 @@ public class OpenAIChatGenerator {
         WSChatGenerationPreparer.PreparedChats preparedChats = WSChatGenerationPreparer.prepare(
                 chats,
                 model,
+                false,
                 isPremium
         );
 
@@ -43,6 +44,7 @@ public class OpenAIChatGenerator {
         // Create the request
         OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedRequest = OpenAIGPTChatCompletionRequestFactory.with(
                 preparedChats.getLimitedChats(),
+                null,
                 conversation.getBehavior(),
                 preparedChats.getApprovedModel(),
                 temperature,
@@ -60,7 +62,6 @@ public class OpenAIChatGenerator {
                         conversation.getConversation_id(),
                         Sender.AI,
                         response.getChoices()[0].getMessage().getContent(),
-                        null,
                         null,
                         LocalDateTime.now(),
                         false

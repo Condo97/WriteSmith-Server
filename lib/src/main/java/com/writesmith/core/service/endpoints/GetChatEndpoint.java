@@ -58,7 +58,6 @@ public class GetChatEndpoint {
                 conversation.getConversation_id(),
                 Sender.USER,
                 request.getInputText(),
-                request.getImageData(),
                 request.getImageURL(),
                 LocalDateTime.now()
         );

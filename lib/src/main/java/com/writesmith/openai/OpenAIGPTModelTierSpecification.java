@@ -16,7 +16,8 @@ public class OpenAIGPTModelTierSpecification {
     );
     public static final List<OpenAIGPTModels> paidModels = List.of(
             OpenAIGPTModels.GPT_4,
-            OpenAIGPTModels.GPT_4_0613
+            OpenAIGPTModels.GPT_4_LONGINPUT,
+            OpenAIGPTModels.GPT_4_VISION
     );
 
     public static final List<OpenAIGPTModels> freeVisionModels = List.of();

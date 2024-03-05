@@ -14,7 +14,6 @@ import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompleti
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.WSChatGenerationPreparer;
-import com.writesmith.core.service.ChatContextLimiter;
 import com.writesmith.exceptions.CapReachedException;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
@@ -28,7 +27,6 @@ import com.writesmith.database.dao.pooled.ChatDAOPooled;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.dao.pooled.GeneratedChatDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.openai.OpenAIGPTModelTierSpecification;
 import com.writesmith.util.calculators.ChatRemainingCalculator;
 import com.writesmith.openai.OpenAIGPTChatCompletionRequestFactory;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
@@ -87,7 +85,7 @@ public class GetChatWebSocket {
      */
     @OnWebSocketConnect
     public void connected(Session session) {
-        System.out.println(session.getUpgradeRequest().getQueryString());
+//        System.out.println(session.getUpgradeRequest().getQueryString());
 
     }
 
@@ -211,6 +209,7 @@ public class GetChatWebSocket {
         }
 
         // Create chats and response input chats from request chats sorted by index, saving to database
+        String firstImageData = null;
         List<Chat> requestChats = new ArrayList<>();
         List<GetChatResponse.Chat> responseInputChats = new ArrayList<>();
         List<GetChatRequest.Chat> sortedRequestChats = gcRequest.getChats()
@@ -225,7 +224,6 @@ public class GetChatWebSocket {
                         conversation.getConversation_id(),
                         requestChat.getSender(),
                         requestChat.getInput(),
-                        requestChat.getImageData(),
                         requestChat.getImageURL(),
                         LocalDateTime.now()
                 );
@@ -246,14 +244,28 @@ public class GetChatWebSocket {
 
             // Add responseInputChat to responseInputChats
             responseInputChats.add(responseInputChat);
+
+            // If requestChat contains imageData and firstImageData is null, set to firstImageData
+            if (requestChat.getImageData() != null && !requestChat.getImageData().isEmpty() && firstImageData == null)
+                firstImageData = requestChat.getImageData();
         }
 
-        /*** GET REMAINING ***/
+        /*** GET REQUESTED MODEL ***/
+
+        // Get requested model
+        OpenAIGPTModels requestedModel;
+        if (gcRequest.getUsePaidModel() != null && gcRequest.getUsePaidModel())
+            requestedModel = OpenAIGPTModels.GPT_4;
+        else
+            requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+
+        /*** GET IS PREMIUM ***/
 
         // Get isPremium
         boolean isPremium = false;
+        // Get isPremium Apple update if requested model is not permitted from WSPremiumValidator
         try {
-            isPremium = WSPremiumValidator.getIsPremium(u_aT.getUserID());
+            isPremium = WSPremiumValidator.getIsPremiumAppleUpdateIfRequestedModelIsNotPermitted(u_aT.getUserID(), requestedModel);
         } catch (AppStoreErrorResponseException | AppleItunesResponseException e) {
             // Set isPremium to true and let the function continue since Apple's validation may just be down or something, but print the stack trace
             e.printStackTrace();
@@ -267,7 +279,25 @@ public class GetChatWebSocket {
             throw new UnhandledException(e, "Error validating premium status. Please report this and try again later.");
         }
 
+        // Do cooldown controlled Apple update isPremium on a Thread
+        User_AuthToken finalU_aT = u_aT;
+        new Thread(() -> {
+            try {
+                WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(finalU_aT.getUserID());
+            } catch (DBSerializerPrimaryKeyMissingException | SQLException | CertificateException | IOException |
+                     URISyntaxException | KeyStoreException | NoSuchAlgorithmException | InterruptedException |
+                     InvocationTargetException | IllegalAccessException | NoSuchMethodException |
+                     UnrecoverableKeyException | DBSerializerException | AppStoreErrorResponseException |
+                     InvalidKeySpecException | InstantiationException | PreparedStatementMissingArgumentException |
+                     AppleItunesResponseException | DBObjectNotFoundFromQueryException e) {
+                // TODO: Handle errors.. for now, just print stack trace
+                e.printStackTrace();
+            }
+        }).start();
+
         getIsPremiumTime = LocalDateTime.now();
+
+        /*** GET REMAINING ***/
 
         // Get remaining
         Long remaining;
@@ -283,7 +313,7 @@ public class GetChatWebSocket {
             /* TODO: Do the major annotations and rework all of this to be better lol */
             // Send BodyResponse with cap reached error and GetChatResponse with cap reached response
 //            GetChatResponse gcr = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), null, null, 0l); TODO: Reinstate this after new app build has been published so that it works properly and is cleaner here.. unless this implementation is better and the "limit" just needs to be a constant somewhere
-            GetChatLegacyResponse gcResponse = new GetChatLegacyResponse(GetChatCapReachedResponses.getRandomResponse(), "limit", null, null, null, 0l);
+            GetChatResponse gcResponse = new GetChatResponse(GetChatCapReachedResponses.getRandomResponse(), "limit", null, null, 0l, null, null, null);
             ResponseStatus rs = ResponseStatus.CAP_REACHED_ERROR;
 
             BodyResponse br = BodyResponseFactory.createBodyResponse(rs, gcResponse);
@@ -304,17 +334,22 @@ public class GetChatWebSocket {
 
         /*** GENERATION - Prepare ***/
 
-        // Get requested model
-        OpenAIGPTModels requestedModel;
-        if (gcRequest.getUsePaidModel() != null && gcRequest.getUsePaidModel())
-            requestedModel = OpenAIGPTModels.GPT_4;
-        else
-            requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+        // Get Chats
+        List<Chat> chats;
+        try {
+            chats = ConversationDAOPooled.getChats(conversation, true);
+        } catch (DBSerializerException | SQLException | InterruptedException | InvocationTargetException |
+                 IllegalAccessException | NoSuchMethodException | InstantiationException e) {
+            // I think these are just setup errors, so print stack trace and throw UnhandledException unless I see it in the console
+            e.printStackTrace();
+            throw new UnhandledException(e, "Error getting Chats from Conversation in GetChatWebSocket. Please report this and try again later.");
+        }
 
         // Get limited chats and model
         WSChatGenerationPreparer.PreparedChats preparedChats = WSChatGenerationPreparer.prepare(
-                requestChats,
+                chats,
                 requestedModel,
+                firstImageData != null && !firstImageData.isEmpty(),
                 isPremium
         );
 
@@ -324,6 +359,7 @@ public class GetChatWebSocket {
         // Get the PurifiedOAIChatCompletionRequest
         OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedOAIChatCompletionRequest = OpenAIGPTChatCompletionRequestFactory.with(
                 preparedChats.getLimitedChats(),
+                firstImageData,
                 conversation.getBehavior(),
                 preparedChats.getApprovedModel(),
                 Constants.DEFAULT_TEMPERATURE,
@@ -345,7 +381,7 @@ public class GetChatWebSocket {
         GeneratedChat gc = new GeneratedChat(
                 aiChat,
                 null,
-                requestedModel.getName(),
+                preparedChats.getApprovedModel().getName(),
                 null,
                 null,
                 null,
@@ -401,7 +437,7 @@ public class GetChatWebSocket {
                 // Get response as JsonNode
                 JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
 
-                System.out.println("RESPONSE: " + response);
+//                System.out.println("RESPONSE: " + response);
 
                 // Get responseJSON as OpenAIGPTChatCompletionStreamResponse
                 OpenAIGPTChatCompletionStreamResponse streamResponse = new ObjectMapper().treeToValue(responseJSON, OpenAIGPTChatCompletionStreamResponse.class);
@@ -590,16 +626,16 @@ public class GetChatWebSocket {
             throw new RuntimeException(e);
         }
 
-        lines.forEach(text -> {
-            System.out.println(text);
-//            sessions.forEach(session -> {
-//                try {
-//                    session.getRemote().sendString(text);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            });
-        });
+//        lines.forEach(text -> {
+//            System.out.println(text);
+////            sessions.forEach(session -> {
+////                try {
+////                    session.getRemote().sendString(text);
+////                } catch (IOException e) {
+////                    throw new RuntimeException(e);
+////                }
+////            });
+//        });
 
     }
 

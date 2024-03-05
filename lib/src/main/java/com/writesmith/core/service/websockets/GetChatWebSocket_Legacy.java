@@ -24,6 +24,7 @@ import com.writesmith.database.dao.pooled.ChatDAOPooled;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.dao.pooled.GeneratedChatDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
+import com.writesmith.openai.OpenAIGPTModelTierSpecification;
 import com.writesmith.util.calculators.ChatRemainingCalculator;
 import com.writesmith.openai.OpenAIGPTChatCompletionRequestFactory;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
@@ -40,6 +41,7 @@ import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.GetChatLegacyResponse;
 import com.writesmith.core.service.GetChatCapReachedResponses;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
@@ -86,7 +88,7 @@ public class GetChatWebSocket_Legacy {
      */
     @OnWebSocketConnect
     public void connected(Session session) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, DBSerializerPrimaryKeyMissingException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, CapReachedException {
-        System.out.println(session.getUpgradeRequest().getQueryString());
+//        System.out.println(session.getUpgradeRequest().getQueryString());
 
         // Get start time
         LocalDateTime startTime = LocalDateTime.now();
@@ -107,8 +109,30 @@ public class GetChatWebSocket_Legacy {
 
             getAuthTokenTime = LocalDateTime.now();
 
-            // Get isPremium
-            boolean isPremium = WSPremiumValidator.getIsPremium(u_aT.getUserID());
+            // Get the model from getUsePaidModel TODO: for now manually specify the models here
+            OpenAIGPTModels requestedModel;
+            if (gcr.getUsePaidModel())
+                requestedModel = OpenAIGPTModels.GPT_4;
+            else
+                requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+
+            // Get isPremium Apple update if requested model is not permitted from WSPremiumValidator
+            boolean isPremium = WSPremiumValidator.getIsPremiumAppleUpdateIfRequestedModelIsNotPermitted(u_aT.getUserID(), requestedModel);
+
+            // Do cooldown controlled Apple update isPremium on a Thread
+            new Thread(() -> {
+                try {
+                    WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());
+                } catch (DBSerializerPrimaryKeyMissingException | SQLException | CertificateException | IOException |
+                         URISyntaxException | KeyStoreException | NoSuchAlgorithmException | InterruptedException |
+                         InvocationTargetException | IllegalAccessException | NoSuchMethodException |
+                         UnrecoverableKeyException | DBSerializerException | AppStoreErrorResponseException |
+                         InvalidKeySpecException | InstantiationException | PreparedStatementMissingArgumentException |
+                         AppleItunesResponseException | DBObjectNotFoundFromQueryException e) {
+                    // TODO: Handle errors.. for now, just print stack trace
+                    e.printStackTrace();
+                }
+            }).start();
 
             getIsPremiumTime = LocalDateTime.now();
 
@@ -124,7 +148,6 @@ public class GetChatWebSocket_Legacy {
                     Sender.USER,
                     inputText,
                     null,
-                    null,
                     LocalDateTime.now()
             );
 
@@ -135,13 +158,6 @@ public class GetChatWebSocket_Legacy {
             if (remaining != null && remaining <= 0)
                 throw new CapReachedException("Cap reached for user");
 
-            // Get the model from getUsePaidModel TODO: for now manually specify the models here
-            OpenAIGPTModels requestedModel;
-            if (gcr.getUsePaidModel())
-                requestedModel = OpenAIGPTModels.GPT_4;
-            else
-                requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
-
             // Get chats
             List<Chat> chats = ConversationDAOPooled.getChats(conversation, true);
 
@@ -149,6 +165,7 @@ public class GetChatWebSocket_Legacy {
             WSChatGenerationPreparer.PreparedChats preparedChats = WSChatGenerationPreparer.prepare(
                     chats,
                     requestedModel,
+                    false,
                     isPremium
             );
 
@@ -158,12 +175,15 @@ public class GetChatWebSocket_Legacy {
             // Get purified request
             OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedOAIChatCompletionRequest = OpenAIGPTChatCompletionRequestFactory.with(
                     preparedChats.getLimitedChats(),
+                    null,
                     conversation.getBehavior(),
                     preparedChats.getApprovedModel(),
                     Constants.DEFAULT_TEMPERATURE,
                     tokenLimit,
                     true
             );
+
+//            preparedChats.getLimitedChats().forEach(c -> System.out.println(c.getText()));
 
             // Create GeneratedChat and deep insert into DB TODO: Fix token count and stuff
             Chat chat = ChatFactoryDAO.createBlankAISent(conversation.getConversation_id());
@@ -248,6 +268,8 @@ public class GetChatWebSocket_Legacy {
                 } catch (IOException e) {
                     // TODO: This is only called in this case if ObjectMapper does not throw a JsonMappingException or JsonParseException, but it is thrown in the same methods that call those, so it's okay for now for the same reason
 
+                } catch (WebSocketException e) {
+                    System.out.println("WebSocketException suppressed... " + (e.getMessage().length() > 80 ? e.getMessage().substring(0, 80) : e.getMessage()));
                 }
             });
 
@@ -418,16 +440,16 @@ public class GetChatWebSocket_Legacy {
             throw new RuntimeException(e);
         }
 
-        lines.forEach(text -> {
-            System.out.println(text);
-//            sessions.forEach(session -> {
-//                try {
-//                    session.getRemote().sendString(text);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            });
-        });
+//        lines.forEach(text -> {
+//            System.out.println(text);
+////            sessions.forEach(session -> {
+////                try {
+////                    session.getRemote().sendString(text);
+////                } catch (IOException e) {
+////                    throw new RuntimeException(e);
+////                }
+////            });
+//        });
 
     }
 

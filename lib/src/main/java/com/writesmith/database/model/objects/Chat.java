@@ -22,8 +22,8 @@ public class Chat {
     @DBColumn(name = DBRegistry.Table.Chat.text)
     private String text;
 
-    @DBColumn(name = DBRegistry.Table.Chat.image_data)
-    private String imageData;
+//    @DBColumn(name = DBRegistry.Table.Chat.image_data)
+//    private String imageData;
 
     @DBColumn(name = DBRegistry.Table.Chat.image_url)
     private String imageURL;
@@ -39,16 +39,15 @@ public class Chat {
 
     }
 
-    public Chat(Integer conversationID, Sender sender, String text, String imageData, String imageURL, LocalDateTime date, Boolean deleted) {
-        this(null, conversationID, sender, text, imageData, imageURL, date, deleted);
+    public Chat(Integer conversationID, Sender sender, String text, String imageURL, LocalDateTime date, Boolean deleted) {
+        this(null, conversationID, sender, text, imageURL, date, deleted);
     }
 
-    public Chat(Integer chat_id, Integer conversationID, Sender sender, String text, String imageData, String imageURL, LocalDateTime date, Boolean deleted) {
+    public Chat(Integer chat_id, Integer conversationID, Sender sender, String text, String imageURL, LocalDateTime date, Boolean deleted) {
         this.chat_id = chat_id;
         this.conversationID = conversationID;
         this.sender = sender;
         this.text = text;
-        this.imageData = imageData;
         this.imageURL = imageURL;
         this.date = date;
         this.deleted = deleted;
@@ -82,9 +81,9 @@ public class Chat {
         return text;
     }
 
-    public String getImageData() {
-        return imageData;
-    }
+//    public String getImageData() {
+//        return imageData;
+//    }
 
     public String getImageURL() {
         return imageURL;

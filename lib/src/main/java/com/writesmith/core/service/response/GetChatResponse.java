@@ -33,14 +33,14 @@ public class GetChatResponse {
     private Integer conversationID, outputChatID;
     private Long remaining;
     List<Chat> inputChats;
-    private boolean removedImages;
+    private Boolean removedImages;
     private OpenAIGPTModels model;
 
     public GetChatResponse() {
 
     }
 
-    public GetChatResponse(String output, String finishReason, Integer conversationID, Integer outputChatID, Long remaining, List<Chat> inputChats, boolean removedImages, OpenAIGPTModels model) {
+    public GetChatResponse(String output, String finishReason, Integer conversationID, Integer outputChatID, Long remaining, List<Chat> inputChats, Boolean removedImages, OpenAIGPTModels model) {
         this.output = output;
         this.finishReason = finishReason;
         this.conversationID = conversationID;
@@ -75,7 +75,7 @@ public class GetChatResponse {
         return inputChats;
     }
 
-    public boolean isRemovedImages() {
+    public Boolean isRemovedImages() {
         return removedImages;
     }
 

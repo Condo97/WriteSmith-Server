@@ -53,7 +53,7 @@ public class TransactionDAO {
         if (transactions.size() > 1)
             System.out.println("More than one transaction found when getting most recent transaction, even though there is a limit of one transaction.. This should never be seen!");
 
-        System.out.println("The most recent transaction status: " + transactions.get(0).getStatus());
+//        System.out.println("The most recent transaction status: " + transactions.get(0).getStatus());
 
         // Return first transaction
         return transactions.get(0);

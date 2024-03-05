@@ -32,8 +32,23 @@ public class WSGenerationService {
 
         // Verify cooldown and timestamp is before current date, otherwise throw exception TODO
 
-        // Get isPremium
-        boolean isPremium = WSPremiumValidator.getIsPremium(conversation.getUser_id());
+        // Get isPremium for requested model
+        boolean isPremium = WSPremiumValidator.getIsPremiumAppleUpdateIfRequestedModelIsNotPermitted(conversation.getUser_id(), requestedModel);
+
+        // Do cooldown controlled Apple update on a Thread
+        new Thread(() -> {
+            try {
+                WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(conversation.getUser_id());
+            } catch (DBSerializerPrimaryKeyMissingException | SQLException | CertificateException | IOException |
+                     URISyntaxException | KeyStoreException | NoSuchAlgorithmException | InterruptedException |
+                     InvocationTargetException | IllegalAccessException | NoSuchMethodException |
+                     UnrecoverableKeyException | DBSerializerException | AppStoreErrorResponseException |
+                     InvalidKeySpecException | InstantiationException | PreparedStatementMissingArgumentException |
+                     AppleItunesResponseException | DBObjectNotFoundFromQueryException e) {
+                // TODO: Handle errors
+                e.printStackTrace();
+            }
+        }).start();
 
         // Get remaining
         Long remaining = ChatRemainingCalculator.calculateRemaining(conversation.getUser_id(), isPremium);

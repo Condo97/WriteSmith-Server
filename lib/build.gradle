@@ -74,7 +74,7 @@ dependencies {
     implementation 'com.github.condo97:Httpson:1.0.0'
 
     // AppleTransactionClient for handling Apple transactions
-    implementation 'com.github.condo97:AppleTransactionClient:1.0.0'
+    implementation 'com.github.condo97:AppleTransactionClient:1.1.0'
 
 }
 

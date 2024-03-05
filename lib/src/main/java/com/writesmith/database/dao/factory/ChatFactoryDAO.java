@@ -17,12 +17,12 @@ public class ChatFactoryDAO {
     }
 
     private static Chat create(Integer conversationID, Sender sender, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException {
-        return create(conversationID, sender, null, null, null, date);
+        return create(conversationID, sender, null, null, date);
     }
 
-    public static Chat create(Integer conversationID, Sender sender, String text, String imageData, String imageURL, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException, InvocationTargetException {
+    public static Chat create(Integer conversationID, Sender sender, String text, String imageURL, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException, InvocationTargetException {
         // Create Chat object
-        Chat chat = new Chat(conversationID, sender, text, imageData, imageURL, date, false);
+        Chat chat = new Chat(conversationID, sender, text, imageURL, date, false);
 
         // Insert using ChatDAOPooled and return
         ChatDAOPooled.insert(chat);

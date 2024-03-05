@@ -7,6 +7,7 @@ import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.DBRegistry;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
+import sqlcomponentizer.preparedstatement.component.OrderByComponent;
 import sqlcomponentizer.preparedstatement.component.condition.SQLOperators;
 
 import java.lang.reflect.InvocationTargetException;
@@ -89,7 +90,14 @@ public class ConversationDAO {
             );
 
         // Create chat list from DB
-        List<Chat> chats = DBManager.selectAllWhere(conn, Chat.class, whereColValMap, SQLOperators.EQUAL);
+        List<Chat> chats = DBManager.selectAllWhereOrderByLimit(
+                conn,
+                Chat.class,
+                whereColValMap,
+                SQLOperators.EQUAL,
+                List.of(DBRegistry.Table.Chat.chat_id),
+                OrderByComponent.Direction.DESC,
+                Constants.Chat_Context_Select_Query_Limit);
 
         return chats;
     }

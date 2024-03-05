@@ -38,7 +38,7 @@ public class OpenAIGPTChatCompletionRequestFactory {
 
     }
 
-    public static PurifiedOAIChatCompletionRequest with(List<Chat> chats, String behavior, OpenAIGPTModels model, Integer temperature, Integer tokenLimit, boolean stream) {
+    public static PurifiedOAIChatCompletionRequest with(List<Chat> chats, String imageData, String behavior, OpenAIGPTModels model, Integer temperature, Integer tokenLimit, boolean stream) {
         // Create removedImages variable
         boolean removedImages = false;
 
@@ -52,8 +52,10 @@ public class OpenAIGPTChatCompletionRequestFactory {
                     .build());
         }
 
-        // Append chats as message requests maintaining order
-        for (Chat chat: chats) {
+        // Append chats as message requests in reverse order
+        for (int i = chats.size() - 1; i >= 0; i--) {
+            Chat chat = chats.get(i);
+
             OAIChatCompletionRequestMessageBuilder messageBuilder = new OAIChatCompletionRequestMessageBuilder(RoleMapper.getRole(chat.getSender()));
 
             // Add text if not null and not empty
@@ -61,16 +63,16 @@ public class OpenAIGPTChatCompletionRequestFactory {
                 messageBuilder.addText(chat.getText());
             }
 
-            // Add image data if not null and not empty
-            if (chat.getImageData() != null && !chat.getImageData().isEmpty()) {
-                if (model.isVision()) {
-                    // If model is vision, add image
-                    messageBuilder.addImage(chat.getImageData());
-                } else {
-                    // If model is not vision, set removedImages to true
-                    removedImages = true;
-                }
-            }
+//            // Add image data if not null and not empty
+//            if (imageData != null && !imageData.isEmpty()) {
+//                if (model.isVision()) {
+//                    // If model is vision, add image
+//                    messageBuilder.addImage(imageData);
+//                } else {
+//                    // If model is not vision, set removedImages to true
+//                    removedImages = true;
+//                }
+//            }
 
             // Add image URL if not null and not empty
             if (chat.getImageURL() != null && !chat.getImageURL().isEmpty()) {
@@ -86,6 +88,18 @@ public class OpenAIGPTChatCompletionRequestFactory {
             // Build message and add to messageRequests
             messageRequests.add(messageBuilder.build());
         }//new OAIChatCompletionRequestMessage(RoleMapper.getRole(v.getSender()), v.getText())));
+
+        // Create and insert image message request to messageRequests if there is imageData and model is vision
+        if (imageData != null && !imageData.isEmpty()) {
+            if (model.isVision()) {
+                // If model is vision, create and add image message to messageRequests
+                OAIChatCompletionRequestMessage imageMessage = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
+                        .addImage(imageData)
+                        .build();
+
+                messageRequests.add(imageMessage);
+            }
+        }
 
         // Get OAIChatCompletionRequest with messages, model, temperature, tokenLimit, and stream
         OAIChatCompletionRequest request = with(messageRequests, model, temperature, tokenLimit, stream);

@@ -1,7 +1,8 @@
 package com.writesmith.apple.iapvalidation;
 
-import appletransactionclient.JWTGenerator;
+import appletransactionclient.JWTSigner;
 import appletransactionclient.SubscriptionAppleHttpClient;
+import appletransactionclient.SubscriptionStatusJWTGenerator;
 import appletransactionclient.exception.AppStoreErrorResponseException;
 import appletransactionclient.http.response.status.AppStoreStatusResponse;
 import appletransactionclient.http.response.status.AppStoreStatusResponseLastTransactionItem;
@@ -28,10 +29,10 @@ public class AppleTransactionUpdater {
     public static void updateTransactionStatusFromApple(Transaction transaction) throws AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, InterruptedException {
         // Create SubscriptionAppleHttpClient instance and JWTGenerator instance
         SubscriptionAppleHttpClient subscriptionAppleHttpClient = new SubscriptionAppleHttpClient(Constants.Apple_Storekit_Base_URL, Constants.Apple_Sandbox_Storekit_Base_URL, Constants.Apple_Get_Subscription_Status_V1_Full_URL_Path);
-        JWTGenerator jwtGenerator = new JWTGenerator(Constants.Apple_SubscriptionKey_JWS_Path, Keys.appStoreConnectIssuerID, Constants.Apple_Bundle_ID, Keys.appStoreConnectPrivateKeyID);
+        JWTSigner jwtSigner = new JWTSigner(Constants.Apple_SubscriptionKey_JWS_Path, Keys.appStoreConnectPrivateKeyID);
 
         // Generate JWT
-        String jwt = jwtGenerator.generateJWT();
+        String jwt = SubscriptionStatusJWTGenerator.generateJWT(jwtSigner, Keys.appStoreConnectIssuerID, Constants.Apple_Bundle_ID);
 
         // Get the status response from apple
         AppStoreStatusResponse statusResponse = subscriptionAppleHttpClient.getStatusResponseV1(transaction.getAppstoreTransactionID(), jwt);

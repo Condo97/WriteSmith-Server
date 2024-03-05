@@ -138,11 +138,13 @@ public class Main {
     private static void configureHttpEndpoints(boolean dev) {
         // POST Functions
         post(Constants.URIs.DELETE_CHAT_URI, Server::deleteChat);
+        post(Constants.URIs.GENERATE_SUGGESTIONS, Server::generateSuggestions);
         post(Constants.URIs.GET_CHAT_URI, Server::getChat);
         post(Constants.URIs.GET_IS_PREMIUM_URI, Server::getIsPremium);
         post(Constants.URIs.GET_REMAINING_URI, Server::getRemainingChats);
         post(Constants.URIs.REGISTER_USER_URI, Server::registerUser);
         post(Constants.URIs.REGISTER_TRANSACTION_URI, Server::registerTransaction);
+        post(Constants.URIs.SUBMIT_FEEDBACK, Server::submitFeedback);
 
 //        post(Constants.URIs.Function.CREATE_RECIPE_IDEA, Server.Func::createRecipeIdea);
 

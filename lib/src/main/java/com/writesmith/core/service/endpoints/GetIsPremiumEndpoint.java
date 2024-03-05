@@ -31,7 +31,7 @@ public class GetIsPremiumEndpoint {
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 
         // Get isPremium
-        boolean isPremium = WSPremiumValidator.getIsPremium(u_aT.getUserID());
+        boolean isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());
 
         // Build isPremiumResponse
         IsPremiumResponse isPremiumResponse = new IsPremiumResponse(isPremium);

@@ -19,7 +19,7 @@ public final class Constants {
     public static final String YEARLY_NAME = "chitchatultrayearly";
 
     /* Tiered Limits */
-    public static final int Response_Token_Limit_GPT_3_Turbo_Free = 120;
+    public static final int Response_Token_Limit_GPT_3_Turbo_Free = 240;
     public static final int Response_Token_Limit_GPT_3_Turbo_Paid = 1400;
     public static final int Response_Token_Limit_GPT_4_Free = 400;
     public static final int Response_Token_Limit_GPT_4_Paid = 1000;
@@ -33,10 +33,12 @@ public final class Constants {
     public static final int Character_Limit_GPT_4_Vision_Free = 1400;
     public static final int Character_Limit_GPT_4_Vision_Paid = 1400;
 
-    public static final int Image_Token_Count = 800;
+    public static final int Image_Token_Count = 400;
+
+    public static final int Chat_Context_Select_Query_Limit = 80;
 
     /* Delays and Cooldowns */
-    public static final int Transaction_Status_Apple_Update_Cooldown = 3000;
+    public static final int Transaction_Status_Apple_Update_Cooldown = 1700;
 
     /* Caps */
     public static final int Cap_Free_Total_Essays = 3; // This is just a constant sent to the device, which handles everything
@@ -53,6 +55,7 @@ public final class Constants {
         }
 
         public static final String DELETE_CHAT_URI = "/deleteChat";
+        public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
         public static final String GET_CHAT_URI = "/getChat";
         public static final String GET_CHAT_STREAM_URI = "/streamChat";
         public static final String GET_CHAT_STREAM_URI_LEGACY = "/getChatStream";
@@ -62,6 +65,7 @@ public final class Constants {
         public static final String GET_REMAINING_URI = "/getRemaining";
         public static final String REGISTER_USER_URI = "/registerUser";
         public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
+        public static final String SUBMIT_FEEDBACK = "/submitFeedback";
     }
 
     /* Legacy URIs for HTTPServer */
