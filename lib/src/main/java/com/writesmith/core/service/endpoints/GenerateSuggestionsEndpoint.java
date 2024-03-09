@@ -31,7 +31,7 @@ public class GenerateSuggestionsEndpoint {
                 .map(SuggestionsGenerator.Suggestion::getSuggestion)
                 .toList();
 
-        // Create GenerateSuggestionResponse
+        // Create GenerateSuggestionResponse and return
         GenerateSuggestionsResponse gsResponse = new GenerateSuggestionsResponse(suggestionStrings);
 
         return gsResponse;

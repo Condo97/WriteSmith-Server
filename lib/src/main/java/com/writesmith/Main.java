@@ -8,6 +8,7 @@ import com.writesmith.core.Server;
 import com.writesmith.core.service.websockets.GetChatWebSocket;
 import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy;
 import com.writesmith.core.service.ResponseStatus;
+import com.writesmith.core.service.websockets.GetChatWithPersistentImageWebSocket;
 import com.writesmith.keys.Keys;
 import com.writesmith.core.service.response.*;
 
@@ -123,12 +124,14 @@ public class Main {
 
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY, GetChatWebSocket_Legacy.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
 
         /* dev */
         final String devPath = "/dev";
 
-        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
         webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY, GetChatWebSocket_Legacy.class);
+        webSocket(devPath + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
     }
 
     private static void configureHttpEndpoints() {
@@ -139,6 +142,7 @@ public class Main {
         // POST Functions
         post(Constants.URIs.DELETE_CHAT_URI, Server::deleteChat);
         post(Constants.URIs.GENERATE_SUGGESTIONS, Server::generateSuggestions);
+        post(Constants.URIs.GENERATE_TITLE, Server::generateTitle);
         post(Constants.URIs.GET_CHAT_URI, Server::getChat);
         post(Constants.URIs.GET_IS_PREMIUM_URI, Server::getIsPremium);
         post(Constants.URIs.GET_REMAINING_URI, Server::getRemainingChats);

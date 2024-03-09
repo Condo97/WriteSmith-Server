@@ -36,6 +36,7 @@ public class DBRegistry {
             public static final String conversation_id = "conversation_id";
             public static final String user_id = "user_id";
             public static final String behavior = "behavior";
+            public static final String additional_info = "additional_info";
 
         }
 

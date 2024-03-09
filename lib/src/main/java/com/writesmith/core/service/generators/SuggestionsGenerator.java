@@ -6,7 +6,7 @@ import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.GetSuggestionsFC;
+import com.writesmith.core.gpt_function_calls.GenerateSuggestionsFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -51,6 +51,7 @@ public class SuggestionsGenerator {
                     "suggestion='" + suggestion + '\'' +
                     '}';
         }
+
     }
 
     public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
@@ -111,7 +112,7 @@ public class SuggestionsGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                GetSuggestionsFC.class,
+                GenerateSuggestionsFC.class,
                 OpenAIGPTModels.GPT_4.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -122,11 +123,11 @@ public class SuggestionsGenerator {
         // Get responseString from response
         String responseString = response.getChoices()[0].getMessage().getFunction_call().getArguments();
 
-        // Create getSuggestionsFC
-        GetSuggestionsFC getSuggestionsFC = OAIFunctionCallDeserializer.deserialize(responseString, GetSuggestionsFC.class);
+        // Create generateSuggestionsFC
+        GenerateSuggestionsFC generateSuggestionsFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateSuggestionsFC.class);
 
         // Transpose getSuggestionsFC result to Suggestion list
-        List<Suggestion> suggestions = getSuggestionsFC.getSuggestions().stream()
+        List<Suggestion> suggestions = generateSuggestionsFC.getSuggestions().stream()
                 .map(Suggestion::new)
                 .toList();
 

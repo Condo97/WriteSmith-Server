@@ -70,6 +70,29 @@ public class Server {
         return new ObjectMapper().writeValueAsString(sr);
     }
 
+    /***
+     * Generate Suggestions
+     *
+     * Generates a list of suggestions based on the input conversation.
+     *
+     * Request: {
+     *     authToken: String - Authentication token, granted by registerUser
+     *     conversation: String[] - An array of chat strings to generate suggestions from
+     *     differentThan: String[] - An array of suggestion strings to make sure the generated suggestions are different than them
+     *     count: Integer - The count of suggestions to generate
+     * }
+     *
+     * Response: {
+     *     Body: {
+     *         suggestions: String[] - The suggestions
+     *     }
+     *     Success: Integer - Integer denoting success, 1 if successful
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON response as String
+     */
     public static String generateSuggestions(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         GenerateSuggestionsRequest gsRequest;
 
@@ -85,6 +108,45 @@ public class Server {
                 GenerateSuggestionsEndpoint.generateSuggestions(gsRequest)
         );
         
+        return new ObjectMapper().writeValueAsString(br);
+    }
+
+    /***
+     * Generate Title
+     *
+     * Generates a title for the input string.
+     *
+     * Request: {
+     *     authToken: String - Authentication token, granted by registerUser
+     *     input: String - The input to generate a title for
+     * }
+     *
+     * Response: {
+     *     Body: {
+     *         title: String - The title
+     *     }
+     *     Success: Integer - Integer value denoting success, 1 if successful
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON response as String
+     */
+    public static String generateTitle(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        GenerateTitleRequest gtRequest;
+
+        try {
+            gtRequest = new ObjectMapper().readValue(req.body(), GenerateTitleRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Generating Title.. the request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage());
+        }
+
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(
+                GenerateTitleEndpoint.generateTitle(gtRequest)
+        );
+
         return new ObjectMapper().writeValueAsString(br);
     }
 

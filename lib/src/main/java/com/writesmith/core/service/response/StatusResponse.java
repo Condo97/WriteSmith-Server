@@ -3,7 +3,9 @@ package com.writesmith.core.service.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.writesmith.core.service.ResponseStatus;
 
-public class StatusResponse {
+import java.io.Serializable;
+
+public class StatusResponse implements Serializable {
 
     private ResponseStatus status;
 
