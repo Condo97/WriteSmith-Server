@@ -14,6 +14,9 @@ import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompleti
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.core.service.endpoints.RegisterUserEndpoint;
+import com.writesmith.database.dao.factory.User_AuthTokenFactoryDAO;
+import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.exceptions.CapReachedException;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
@@ -182,11 +185,44 @@ public class GetChatWebSocket {
 
         // Get u_aT for userID
         User_AuthToken u_aT = null;
+        ResponseStatus responseStatusForHandlingThisDeletionEvent = ResponseStatus.SUCCESS;
         try {
             u_aT = User_AuthTokenDAOPooled.get(gcRequest.getAuthToken());
         } catch (DBObjectNotFoundFromQueryException e) {
             // I'm pretty sure this is the only one that is called if everything is correct but the authToken is invalid, so throw an InvalidAuthenticationException
-            throw new InvalidAuthenticationException(e, "Error authenticating user. Please try closing and reopening the app, or report the issue if it continues giving you trouble.");
+//            throw new InvalidAuthenticationException(e, "Error authenticating user. Please try closing and reopening the app, or report the issue if it continues giving you trouble.");
+
+            // TODO: Delete this policy! This lets anyone generate a chat even if they don't have an accurate authToken!
+            try {
+                // If user's authToken is not found, it could have been deleted, so send INVALID_AUTHENTICATION and a chat telling the user to upgrade
+                u_aT = User_AuthTokenFactoryDAO.create();
+                responseStatusForHandlingThisDeletionEvent = ResponseStatus.INVALID_AUTHENTICATION;
+
+
+                // Create a "Please Upgrade" chat response
+                GetChatResponse gcr = new GetChatResponse(
+                        "Please upgrade WriteSmith for a major performance upgrade and critical bug fix. Thank you! :)",
+                        "",
+                        null,
+                        null,
+                        -1l,
+                        null,
+                        null,
+                        null
+                );
+
+                BodyResponse br = BodyResponseFactory.createBodyResponse(responseStatusForHandlingThisDeletionEvent, gcr);
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+                } catch (IOException ex) {
+                    System.out.println("Error sending body response to client from hot fix after deleting. ug lol.");
+                    ex.printStackTrace();
+                }
+            } catch (AutoIncrementingDBObjectExistsException | DBSerializerException |
+                     DBSerializerPrimaryKeyMissingException | IllegalAccessException | SQLException |
+                     InterruptedException | InvocationTargetException ex) {
+                throw new InvalidAuthenticationException(e, "Error authenticating user. Please try closing and reopening the app, or report the issue if it continues giving you trouble.");
+            }
         } catch (DBSerializerException | SQLException | InterruptedException | InvocationTargetException |
                  IllegalAccessException | NoSuchMethodException | InstantiationException e) {
             // Pretty sure these are all setup stuff, so throw UnhandledException unless I see it throwing in the console :)
@@ -426,6 +462,8 @@ public class GetChatWebSocket {
 
         /*** GENERATION - Begin ***/
 
+        ResponseStatus finalResponseStatusForHandlingThisDeletionEvent = responseStatusForHandlingThisDeletionEvent;
+
         // Parse OpenAIGPTChatCompletionStreamResponse then convert to GetChatResponse and send it in BodyResponse as response :-)
         chatStream.forEach(response -> {
             try {
@@ -462,7 +500,8 @@ public class GetChatWebSocket {
                 );
 
                 // Create success BodyResponse with getChatResponse
-                BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(getChatResponse);
+//                BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(getChatResponse);
+                BodyResponse br = BodyResponseFactory.createBodyResponse(finalResponseStatusForHandlingThisDeletionEvent, getChatResponse);
 
                 // Send BodyResponse
                 session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));

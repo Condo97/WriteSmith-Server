@@ -68,6 +68,7 @@ public final class Constants {
         public static final String REGISTER_USER_URI = "/registerUser";
         public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
         public static final String SUBMIT_FEEDBACK = "/submitFeedback";
+        public static final String VALIDATE_AUTHTOKEN = "/validateAuthToken";
     }
 
     /* Legacy URIs for HTTPServer */

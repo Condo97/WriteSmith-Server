@@ -14,6 +14,7 @@ import com.writesmith.core.service.response.IsPremiumResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
+import javax.security.sasl.AuthenticationException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
@@ -28,7 +29,12 @@ public class GetIsPremiumEndpoint {
 
     public static BodyResponse getIsPremium(AuthRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get u_aT from authRequest
-        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
+        User_AuthToken u_aT;
+        try {
+            u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
+        } catch (DBObjectNotFoundFromQueryException e) {
+            throw new AuthenticationException("Could not find authToken.");
+        }
 
         // Get isPremium
         boolean isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());

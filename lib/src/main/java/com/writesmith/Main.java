@@ -12,6 +12,7 @@ import com.writesmith.core.service.websockets.GetChatWithPersistentImageWebSocke
 import com.writesmith.keys.Keys;
 import com.writesmith.core.service.response.*;
 
+import javax.security.sasl.AuthenticationException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -78,6 +79,13 @@ public class Main {
         configureHttpEndpoints();
 
         // Exception Handling
+        exception(AuthenticationException.class, (error, req, res) -> {
+            System.out.println("The request: " + req.body());
+            error.printStackTrace();
+
+            res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.INVALID_AUTHENTICATION));
+        });
+
         exception(JsonMappingException.class, (error, req, res) -> {
             System.out.println("The request: " + req.body());
             error.printStackTrace();
@@ -149,6 +157,7 @@ public class Main {
         post(Constants.URIs.REGISTER_USER_URI, Server::registerUser);
         post(Constants.URIs.REGISTER_TRANSACTION_URI, Server::registerTransaction);
         post(Constants.URIs.SUBMIT_FEEDBACK, Server::submitFeedback);
+        post(Constants.URIs.VALIDATE_AUTHTOKEN, Server::validateAuthToken);
 
 //        post(Constants.URIs.Function.CREATE_RECIPE_IDEA, Server.Func::createRecipeIdea);
 

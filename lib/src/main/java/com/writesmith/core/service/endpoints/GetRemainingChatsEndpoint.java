@@ -15,6 +15,7 @@ import com.writesmith.core.service.response.GetRemainingResponse;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
+import javax.security.sasl.AuthenticationException;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
@@ -29,7 +30,12 @@ public class GetRemainingChatsEndpoint {
 
     public static BodyResponse getRemaining(AuthRequest authRequest) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get u_aT from authRequest
-        User_AuthToken u_aT = User_AuthTokenDAOPooled.get(authRequest.getAuthToken());
+        User_AuthToken u_aT;
+        try {
+            u_aT = User_AuthTokenDAOPooled.get(authRequest.getAuthToken());
+        } catch (DBObjectNotFoundFromQueryException e) {
+            throw new AuthenticationException("Could not find authToken.");
+        }
 
         // Get isPremium
         boolean isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());

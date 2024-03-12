@@ -55,6 +55,8 @@ public class Server {
      */
 
     public static String deleteChat(Request req, Response res) throws MalformedJSONException, IOException, ValidationException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        System.out.println("The Request: " + req.body());
+
         DeleteChatRequest dcRequest;
 
         try {
@@ -94,6 +96,8 @@ public class Server {
      * @return Value of JSON response as String
      */
     public static String generateSuggestions(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        System.out.println("The Request: " + req.body());
+
         GenerateSuggestionsRequest gsRequest;
 
         try {
@@ -133,6 +137,8 @@ public class Server {
      * @return Value of JSON response as String
      */
     public static String generateTitle(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        System.out.println("The Request: " + req.body());
+
         GenerateTitleRequest gtRequest;
 
         try {
@@ -178,6 +184,8 @@ public class Server {
      * @return Value of JSON response as String
      */
     public static String getChat(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, OpenAIGPTException, InvocationTargetException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+        System.out.println("The Request: " + req.body());
+
         GetChatLegacyRequest gcRequest;
 
         // Try to parse the gcRequest from req.body
@@ -218,6 +226,7 @@ public class Server {
      * @return Value of JSON response as String
      */
     public static String registerUser(Request request, Response response) throws SQLException, SQLGeneratedKeyException, PreparedStatementMissingArgumentException, IOException, DBSerializerPrimaryKeyMissingException, DBSerializerException, AutoIncrementingDBObjectExistsException, IllegalAccessException, InterruptedException, InvocationTargetException {
+        System.out.println("The Request: " + request.body());
 
         BodyResponse bodyResponse = RegisterUserEndpoint.registerUser();
 
@@ -225,6 +234,8 @@ public class Server {
     }
 
     public static Object registerTransaction(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException {
+        System.out.println("The Request: " + request.body());
+
         // Parse the request
         RegisterTransactionRequest rtr = new ObjectMapper().readValue(request.body(), RegisterTransactionRequest.class);
 
@@ -252,6 +263,8 @@ public class Server {
      * @return Value of JSON represented as String
      */
     public static Object submitFeedback(Request request, Response response) throws IOException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        System.out.println("The Request: " + request.body());
+
         // Get feedbackRequest
         FeedbackRequest feedbackRequest = new ObjectMapper().readValue(request.body(), FeedbackRequest.class);
 
@@ -282,6 +295,8 @@ public class Server {
      * @return Value of JSON represented as String
      */
     public static Object validateAndUpdateReceipt(Request request, Response response) throws MalformedJSONException, IOException, SQLException, PreparedStatementMissingArgumentException, InterruptedException, SQLColumnNotFoundException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, AutoIncrementingDBObjectExistsException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+        System.out.println("The Request: " + request.body());
+
         // Get registerTransactionRequest
         RegisterTransactionRequest registerTransactionRequest = new ObjectMapper().readValue(request.body(), RegisterTransactionRequest.class);
 
@@ -290,6 +305,39 @@ public class Server {
         BodyResponse bodyResponse = ValidateAndUpdateReceiptEndpoint.validateAndUpdateReceipt(registerTransactionRequest);
 
         return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
+    /***
+     * Validate AuthToken
+     *
+     * Validates the user's authToken.
+     *
+     * Request: {
+     *     authToken: String - The authentication token of the user obtained by registerUser
+     * }
+     *
+     * Response: {
+     *     Success: Integer - Integer value denoting success, 1 if successful
+     * }
+     */
+    public static Object validateAuthToken(Request request, Response response) throws IOException, MalformedJSONException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        System.out.println("The Request: " + request.body());
+
+        AuthRequest authRequest;
+
+        // Try to parse the authRequest from request.body
+        try {
+            authRequest = new ObjectMapper().readValue(request.body(), GetChatLegacyRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Getting Chat.. The request: " + request.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
+        }
+
+        // Get statusResponse and return as string
+        StatusResponse statusResponse = ValidateAuthTokenEndpoint.validateAuthToken(authRequest);
+
+        return new ObjectMapper().writeValueAsString(statusResponse);
     }
 
     /***
@@ -313,6 +361,8 @@ public class Server {
      * @return Value of JSON represented as String
      */
     public static Object getIsPremium(Request request, Response response) throws IOException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, SQLException, DBObjectNotFoundFromQueryException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, UnrecoverableKeyException, DBSerializerException, PreparedStatementMissingArgumentException, AppleItunesResponseException, InvalidKeySpecException, InstantiationException {
+        System.out.println("The Request: " + request.body());
+
         // Process the request
         AuthRequest authRequest = new ObjectMapper().readValue(request.body(), AuthRequest.class);
 
@@ -344,6 +394,8 @@ public class Server {
      * @return Value of JSON represented as String
      */
     public static Object getRemainingChats(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
+        System.out.println("The Request: " + request.body());
+
         // Process the request
         AuthRequest authRequest = new ObjectMapper().readValue(request.body(), AuthRequest.class);
 
@@ -366,7 +418,7 @@ public class Server {
         bodyNode.put("finishReason", "");
 
         ObjectNode baseNode = mapper.createObjectNode();
-        baseNode.put("Success", ResponseStatus.SUCCESS.Success);
+        baseNode.put("Success", status.getValue());
         baseNode.put("Body", bodyNode);
 
         return baseNode.toString();
