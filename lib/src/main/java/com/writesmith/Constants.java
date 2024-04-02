@@ -11,10 +11,16 @@ public final class Constants {
 
     /* In-App Purchases Pricing */
     public static final int DEFAULT_PRICE_INDEX = 0;
-    public static final String WEEKLY_PRICE = "6.95";
-    public static final String WEEKLY_NAME = "chitchatultra";
-    public static final String MONTHLY_PRICE = "19.99";
-    public static final String MONTHLY_NAME = "ultramonthly";
+    public static final double PRICE_VAR2_DISPLAY_CHANCE = 0.8;
+    public static final String WEEKLY_PRICE_VAR1 = "6.95";
+    public static final String WEEKLY_NAME_VAR1 = "chitchatultra";
+    public static final String MONTHLY_PRICE_VAR1 = "19.99";
+    public static final String MONTHLY_NAME_VAR1 = "ultramonthly";
+    public static final String WEEKLY_PRICE_VAR2 = "2.99";
+    public static final String WEEKLY_NAME_VAR2 = "chitchatultraunlimited";
+    public static final String MONTHLY_PRICE_VAR2 = "9.99";
+    public static final String MONTHLY_NAME_VAR2 = "writesmithultraunlimitedmonthly";
+
     public static final String YEARLY_PRICE = "49.99";
     public static final String YEARLY_NAME = "chitchatultrayearly";
 
@@ -54,9 +60,12 @@ public final class Constants {
             public static final String MAKE_RECIPE = SUBDIRECTORY_PREFIX + "/makeRecipeFromIdea";
         }
 
+        public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
+        public static final String CLASSIFY_CHAT = "/classifyChat";
         public static final String DELETE_CHAT_URI = "/deleteChat";
         public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
         public static final String GENERATE_TITLE = "/generateTitle";
+        public static final String GENERATE_IMAGE = "/generateImage";
         public static final String GET_CHAT_URI = "/getChat";
         public static final String GET_CHAT_STREAM_URI = "/streamChat";
         public static final String GET_CHAT_STREAM_URI_LEGACY = "/getChatStream";
@@ -65,6 +74,7 @@ public final class Constants {
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
         public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
         public static final String GET_REMAINING_URI = "/getRemaining";
+        public static final String REGISTER_APNS = "/registerAPNS";
         public static final String REGISTER_USER_URI = "/registerUser";
         public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
         public static final String SUBMIT_FEEDBACK = "/submitFeedback";

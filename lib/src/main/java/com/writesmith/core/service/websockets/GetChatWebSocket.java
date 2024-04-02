@@ -14,7 +14,6 @@ import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompleti
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.WSChatGenerationPreparer;
-import com.writesmith.core.service.endpoints.RegisterUserEndpoint;
 import com.writesmith.database.dao.factory.User_AuthTokenFactoryDAO;
 import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.exceptions.CapReachedException;
@@ -45,7 +44,6 @@ import com.writesmith._deprecated.getchatrequest.GetChatLegacyRequest;
 import com.writesmith.core.service.request.GetChatRequest;
 import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.ErrorResponse;
-import com.writesmith.core.service.response.GetChatLegacyResponse;
 import com.writesmith.core.service.response.GetChatResponse;
 import com.writesmith.core.service.GetChatCapReachedResponses;
 import org.eclipse.jetty.websocket.api.Session;
@@ -194,29 +192,42 @@ public class GetChatWebSocket {
 
             // TODO: Delete this policy! This lets anyone generate a chat even if they don't have an accurate authToken!
             try {
-                // If user's authToken is not found, it could have been deleted, so send INVALID_AUTHENTICATION and a chat telling the user to upgrade
-                u_aT = User_AuthTokenFactoryDAO.create();
-                responseStatusForHandlingThisDeletionEvent = ResponseStatus.INVALID_AUTHENTICATION;
+                // TODO: Definitely remove this, I just want to patch this issue real quick..
+                // If user's authToken is not found and it is 128 bytes, just freaking save it to the DB ug
+                if (Base64.getDecoder().decode(gcRequest.getAuthToken()).length >= 120 && Base64.getDecoder().decode(gcRequest.getAuthToken()).length <= 138) {
+                    u_aT = new User_AuthToken(
+                            null,
+                            gcRequest.getAuthToken()
+                    );
+
+                    User_AuthTokenDAOPooled.insert(u_aT);
+
+                    System.out.println("Just inserted authToken: " + u_aT.getAuthToken());
+                } else {
+                    // If user's authToken is not found, it could have been deleted, so send INVALID_AUTHENTICATION and a chat telling the user to upgrade
+                    u_aT = User_AuthTokenFactoryDAO.create();
+                    responseStatusForHandlingThisDeletionEvent = ResponseStatus.INVALID_AUTHENTICATION;
 
 
-                // Create a "Please Upgrade" chat response
-                GetChatResponse gcr = new GetChatResponse(
-                        "Please upgrade WriteSmith for a major performance upgrade and critical bug fix. Thank you! :)",
-                        "",
-                        null,
-                        null,
-                        -1l,
-                        null,
-                        null,
-                        null
-                );
+                    // Create a "Please Upgrade" chat response
+                    GetChatResponse gcr = new GetChatResponse(
+                            "Please upgrade WriteSmith for a major performance upgrade and critical bug fix. Thank you! :)",
+                            "",
+                            null,
+                            null,
+                            -1l,
+                            null,
+                            null,
+                            null
+                    );
 
-                BodyResponse br = BodyResponseFactory.createBodyResponse(responseStatusForHandlingThisDeletionEvent, gcr);
-                try {
-                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
-                } catch (IOException ex) {
-                    System.out.println("Error sending body response to client from hot fix after deleting. ug lol.");
-                    ex.printStackTrace();
+                    BodyResponse br = BodyResponseFactory.createBodyResponse(responseStatusForHandlingThisDeletionEvent, gcr);
+                    try {
+                        session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+                    } catch (IOException ex) {
+                        System.out.println("Error sending body response to client from hot fix after deleting. ug lol.");
+                        ex.printStackTrace();
+                    }
                 }
             } catch (AutoIncrementingDBObjectExistsException | DBSerializerException |
                      DBSerializerPrimaryKeyMissingException | IllegalAccessException | SQLException |
@@ -236,7 +247,7 @@ public class GetChatWebSocket {
         // Get Conversation
         Conversation conversation;
         try {
-            conversation = ConversationDAOPooled.getOrCreate(u_aT.getUserID(), gcRequest.getConversationID(), gcRequest.getBehavior());
+            conversation = ConversationDAOPooled.getOrCreateSettingBehavior(u_aT.getUserID(), gcRequest.getConversationID(), gcRequest.getBehavior());
             // Ways it can fail... user can't access it, something's null
         } catch (DBSerializerPrimaryKeyMissingException | DBSerializerException | SQLException | InterruptedException |
                  InvocationTargetException | IllegalAccessException | NoSuchMethodException | InstantiationException e) {
@@ -700,13 +711,13 @@ public class GetChatWebSocket {
         sb.append(gc.getChat().getChat_id());
         sb.append(" Streamed ");
         sb.append(sdf.format(date));
-        if (output != null) {
-            sb.append("\t");
-            sb.append(output.length() >= maxLength ? output.substring(0, maxLength) : output);
-            sb.append("... ");
-            sb.append(output.length() + charsInCompletionRequest);
-            sb.append(" total chars");
-        }
+//        if (output != null) {
+//            sb.append("\t");
+//            sb.append(output.length() >= maxLength ? output.substring(0, maxLength) : output);
+//            sb.append("... ");
+//            sb.append(output.length() + charsInCompletionRequest);
+//            sb.append(" total chars");
+//        }
 
         // Append isPremium to sb if isPremium is true
         if (isPremium) {
@@ -716,29 +727,29 @@ public class GetChatWebSocket {
         // Get current time
         LocalDateTime now = LocalDateTime.now();
 
-        // Append difference from startTime to getAuthTokenTime to sb
-        if (getAuthTokenTime != null && startTime != null) {
-            long startToAuthTokenMS = Duration.between(startTime, getAuthTokenTime).toMillis();
-            sb.append(", Start to authToken: " + startToAuthTokenMS + "ms");
-        }
-
-        // Append difference from getAuthTokenTime to getIsPremiumTime
-        if (getIsPremiumTime != null && getAuthTokenTime != null) {
-            long authTokenToIsPremiumMS = Duration.between(getAuthTokenTime, getIsPremiumTime).toMillis();
-            sb.append(", to isPremium: " + authTokenToIsPremiumMS + "ms");
-        }
-
-        // Append difference from getIsPremiumTime to beforeStartStreamTime
-        if (beforeStartStreamTime != null && getIsPremiumTime != null) {
-            long isPremiumToStartStreamMS = Duration.between(getIsPremiumTime, beforeStartStreamTime).toMillis();
-            sb.append(", to before stream start: " + isPremiumToStartStreamMS + "ms");
-        }
-
-        // Append difference from beforeStreamStartTime to firstChatTime
-        if (firstChatTime != null && firstChatTime.get() != null && beforeStartStreamTime != null) {
-            long startStreamToFirstChatMS = Duration.between(beforeStartStreamTime, firstChatTime.get()).toMillis();
-            sb.append(", to first chat: " + startStreamToFirstChatMS + "ms");
-        }
+//        // Append difference from startTime to getAuthTokenTime to sb
+//        if (getAuthTokenTime != null && startTime != null) {
+//            long startToAuthTokenMS = Duration.between(startTime, getAuthTokenTime).toMillis();
+//            sb.append(", Start to authToken: " + startToAuthTokenMS + "ms");
+//        }
+//
+//        // Append difference from getAuthTokenTime to getIsPremiumTime
+//        if (getIsPremiumTime != null && getAuthTokenTime != null) {
+//            long authTokenToIsPremiumMS = Duration.between(getAuthTokenTime, getIsPremiumTime).toMillis();
+//            sb.append(", to isPremium: " + authTokenToIsPremiumMS + "ms");
+//        }
+//
+//        // Append difference from getIsPremiumTime to beforeStartStreamTime
+//        if (beforeStartStreamTime != null && getIsPremiumTime != null) {
+//            long isPremiumToStartStreamMS = Duration.between(getIsPremiumTime, beforeStartStreamTime).toMillis();
+//            sb.append(", to before stream start: " + isPremiumToStartStreamMS + "ms");
+//        }
+//
+//        // Append difference from beforeStreamStartTime to firstChatTime
+//        if (firstChatTime != null && firstChatTime.get() != null && beforeStartStreamTime != null) {
+//            long startStreamToFirstChatMS = Duration.between(beforeStartStreamTime, firstChatTime.get()).toMillis();
+//            sb.append(", to first chat: " + startStreamToFirstChatMS + "ms");
+//        }
 
         // Append difference in seconds from start time to first chat generated to sb
         if (firstChatTime != null && firstChatTime.get() != null && startTime != null) {

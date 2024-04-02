@@ -5,7 +5,7 @@ import com.writesmith.keys.Keys;
 
 public class GetIAPStuffResponse {
     private final String sharedSecret = Keys.sharedAppSecret;
-    private final String[] productIDs = { Constants.WEEKLY_NAME, Constants.YEARLY_NAME, Constants.MONTHLY_NAME };
+    private final String[] productIDs = { Constants.WEEKLY_NAME_VAR1, Constants.YEARLY_NAME, Constants.MONTHLY_NAME_VAR1};
 
     public GetIAPStuffResponse() {
 

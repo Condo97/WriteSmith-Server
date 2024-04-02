@@ -11,6 +11,8 @@ import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class RegisterUserEndpoint {
 
@@ -21,7 +23,23 @@ public class RegisterUserEndpoint {
         // Prepare and return new bodyResponse object
         AuthResponse registerUserResponse = new AuthResponse(u_aT.getAuthToken());
 
+        // Print log
+        printLog();
+
         return BodyResponseFactory.createSuccessBodyResponse(registerUserResponse);
+    }
+
+
+    private static void printLog() {
+        StringBuilder sb = new StringBuilder();
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date();
+
+        sb.append("Registered User ");
+        sb.append(sdf.format(date));
+
+        System.out.println(sb);
     }
 
 }

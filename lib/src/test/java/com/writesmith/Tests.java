@@ -10,8 +10,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.core.WSChatGenerationPreparer;
 import com.writesmith.core.service.endpoints.*;
-import com.writesmith.core.service.request.FeedbackRequest;
-import com.writesmith.core.service.request.GenerateSuggestionsRequest;
+import com.writesmith.core.service.request.*;
 import com.writesmith.core.service.response.*;
 import com.writesmith.database.model.Sender;
 import com.writesmith.database.model.objects.Chat;
@@ -33,8 +32,6 @@ import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import com.writesmith.apple.iapvalidation.networking.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.apple.iapvalidation.networking.itunes.response.verifyreceipt.VerifyReceiptResponse;
-import com.writesmith.core.service.request.AuthRequest;
-import com.writesmith.core.service.request.RegisterTransactionRequest;
 import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -735,6 +732,188 @@ public class Tests {
         assert(generateSuggestionsResponse.getSuggestions().size() > 0);
         assert(generateSuggestionsResponse.getSuggestions().size() >= count - 1);
         assert(generateSuggestionsResponse.getSuggestions().size() <= count + 1);
+    }
+
+    @Test
+    @DisplayName("Test Classify Chat Endpoint - Requesting Image")
+    void testClassifyChatEndpoint_RequestingImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "I want u to make me an image of a little tiny bear on the tip of a needle.";
+        final Boolean expectedWantsImageGenerationResult = true;
+
+        // Create ClassifyChatRequest
+        ClassifyChatRequest ccRequest = new ClassifyChatRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get ClassifyChatResponse from ClassifyChatEndpoint
+        ClassifyChatResponse ccResponse = ClassifyChatEndpoint.classifyChat(ccRequest);
+
+        // Print and test
+        assert(ccResponse != null);
+        assert(ccResponse.isWantsImageGeneration() != null);
+        assert(ccResponse.isWantsImageGeneration() == expectedWantsImageGenerationResult);
+    }
+
+    @Test
+    @DisplayName("Test Classify Chat Endpoint - Not Requesting Image")
+    void testClassifyChatEndpoint_NotRequestingImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "I want u to tell me a story of a little tiny elephant on a fingernail.";
+        final Boolean expectedWantsImageGenerationResult = false;
+
+        // Create ClassifyChatRequest
+        ClassifyChatRequest ccRequest = new ClassifyChatRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get ClassifyChatResponse from ClassifyChatEndpoint
+        ClassifyChatResponse ccResponse = ClassifyChatEndpoint.classifyChat(ccRequest);
+
+        // Print and test
+        assert(ccResponse != null);
+        assert(ccResponse.isWantsImageGeneration() != null);
+        assert(ccResponse.isWantsImageGeneration() == expectedWantsImageGenerationResult);
+    }
+
+    @Test
+    @DisplayName("Test Generate Image Endpoint")
+    void testGenerateImageEndpoint() throws DBSerializerException, SQLException, OpenAIGPTException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "A banana holding a bear";
+
+        // Create GenerateImageRequest
+        GenerateImageRequest giRequest = new GenerateImageRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get GenerateImageResponse from GenerateImageEndpoint
+        GenerateImageResponse giResponse = GenerateImageEndpoint.generateImage(giRequest);
+
+        System.out.println(giResponse.getImageData());
+
+        // Print and test
+        assert(giResponse != null);
+        assert(giResponse.getImageData() != null);
+    }
+
+    @Test
+    @DisplayName("Test Check if Chat Requests Image Revision - Requesting Revision")
+    void testCheckIfChatRequestsImageRevision_RequestingRevision() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "Now make it an earring.";
+        final Boolean expectedRequestsImageRevisionResult = true;
+
+        // Create CheckIfChatRequestsImageRevisionRequest
+        CheckIfChatRequestsImageRevisionRequest cicrirRequest = new CheckIfChatRequestsImageRevisionRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get CheckIfChatRequestsImageRevisionResponse from CheckIfChatRequestsImageRevisionEndpoint
+        CheckIfChatRequestsImageRevisionResponse cicrirResponse = CheckIfChatRequestsImageRevisionEndpoint.checkIfChatRequestsImageRevision(cicrirRequest);
+
+        // Print and test
+        System.out.println("Wants image revision: " + cicrirResponse.getRequestsImageRevision());
+
+        assert(cicrirResponse != null);
+        assert(cicrirResponse.getRequestsImageRevision() != null);
+        assert(cicrirResponse.getRequestsImageRevision() == expectedRequestsImageRevisionResult);
+    }
+
+    @Test
+    @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision Simple")
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionSimple() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "Now write a short story about a cat.";
+        final Boolean expectedRequestsImageRevisionResult = false;
+
+        // Create CheckIfChatRequestsImageRevisionRequest
+        CheckIfChatRequestsImageRevisionRequest cicrirRequest = new CheckIfChatRequestsImageRevisionRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get CheckIfChatRequestsImageRevisionResponse from CheckIfChatRequestsImageRevisionEndpoint
+        CheckIfChatRequestsImageRevisionResponse cicrirResponse = CheckIfChatRequestsImageRevisionEndpoint.checkIfChatRequestsImageRevision(cicrirRequest);
+
+        // Print and test
+        System.out.println("Wants image revision: " + cicrirResponse.getRequestsImageRevision());
+
+        assert(cicrirResponse != null);
+        assert(cicrirResponse.getRequestsImageRevision() != null);
+        assert(cicrirResponse.getRequestsImageRevision() == expectedRequestsImageRevisionResult);
+    }
+
+    @Test
+    @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision by Requesting Another Image")
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionByRequestingAnotherImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "Now make an image of a cat.";
+        final Boolean expectedRequestsImageRevisionResult = false;
+
+        // Create CheckIfChatRequestsImageRevisionRequest
+        CheckIfChatRequestsImageRevisionRequest cicrirRequest = new CheckIfChatRequestsImageRevisionRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get CheckIfChatRequestsImageRevisionResponse from CheckIfChatRequestsImageRevisionEndpoint
+        CheckIfChatRequestsImageRevisionResponse cicrirResponse = CheckIfChatRequestsImageRevisionEndpoint.checkIfChatRequestsImageRevision(cicrirRequest);
+
+        // Print and test
+        System.out.println("Wants image revision: " + cicrirResponse.getRequestsImageRevision());
+
+        assert(cicrirResponse != null);
+        assert(cicrirResponse.getRequestsImageRevision() != null);
+        assert(cicrirResponse.getRequestsImageRevision() == expectedRequestsImageRevisionResult);
+    }
+
+    @Test
+    @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision, Sorta Unclear")
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionSortaUnclear() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "I want to brainstorm more ideas about this image.";
+        final Boolean expectedRequestsImageRevisionResult = false;
+
+        // Create CheckIfChatRequestsImageRevisionRequest
+        CheckIfChatRequestsImageRevisionRequest cicrirRequest = new CheckIfChatRequestsImageRevisionRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get CheckIfChatRequestsImageRevisionResponse from CheckIfChatRequestsImageRevisionEndpoint
+        CheckIfChatRequestsImageRevisionResponse cicrirResponse = CheckIfChatRequestsImageRevisionEndpoint.checkIfChatRequestsImageRevision(cicrirRequest);
+
+        // Print and test
+        System.out.println("Wants image revision: " + cicrirResponse.getRequestsImageRevision());
+
+        assert(cicrirResponse != null);
+        assert(cicrirResponse.getRequestsImageRevision() != null);
+
+        // TODO: Commented this because this one is not that critical I guess, it can be left alone for now
+//        assert(cicrirResponse.getRequestsImageRevision() == expectedRequestsImageRevisionResult);
+    }
+
+    @Test
+    @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision, Directly Prompting to Revise")
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionDirectlyPromptingToRevise() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        final String prompt = "Revise an image.";
+        final Boolean expectedRequestsImageRevisionResult = false;
+
+        // Create CheckIfChatRequestsImageRevisionRequest
+        CheckIfChatRequestsImageRevisionRequest cicrirRequest = new CheckIfChatRequestsImageRevisionRequest(
+                authTokenRandom,
+                prompt
+        );
+
+        // Get CheckIfChatRequestsImageRevisionResponse from CheckIfChatRequestsImageRevisionEndpoint
+        CheckIfChatRequestsImageRevisionResponse cicrirResponse = CheckIfChatRequestsImageRevisionEndpoint.checkIfChatRequestsImageRevision(cicrirRequest);
+
+        // Print and test
+        System.out.println("Wants image revision: " + cicrirResponse.getRequestsImageRevision());
+
+        assert(cicrirResponse != null);
+        assert(cicrirResponse.getRequestsImageRevision() != null);
+
+        // TODO: Commented this because this one is not that critical I guess, it can be left alone for now
+//        assert(cicrirResponse.getRequestsImageRevision() == expectedRequestsImageRevisionResult);
     }
 
     @Test

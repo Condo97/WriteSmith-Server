@@ -4,6 +4,17 @@ public class DBRegistry {
 
     public class Table {
 
+        public class APNSRegistration {
+
+            public static final String TABLE_NAME = "APNSRegistration";
+            public static final String id = "id";
+            public static final String user_id = "user_id";
+            public static final String device_id = "device_id";
+            public static final String add_date = "add_date";
+            public static final String update_date = "update_date";
+
+        }
+
         public class Chat {
 
             public static final String TABLE_NAME = "Chat";

@@ -21,7 +21,7 @@ import static com.writesmith.core.service.endpoints.GetChatEndpoint.createConver
 
 public class ConversationDAO {
 
-    public static Conversation getOrCreate(Connection conn, Integer userID, Integer conversationID, String behavior) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static Conversation getOrCreateSettingBehavior(Connection conn, Integer userID, Integer conversationID, String behavior) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         // Create conversation object and if request conversationID is null, get by creating in database, otherwise get conversation by primary key
         Conversation conversation;
         if (conversationID == null) {
@@ -33,6 +33,10 @@ public class ConversationDAO {
             // Create conversation if conversation is null or there's a userID mismatch with the received conversation
             if (conversation == null || !conversation.getUser_id().equals(userID)) {
                 conversation = createConversationInDB(userID, behavior);
+            } else {
+                // Update behavior in DB TODO: Is this a good idea to do here? I just changed the method name to getOrCreateSettingBehavior so that it indicates that whether or not it gets or creates it sets the behavior, which I think is a good thing since it means a Conversation does not have to be created then updated though that is a solution too I guess, this just uses the same connection and maybe is a little more efficient idk lol
+                conversation.setBehavior(behavior);
+                ConversationDAO.updateBehavior(conn, conversation);
             }
         }
 
@@ -100,6 +104,15 @@ public class ConversationDAO {
                 Constants.Chat_Context_Select_Query_Limit);
 
         return chats;
+    }
+
+    public static void updateBehavior(Connection conn, Conversation conversation) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException {
+        DBManager.updateWhereByPrimaryKey(
+                conn,
+                conversation,
+                DBRegistry.Table.Conversation.behavior,
+                conversation.getBehavior()
+        );
     }
 
 //    public static List<Chat> getChats(Connection conn, Conversation conversation, Boolean excludeDeleted, int characterLimit) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {

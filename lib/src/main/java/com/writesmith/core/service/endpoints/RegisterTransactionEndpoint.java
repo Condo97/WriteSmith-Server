@@ -42,7 +42,7 @@ public class RegisterTransactionEndpoint {
         boolean isPremium = AppStoreSubscriptionStatusToIsPremiumAdapter.getIsPremium(transaction.getStatus());
 
                 // TODO: Just logging to see things, remove and make a better logging system!
-                if (isPremium == true)
+                if (isPremium)
                     System.out.println("User " + u_aT.getUserID() + " just registered a transaction at " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
 
         // Create full validate premium response

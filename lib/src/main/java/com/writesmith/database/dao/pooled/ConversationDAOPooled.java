@@ -14,10 +14,10 @@ import java.util.List;
 
 public class ConversationDAOPooled {
 
-    public static Conversation getOrCreate(Integer userID, Integer conversationID, String behavior) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static Conversation getOrCreateSettingBehavior(Integer userID, Integer conversationID, String behavior) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         Connection conn = SQLConnectionPoolInstance.getConnection();
         try {
-            return ConversationDAO.getOrCreate(conn, userID, conversationID, behavior);
+            return ConversationDAO.getOrCreateSettingBehavior(conn, userID, conversationID, behavior);
         } finally {
             SQLConnectionPoolInstance.releaseConnection(conn);
         }

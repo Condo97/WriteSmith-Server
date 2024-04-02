@@ -24,7 +24,6 @@ import com.writesmith.database.dao.pooled.ChatDAOPooled;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.dao.pooled.GeneratedChatDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.openai.OpenAIGPTModelTierSpecification;
 import com.writesmith.util.calculators.ChatRemainingCalculator;
 import com.writesmith.openai.OpenAIGPTChatCompletionRequestFactory;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
@@ -137,7 +136,7 @@ public class GetChatWebSocket_Legacy {
             getIsPremiumTime = LocalDateTime.now();
 
             // Get conversation
-            Conversation conversation = ConversationDAOPooled.getOrCreate(u_aT.getUserID(), gcr.getConversationID(), gcr.getBehavior());
+            Conversation conversation = ConversationDAOPooled.getOrCreateSettingBehavior(u_aT.getUserID(), gcr.getConversationID(), gcr.getBehavior());
 
             // Parse input text to remove url encoded spaces and returns and stuff
             String inputText = URLDecoder.decode(gcr.getInputText(), StandardCharsets.UTF_8);

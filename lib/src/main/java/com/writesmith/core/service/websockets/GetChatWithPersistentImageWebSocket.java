@@ -186,7 +186,7 @@ public class GetChatWithPersistentImageWebSocket {
         // Get Conversation
         Conversation conversation;
         try {
-            conversation = ConversationDAOPooled.getOrCreate(u_aT.getUserID(), gcwpiRequest.getConversationID(), gcwpiRequest.getBehavior());
+            conversation = ConversationDAOPooled.getOrCreateSettingBehavior(u_aT.getUserID(), gcwpiRequest.getConversationID(), gcwpiRequest.getBehavior());
             // Ways it can fail... user can't access it, something's null
         } catch (DBSerializerPrimaryKeyMissingException | DBSerializerException | SQLException | InterruptedException |
                  InvocationTargetException | IllegalAccessException | NoSuchMethodException | InstantiationException e) {

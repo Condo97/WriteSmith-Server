@@ -50,7 +50,7 @@ public class GetChatEndpoint {
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 
         /* GET CONVERSATION */
-        Conversation conversation = ConversationDAOPooled.getOrCreate(u_aT.getUserID(), request.getConversationID(), request.getBehavior());
+        Conversation conversation = ConversationDAOPooled.getOrCreateSettingBehavior(u_aT.getUserID(), request.getConversationID(), request.getBehavior());
 
         /* CREATE IN DB */
         // Save input chat to database by createInDB

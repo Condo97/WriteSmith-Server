@@ -25,6 +25,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
+import java.util.Base64;
 
 public class GetRemainingChatsEndpoint {
 
@@ -34,7 +35,20 @@ public class GetRemainingChatsEndpoint {
         try {
             u_aT = User_AuthTokenDAOPooled.get(authRequest.getAuthToken());
         } catch (DBObjectNotFoundFromQueryException e) {
-            throw new AuthenticationException("Could not find authToken.");
+            // TODO: Definitely remove this, I just want to patch this issue real quick..
+            // If user's authToken is not found and it is 128 bytes, just freaking save it to the DB ug
+            if (Base64.getDecoder().decode(authRequest.getAuthToken()).length >= 120 && Base64.getDecoder().decode(authRequest.getAuthToken()).length <= 138) {
+                u_aT = new User_AuthToken(
+                        null,
+                        authRequest.getAuthToken()
+                );
+
+                User_AuthTokenDAOPooled.insert(u_aT);
+
+                System.out.println("Just inserted authToken: " + u_aT.getAuthToken());
+            } else {
+                throw new AuthenticationException("Could not find authToken.");
+            }
         }
 
         // Get isPremium
