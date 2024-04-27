@@ -38,6 +38,9 @@ dependencies {
     // Javalin for HTTPS server
     implementation 'com.sparkjava:spark-core:2.9.4'
 
+    // Apache HttpClient for new HTTP requests
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
+
     // SQLComponentizer for SQL handling
 //    implementation 'com.github.Condo97:SQLComponentizer:-SNAPSHOT'
     implementation 'com.github.condo97:SQLComponentizer:1.0.0'

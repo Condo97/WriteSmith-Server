@@ -10,16 +10,15 @@ import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.core.service.generators.CheckIfChatRequestsImageRevisionGenerator;
 import com.writesmith.core.service.request.*;
-import com.writesmith.core.service.response.ClassifyChatResponse;
+import com.writesmith.core.service.response.*;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
 import com.writesmith.exceptions.*;
+import com.writesmith.exceptions.responsestatus.InvalidFileTypeException;
 import com.writesmith.exceptions.responsestatus.MalformedJSONException;
 import com.writesmith.core.service.endpoints.*;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import com.writesmith.core.service.ResponseStatus;
 import com.writesmith._deprecated.getchatrequest.GetChatLegacyRequest;
-import com.writesmith.core.service.response.BodyResponse;
-import com.writesmith.core.service.response.StatusResponse;
 import spark.Request;
 import spark.Response;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -150,6 +149,51 @@ public class Server {
         StatusResponse sr = DeleteChatEndpoint.deleteChat(dcRequest);
 
         return new ObjectMapper().writeValueAsString(sr);
+    }
+
+    /***
+     * Generate Drawers
+     *
+     * Generates output in drawer format
+     *
+     * Request: {
+     *     authToken: String - Authentication token, granted by registerUser
+     *     input: String - The input for GPT
+     * }
+     *
+     * REsponse: {
+     *     Body: {
+     *         drawers: [
+     *             {
+     *                 index: Integer - The index of the drawer in the collection
+     *                 title: String - The title for the drawer
+     *                 content: String - The content in the drawer
+     *             }
+     *         ]
+     *         title: String - The title for the collection of drawers
+     *     }
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON response as String
+     */
+    public static String generateDrawers(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        GenerateDrawersRequest gdRequest;
+
+        try {
+            gdRequest = new ObjectMapper().readValue(req.body(), GenerateDrawersRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Generating Drawers.. The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
+        }
+
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(
+                GenerateDrawersEndpoint.generateDrawers(gdRequest)
+        );
+
+        return new ObjectMapper().writeValueAsString(br);
     }
 
     /***
@@ -394,6 +438,44 @@ public class Server {
     }
 
     /***
+     * Send Push Notification
+     *
+     * Sends a push notification to users' devices
+     *
+     * Request: {
+     *     apnsRequest: APNSRequest - The request object to send to APNS
+     *     useSandbox: Boolean (optional) - Use sandbox to send requests, null will default to true
+     *     deviceID: String (optional) - Send push notification to one deviceID, null will default to all deviceIDs
+     * }
+     *
+     * Response: {
+     *     Success: Integer - Integer denoting success, 1 if successful
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON represented as String
+     */
+    public static Object sendPush(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, UnrecoverableKeyException, CertificateException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, URISyntaxException {
+        SendPushNotificationRequest spnRequest;
+
+        // Try to parse spnRequest from req body
+        try {
+            spnRequest = new ObjectMapper().readValue(req.body(), SendPushNotificationRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Sending Push Notification.. The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
+        }
+
+        // Get sResponse from TranscribeSpeechEndpoint
+        StatusResponse sResponse = SendPushNotificationEndpoint.sendPushNotification(spnRequest);
+
+        // Return tsResponse in success body response
+        return BodyResponseFactory.createSuccessBodyResponse(sResponse);
+    }
+
+    /***
      * Submit Feedback
      *
      * Stores feedback :)
@@ -418,6 +500,48 @@ public class Server {
         StatusResponse sr = SubmitFeedbackEndpoint.submitFeedback(feedbackRequest);
 
         return new ObjectMapper().writeValueAsString(sr);
+    }
+
+    /***
+     * Transcribe Speech
+     *
+     * Transcribes a given mp3 file or maybe other file types at least probably the ones listed on OpenAI's website to be compatible with Whisper lol
+     *
+     * Request: {
+     *     authToken: String - Authentication token, generated from registerUser
+     *     audioFile: byte[] - Audio file to transcribe
+     * }
+     *
+     * Response: {
+     *     Body: {
+     *         text: String - The text transcribed from the audio file
+     *     }
+     *     Success: Integer - Integer denoting success, 1 if successful
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON represented as String
+     */
+    public static Object transcribeSpeech(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, InvalidFileTypeException {
+        TranscribeSpeechRequest tsRequest;
+
+        // Try to parse tsRequest from req body
+        try {
+            tsRequest = new ObjectMapper().readValue(req.body(), TranscribeSpeechRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Transcribing Speech.. The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
+        }
+
+        // Get tsResponse from TranscribeSpeechEndpoint
+        TranscribeSpeechResponse tsResponse = TranscribeSpeechEndpoint.transcribeSpeech(tsRequest);
+
+        // Get tsResponse in success body response and return as string
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(tsResponse);
+
+        return new ObjectMapper().writeValueAsString(br);
     }
 
     /***
@@ -542,6 +666,22 @@ public class Server {
         BodyResponse bodyResponse = GetRemainingChatsEndpoint.getRemaining(authRequest);
 
         return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
+    // -- Other Function Call Stuff -- //
+
+    public static Object otherFC_generateAssistantWebpage(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        StringRequest sRequest;
+
+        try {
+            sRequest = new ObjectMapper().readValue(req.body(), StringRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Generating Assistant.. The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage()); //TODO: This can just be replaced with JsonMappingException and/or JsonParseException lmao
+        }
+
+        return OtherFC_GenerateAssistantWebpageEndpoint.generateAssistant(sRequest);
     }
 
 

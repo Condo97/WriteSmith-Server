@@ -9,8 +9,27 @@ import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 public class APNSRegistrationDAOPooled {
+
+    public static void delete(Integer id) throws InterruptedException, DBSerializerException, SQLException {
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+        try {
+            APNSRegistrationDAO.delete(conn, id);
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
+        }
+    }
+
+    public static List<APNSRegistration> getAll() throws InterruptedException, DBSerializerException, SQLException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        Connection conn = SQLConnectionPoolInstance.getConnection();
+        try {
+            return APNSRegistrationDAO.getAll(conn);
+        } finally {
+            SQLConnectionPoolInstance.releaseConnection(conn);
+        }
+    }
 
     public static APNSRegistration getLatestUpdateDateByUserID(Integer userID) throws InterruptedException, DBSerializerException, SQLException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         Connection conn = SQLConnectionPoolInstance.getConnection();

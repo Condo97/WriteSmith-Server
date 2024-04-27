@@ -1,5 +1,8 @@
 package com.writesmith.core.service.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.writesmith.database.model.Sender;
 
 import java.util.List;
@@ -9,18 +12,19 @@ public class GetChatRequest extends AuthRequest {
     public static class Chat {
 
         Integer index;
-        private String input, imageData, imageURL;
+        private String input, imageData, imageURL, detail;
         private Sender sender;
 
         public Chat() {
 
         }
 
-        public Chat(Integer index, String input, String imageData, String imageURL, Sender sender) {
+        public Chat(Integer index, String input, String imageData, String imageURL, String detail, Sender sender) {
             this.index = index;
             this.input = input;
             this.imageData = imageData;
             this.imageURL = imageURL;
+            this.detail = detail;
             this.sender = sender;
         }
 
@@ -40,6 +44,10 @@ public class GetChatRequest extends AuthRequest {
             return imageURL;
         }
 
+        public String getDetail() {
+            return detail;
+        }
+
         public Sender getSender() {
             return sender;
         }
@@ -48,18 +56,23 @@ public class GetChatRequest extends AuthRequest {
 
     private String behavior;
     private List<Chat> chats;
+    private List<String> persistentImagesData;
+    private String persistentImagesDetail;
     private Integer conversationID;
     private Boolean usePaidModel, debug;
+
 
     public GetChatRequest() {
 
     }
 
-    public GetChatRequest(String authToken, String behavior, List<Chat> chats, Integer conversationID, Boolean usePaidModel, Boolean debug) {
+    public GetChatRequest(String authToken, String behavior, List<Chat> chats, Integer conversationID, List<String> persistentImagesData, String persistentImagesDetail, Boolean usePaidModel, Boolean debug) {
         super(authToken);
         this.behavior = behavior;
         this.chats = chats;
         this.conversationID = conversationID;
+        this.persistentImagesData = persistentImagesData;
+        this.persistentImagesDetail = persistentImagesDetail;
         this.usePaidModel = usePaidModel;
         this.debug = debug;
     }
@@ -70,6 +83,14 @@ public class GetChatRequest extends AuthRequest {
 
     public List<Chat> getChats() {
         return chats;
+    }
+
+    public List<String> getPersistentImagesData() {
+        return persistentImagesData;
+    }
+
+    public String getPersistentImagesDetail() {
+        return persistentImagesDetail;
     }
 
     public Integer getConversationID() {

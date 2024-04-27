@@ -10,6 +10,8 @@ import com.writesmith.core.gpt_function_calls.GenerateTitleFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 public class TitleGenerator {
 
@@ -35,20 +37,34 @@ public class TitleGenerator {
 
     }
 
-    public static Title generateTitle(String input) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
-        // Create message for GPT
-        OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
-                .addText(input)
-                .build();
+    public static Title generateTitle(String input, String imageData) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+        // Create message and set requested model for GPT
+        OAIChatCompletionRequestMessageBuilder messageBuilder = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER);
+        OpenAIGPTModels requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+
+        if (input != null && !input.isEmpty()) {
+            // Add text as input if it's not null or empty
+            messageBuilder.addText(input);
+        }
+
+        if (imageData != null && !imageData.isEmpty()) {
+            // Add imageData as image with low detail and set requestedModel to vision if it's not null or empty
+            messageBuilder.addImage("data:image/png;base64,\n" + imageData, InputImageDetail.LOW);
+            requestedModel = OpenAIGPTModels.GPT_4_VISION;
+        }
+
+        // Create HttpClient
+        final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build();
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 GenerateTitleFC.class,
-                OpenAIGPTModels.GPT_4.getName(),
+                requestedModel.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
                 API_KEY,
-                message
+                httpClient,
+                messageBuilder.build()
         );
 
         // Get responseString from response

@@ -12,7 +12,7 @@ public class WSGenerationTierLimits {
                 return Constants.Response_Token_Limit_GPT_4_Vision_Paid;
             } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
                 return Constants.Response_Token_Limit_GPT_4_Paid;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO || model == OpenAIGPTModels.GPT_3_5_TURBO_0613) {
+            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
                 return Constants.Response_Token_Limit_GPT_3_Turbo_Paid;
             } else {
                 System.out.println("Model not specified when getting paid tokenLimit, using GPT_3_Turbo_Paid");
@@ -23,7 +23,7 @@ public class WSGenerationTierLimits {
                 return Constants.Response_Token_Limit_GPT_4_Vision_Free;
             } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
                 return Constants.Response_Token_Limit_GPT_4_Free;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO || model == OpenAIGPTModels.GPT_3_5_TURBO_0613) {
+            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
                 return Constants.Response_Token_Limit_GPT_3_Turbo_Free;
             } else {
                 System.out.println("Model not specified when getting free tokenLimit, using GPT_3_Turbo_Free");
@@ -38,7 +38,7 @@ public class WSGenerationTierLimits {
                 return Constants.Character_Limit_GPT_4_Vision_Paid;
             } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
                 return Constants.Character_Limit_GPT_4_Paid;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO || model == OpenAIGPTModels.GPT_3_5_TURBO_0613) {
+            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
                 return Constants.Character_Limit_GPT_3_Turbo_Paid;
             } else {
                 System.out.println("Model not specified when getting paid characterLimit, using GPT_3_Turbo_Paid");
@@ -49,7 +49,7 @@ public class WSGenerationTierLimits {
                 return Constants.Character_Limit_GPT_4_Vision_Free;
             } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
                 return Constants.Character_Limit_GPT_4_Free;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO || model == OpenAIGPTModels.GPT_3_5_TURBO_0613) {
+            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
                 return Constants.Character_Limit_GPT_3_Turbo_Free;
             } else {
                 System.out.println("Model not specified when getting free characterLimit, using GPT_3_Turbo_Free");
@@ -73,11 +73,15 @@ public class WSGenerationTierLimits {
         return OpenAIGPTModelTierSpecification.defaultModel;
     }
 
+    public static OpenAIGPTModels getVisionModelForTier(boolean isPremium) {
+        return getVisionModelForTier(null, isPremium);
+    }
+
     public static OpenAIGPTModels getVisionModelForTier(OpenAIGPTModels model, boolean isPremium) {
         // If isPremium and paidVisionModels contains model return model or if it doesn't contain model return default paid vision model, otherwise continue
         if (isPremium) {
             // If model is a paid vision model, it's fine and return the model
-            if (OpenAIGPTModelTierSpecification.paidVisionModels.contains(model)) {
+            if (model != null && OpenAIGPTModelTierSpecification.paidVisionModels.contains(model)) {
                 return model;
             }
 
@@ -88,7 +92,7 @@ public class WSGenerationTierLimits {
         }
 
         // If freeVisionModels contains model return model, otherwise return defaultFreeVisionModel
-        if (OpenAIGPTModelTierSpecification.freeVisionModels.contains(model)) {
+        if (model != null && OpenAIGPTModelTierSpecification.freeVisionModels.contains(model)) {
             return model;
         }
 

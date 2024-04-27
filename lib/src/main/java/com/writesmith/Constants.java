@@ -11,7 +11,7 @@ public final class Constants {
 
     /* In-App Purchases Pricing */
     public static final int DEFAULT_PRICE_INDEX = 0;
-    public static final double PRICE_VAR2_DISPLAY_CHANCE = 0.8;
+    public static final double PRICE_VAR2_DISPLAY_CHANCE = 0.5;
     public static final String WEEKLY_PRICE_VAR1 = "6.95";
     public static final String WEEKLY_NAME_VAR1 = "chitchatultra";
     public static final String MONTHLY_PRICE_VAR1 = "19.99";
@@ -28,11 +28,11 @@ public final class Constants {
     public static final int Response_Token_Limit_GPT_3_Turbo_Free = 240;
     public static final int Response_Token_Limit_GPT_3_Turbo_Paid = 1400;
     public static final int Response_Token_Limit_GPT_4_Free = 400;
-    public static final int Response_Token_Limit_GPT_4_Paid = 1000;
-    public static final int Response_Token_Limit_GPT_4_Vision_Free = 400;
-    public static final int Response_Token_Limit_GPT_4_Vision_Paid = 400;
+    public static final int Response_Token_Limit_GPT_4_Paid = 1200;
+    public static final int Response_Token_Limit_GPT_4_Vision_Free = 1200;
+    public static final int Response_Token_Limit_GPT_4_Vision_Paid = 1200;
 
-    public static final int Character_Limit_GPT_3_Turbo_Free = 1000;
+    public static final int Character_Limit_GPT_3_Turbo_Free = 800;
     public static final int Character_Limit_GPT_3_Turbo_Paid = 2800;
     public static final int Character_Limit_GPT_4_Free = 400;
     public static final int Character_Limit_GPT_4_Paid = 1400;
@@ -48,7 +48,7 @@ public final class Constants {
 
     /* Caps */
     public static final int Cap_Free_Total_Essays = 3; // This is just a constant sent to the device, which handles everything
-    public static final Integer Cap_Chat_Daily_Free = 20;
+    public static final Integer Cap_Chat_Daily_Free = 10;
     public static final Integer Cap_Chat_Daily_Paid = null;
     public static final int Cap_Chat_Daily_Paid_Legacy = -1; //-1 is unlimited
 
@@ -63,6 +63,7 @@ public final class Constants {
         public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
         public static final String CLASSIFY_CHAT = "/classifyChat";
         public static final String DELETE_CHAT_URI = "/deleteChat";
+        public static final String GENERATE_DRAWERS = "/generateDrawers";
         public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
         public static final String GENERATE_TITLE = "/generateTitle";
         public static final String GENERATE_IMAGE = "/generateImage";
@@ -74,9 +75,12 @@ public final class Constants {
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
         public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
         public static final String GET_REMAINING_URI = "/getRemaining";
+        public static final String OTHER_FC_GENERATE_ASSISTANT_WEBPAGE = "/otherFCGenerateAssistantWebpage";
         public static final String REGISTER_APNS = "/registerAPNS";
         public static final String REGISTER_USER_URI = "/registerUser";
         public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
+        public static final String SEND_PUSH_NOTIFICATION = "/sendPushNotification";
+        public static final String TRANSCRIBE_SPEECH = "/transcribeSpeech";
         public static final String SUBMIT_FEEDBACK = "/submitFeedback";
         public static final String VALIDATE_AUTHTOKEN = "/validateAuthToken";
     }
@@ -96,12 +100,15 @@ public final class Constants {
 
     /* Apple Server Constants */
     public static final String Apple_Bundle_ID = "com.acapplications.ChitChat";
+    public static final String Apple_Sandbox_APNS_Base_URL = "https://api.sandbox.push.apple.com:443";
+    public static final String Apple_APNS_Base_URL = "https://api.push.apple.com:443";
     public static final String Apple_Sandbox_Storekit_Base_URL = "https://api.storekit-sandbox.itunes.apple.com";
     public static final String Apple_Storekit_Base_URL = "https://api.storekit.itunes.apple.com";
     public static final String Apple_In_Apps_URL_Path = "/inApps";
     public static final String Apple_V1_URL_Path = "/v1";
     public static final String Apple_Subscriptions_URL_Path = "/subscriptions";
     public static final String Apple_Get_Subscription_Status_V1_Full_URL_Path = Apple_In_Apps_URL_Path + Apple_V1_URL_Path + Apple_Subscriptions_URL_Path;
+    public static final String Apple_AuthKey_JWS_Path = "keys/AuthKey_3L975VA2YC.p8";
     public static final String Apple_SubscriptionKey_JWS_Path = "keys/SubscriptionKey_PJ323P8QVH.p8";
 
     public static final String Sandbox_Apple_Verify_Receipt_URL = "https://sandbox.itunes.apple.com/verifyReceipt";

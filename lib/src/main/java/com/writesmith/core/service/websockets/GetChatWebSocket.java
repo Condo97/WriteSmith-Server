@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oaigptconnector.model.InputImageDetail;
 import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
@@ -13,8 +14,9 @@ import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompleti
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentText;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.core.WSChatGenerationLimiter;
 import com.writesmith.database.dao.factory.User_AuthTokenFactoryDAO;
+import com.writesmith.database.model.Sender;
 import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.exceptions.CapReachedException;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
@@ -76,6 +78,8 @@ import java.util.stream.Stream;
 
 @WebSocket(maxTextMessageSize = 1073741824)
 public class GetChatWebSocket {
+
+    private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
 
     /***
      * Connected
@@ -181,6 +185,12 @@ public class GetChatWebSocket {
                 System.out.println("Image data length: " + c.getImageData().length());
         });
 
+        if (gcRequest.getPersistentImagesData() != null && !gcRequest.getPersistentImagesData().isEmpty()) {
+            for (int i = 0; i < gcRequest.getPersistentImagesData().size(); i++) {
+                System.out.println("Persistent image " + i + " data length: " + gcRequest.getPersistentImagesData().get(i).length());
+            }
+        }
+
         // Get u_aT for userID
         User_AuthToken u_aT = null;
         ResponseStatus responseStatusForHandlingThisDeletionEvent = ResponseStatus.SUCCESS;
@@ -255,9 +265,9 @@ public class GetChatWebSocket {
             throw new UnhandledException(e, "There was an issue getting or creating a Conversation. Please report this and try again later.");
         }
 
-        // Create chats and response input chats from request chats sorted by index, saving to database
+        // Create gpt request chats and response input chats from request chats sorted by index, saving to database
         String firstImageData = null;
-        List<Chat> requestChats = new ArrayList<>();
+//        List<Chat> requestDBChats = new ArrayList<>();
         List<GetChatResponse.Chat> responseInputChats = new ArrayList<>();
         List<GetChatRequest.Chat> sortedRequestChats = gcRequest.getChats()
                 .stream()
@@ -280,8 +290,8 @@ public class GetChatWebSocket {
                 throw new UnhandledException(e, "There was an issue creating your Chat. Please report this and try again later.");
             }
 
-            // Add chat to chats
-            requestChats.add(chat);
+//            // Add chat to chats
+//            requestDBChats.add(chat);
 
             // Create responseInputChat
             GetChatResponse.Chat responseInputChat = new GetChatResponse.Chat(
@@ -392,23 +402,47 @@ public class GetChatWebSocket {
             throw new UnhandledException(e, "Error getting Chats from Conversation in GetChatWebSocket. Please report this and try again later.");
         }
 
-        // Get limited chats and model
-        WSChatGenerationPreparer.PreparedChats preparedChats = WSChatGenerationPreparer.prepare(
-                chats,
+        // Set requestedModel to offered model for tier
+        requestedModel = WSGenerationTierLimits.getOfferedModelForTier(
                 requestedModel,
-                firstImageData != null && !firstImageData.isEmpty(),
                 isPremium
         );
 
+        // If firstImageData is not null or empty or persistentImageData is not null or empty and requestedModel is not vision, set model to Vision model TODO: Make this better maybe, maybe I shouldn't be setting requestedModel here
+        if (((firstImageData != null && !firstImageData.isEmpty()) || (gcRequest.getPersistentImagesData() != null && !gcRequest.getPersistentImagesData().isEmpty())) && !requestedModel.isVision()) {
+            requestedModel = WSGenerationTierLimits.getVisionModelForTier(isPremium);
+        }
+
+        // Get limited chats
+        WSChatGenerationLimiter.LimitedChats limitedChats = WSChatGenerationLimiter.limit(
+                chats,
+                requestedModel,
+                isPremium
+        );
+
+//        // If persistentImageData is not null or empty, add a Chat to limitedChats chats with no text or image URL just the image data TODO: Make this better, I shouldn't be adding to the chats in limitedChats I don't think hmm
+//        if (gcRequest.getPersistentImageData() != null && !gcRequest.getPersistentImageData().isEmpty()) {
+//            limitedChats.getLimitedChats().add(
+//                    new Chat(
+//                            conversation.getConversation_id(),
+//                            Sender.USER,
+//                            null,
+//
+//                            )
+//            )
+//        }
+
         // Get the token limit if there is one
-        int tokenLimit = WSGenerationTierLimits.getTokenLimit(preparedChats.getApprovedModel(), isPremium);
+        int tokenLimit = WSGenerationTierLimits.getTokenLimit(requestedModel, isPremium);
 
         // Get the PurifiedOAIChatCompletionRequest
         OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedOAIChatCompletionRequest = OpenAIGPTChatCompletionRequestFactory.with(
-                preparedChats.getLimitedChats(),
+                limitedChats.getLimitedChats(),
                 firstImageData,
-                conversation.getBehavior(),
-                preparedChats.getApprovedModel(),
+                gcRequest.getPersistentImagesData(),
+                InputImageDetail.fromString(gcRequest.getPersistentImagesDetail()),
+                conversation.getBehavior() + " You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see.",
+                requestedModel,
                 Constants.DEFAULT_TEMPERATURE,
                 tokenLimit,
                 true
@@ -428,7 +462,7 @@ public class GetChatWebSocket {
         GeneratedChat gc = new GeneratedChat(
                 aiChat,
                 null,
-                preparedChats.getApprovedModel().getName(),
+                requestedModel.getName(),
                 null,
                 null,
                 null,
@@ -451,7 +485,7 @@ public class GetChatWebSocket {
 
         // Do stream request with OpenAI right here for now TODO:
         try {
-            chatStream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI);
+            chatStream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI, httpClient);
         } catch (IOException e) {
             // I think this is called if the chat stream is closed at any point including when it normally finishes, so just do nothing for now... If so, these should be combined and the print should be removed and I think it's just fine lol.. Actually these may not be called unless there is an error establishing a connection.. So maybe just throw UnhandledException unless I see it throwing in the console
             System.out.println("CONNECTION CLOSED (IOException)");
@@ -476,6 +510,7 @@ public class GetChatWebSocket {
         ResponseStatus finalResponseStatusForHandlingThisDeletionEvent = responseStatusForHandlingThisDeletionEvent;
 
         // Parse OpenAIGPTChatCompletionStreamResponse then convert to GetChatResponse and send it in BodyResponse as response :-)
+        OpenAIGPTModels finalRequestedModel = requestedModel;
         chatStream.forEach(response -> {
             try {
                 // Trim "data: " off of response TODO: Make this better lol
@@ -507,7 +542,7 @@ public class GetChatWebSocket {
                         (remaining == null ? -1 : remaining - 1),
                         responseInputChats,
                         purifiedOAIChatCompletionRequest.removedImages(),
-                        preparedChats.getApprovedModel()
+                        finalRequestedModel
                 );
 
                 // Create success BodyResponse with getChatResponse
@@ -561,7 +596,7 @@ public class GetChatWebSocket {
         }
 
         // Print log to console
-        printStreamedGeneratedChatDoBetterLoggingLol(gc, purifiedOAIChatCompletionRequest.getRequest(), isPremium, startTime, getAuthTokenTime, getIsPremiumTime, beforeStartStreamTime, firstChatTime);
+        printStreamedGeneratedChatDoBetterLoggingLol(gc, purifiedOAIChatCompletionRequest.getRequest(), u_aT.getUserID(), isPremium, startTime, getAuthTokenTime, getIsPremiumTime, beforeStartStreamTime, firstChatTime);
     }
 
     protected GetChatLegacyRequest parseHeaders(Map<String, List<String>> objectMap) {
@@ -690,7 +725,7 @@ public class GetChatWebSocket {
     }
 
     // TODO: Better logging lol
-    private void printStreamedGeneratedChatDoBetterLoggingLol(GeneratedChat gc, OAIChatCompletionRequest completionRequest, Boolean isPremium, LocalDateTime startTime, LocalDateTime getAuthTokenTime, LocalDateTime getIsPremiumTime, LocalDateTime beforeStartStreamTime, AtomicReference<LocalDateTime> firstChatTime) {
+    private void printStreamedGeneratedChatDoBetterLoggingLol(GeneratedChat gc, OAIChatCompletionRequest completionRequest, Integer userID, Boolean isPremium, LocalDateTime startTime, LocalDateTime getAuthTokenTime, LocalDateTime getIsPremiumTime, LocalDateTime beforeStartStreamTime, AtomicReference<LocalDateTime> firstChatTime) {
         final int maxLength = 40;
 
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -709,7 +744,11 @@ public class GetChatWebSocket {
         StringBuilder sb = new StringBuilder();
         sb.append("Chat ");
         sb.append(gc.getChat().getChat_id());
-        sb.append(" Streamed ");
+        sb.append(" ");
+        sb.append("Streamed");
+        sb.append(" ");
+        sb.append(userID);
+        sb.append(" ");
         sb.append(sdf.format(date));
 //        if (output != null) {
 //            sb.append("\t");

@@ -10,6 +10,8 @@ import com.writesmith.core.gpt_function_calls.ClassifyChatFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 public class ClassifyChatGenerator {
 
@@ -45,13 +47,17 @@ public class ClassifyChatGenerator {
                 .addText(chat)
                 .build();
 
+        // Create HttpClient
+        final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build();
+
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 ClassifyChatFC.class,
-                OpenAIGPTModels.GPT_4.getName(),
+                OpenAIGPTModels.GPT_3_5_TURBO.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
                 API_KEY,
+                httpClient,
                 message
         );
 

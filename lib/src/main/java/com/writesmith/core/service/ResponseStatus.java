@@ -7,7 +7,8 @@ public enum ResponseStatus {
 
     JSON_ERROR(4),              // JSON Cannot be read
     INVALID_AUTHENTICATION(5),  // AuthToken not found
-    UNAUTHORIZED_ACCESS(6),     // User not associated with object(s)
+    UNAUTHORIZED_ACCESS(6),     // User not associated with
+    INVALID_FILE_TYPE(10),      // Invalid file type attached
     CAP_REACHED_ERROR(51),      // User reached daily generate cap
 
     OAIGPT_ERROR(60),

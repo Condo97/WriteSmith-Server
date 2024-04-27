@@ -6,49 +6,43 @@ import com.writesmith.database.model.objects.Chat;
 
 import java.util.List;
 
-public class WSChatGenerationPreparer {
+public class WSChatGenerationLimiter {
 
-    public static class PreparedChats {
+    public static class LimitedChats {
 
         private List<Chat> limitedChats;
-        private OpenAIGPTModels approvedModel;
+//        private OpenAIGPTModels approvedModel;
 
-        public PreparedChats(List<Chat> limitedChats, OpenAIGPTModels approvedModel) {
+        public LimitedChats(List<Chat> limitedChats) {
             this.limitedChats = limitedChats;
-            this.approvedModel = approvedModel;
         }
 
         public List<Chat> getLimitedChats() {
             return limitedChats;
         }
 
-        public OpenAIGPTModels getApprovedModel() {
-            return approvedModel;
-        }
-
     }
 
-    public static PreparedChats prepare(List<Chat> chats, OpenAIGPTModels requestedModel, boolean imageIncluded, boolean isPremium) {
+    public static LimitedChats limit(List<Chat> chats, OpenAIGPTModels requestedModel, boolean isPremium) {
         // Create null offeredModel
         OpenAIGPTModels offeredModel = null;
 
-        // If imageIncluded, set offeredModel to visionModelForTier
-        if (imageIncluded)
-            offeredModel = WSGenerationTierLimits.getVisionModelForTier(requestedModel, isPremium);
+//        // If imageIncluded, set offeredModel to visionModelForTier
+//        if (imageIncluded)
+//            offeredModel = WSGenerationTierLimits.getVisionModelForTier(requestedModel, isPremium);
 
-        // If offeredModel is null, set to getOfferedModelForTier
-        if (offeredModel == null)
-            offeredModel = WSGenerationTierLimits.getOfferedModelForTier(requestedModel, isPremium);
+//        // If offeredModel is null, set to getOfferedModelForTier
+//        if (offeredModel == null)
+//            offeredModel = WSGenerationTierLimits.getOfferedModelForTier(requestedModel, isPremium);
 
         // Get character limit
-        int offeredModelCharacterLimit = WSGenerationTierLimits.getContextCharacterLimit(offeredModel, isPremium);
+        int requestedModelCharacterLimit = WSGenerationTierLimits.getContextCharacterLimit(requestedModel, isPremium);
 
         // Get limited chats for offered model
-        List<Chat> limitedChats = ChatContextLimiter.getLimitedChats(chats, offeredModelCharacterLimit);
+        List<Chat> limitedChats = ChatContextLimiter.getLimitedChats(chats, requestedModelCharacterLimit);
 
-        return new PreparedChats(
-                limitedChats,
-                offeredModel
+        return new LimitedChats(
+                limitedChats
         );
 
 //        return prepare(chats, requestedModel, isPremium, true);

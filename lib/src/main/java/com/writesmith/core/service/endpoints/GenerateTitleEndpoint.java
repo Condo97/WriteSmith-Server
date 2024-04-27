@@ -22,7 +22,7 @@ public class GenerateTitleEndpoint {
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 
         // Generate title
-        TitleGenerator.Title title = TitleGenerator.generateTitle(request.getInput());
+        TitleGenerator.Title title = TitleGenerator.generateTitle(request.getInput(), request.getImageData());
 
         // Create GenerateTitleResponse and return
         GenerateTitleResponse gtResponse = new GenerateTitleResponse(title.getTitle());

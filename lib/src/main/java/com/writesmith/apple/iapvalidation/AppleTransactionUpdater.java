@@ -27,7 +27,7 @@ public class AppleTransactionUpdater {
      * Takes given Transaction and updates its status and check date
      */
     public static void updateTransactionStatusFromApple(Transaction transaction) throws AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, InterruptedException {
-        // Create SubscriptionAppleHttpClient instance and JWTGenerator instance
+        // Create SubscriptionAppleHttpClient instance and JWTSigner instance
         SubscriptionAppleHttpClient subscriptionAppleHttpClient = new SubscriptionAppleHttpClient(Constants.Apple_Storekit_Base_URL, Constants.Apple_Sandbox_Storekit_Base_URL, Constants.Apple_Get_Subscription_Status_V1_Full_URL_Path);
         JWTSigner jwtSigner = new JWTSigner(Constants.Apple_SubscriptionKey_JWS_Path, Keys.appStoreConnectPrivateKeyID);
 

@@ -13,7 +13,7 @@ import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompleti
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentText;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.core.WSChatGenerationLimiter;
 import com.writesmith.exceptions.CapReachedException;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
@@ -75,6 +75,8 @@ import java.util.stream.Stream;
 
 @WebSocket
 public class GetChatWebSocket_Legacy {
+
+    private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
 
 //    private static final Queue<Session> sessions = new ConcurrentLinkedQueue<>();
 
@@ -160,11 +162,16 @@ public class GetChatWebSocket_Legacy {
             // Get chats
             List<Chat> chats = ConversationDAOPooled.getChats(conversation, true);
 
+            // Set requestedModel to offered model for tier
+            requestedModel = WSGenerationTierLimits.getOfferedModelForTier(
+                    requestedModel,
+                    isPremium
+            );
+
             // Get prepared chats
-            WSChatGenerationPreparer.PreparedChats preparedChats = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats limitedChats = WSChatGenerationLimiter.limit(
                     chats,
                     requestedModel,
-                    false,
                     isPremium
             );
 
@@ -173,10 +180,12 @@ public class GetChatWebSocket_Legacy {
 
             // Get purified request
             OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedOAIChatCompletionRequest = OpenAIGPTChatCompletionRequestFactory.with(
-                    preparedChats.getLimitedChats(),
+                    limitedChats.getLimitedChats(),
+                    null,
+                    null,
                     null,
                     conversation.getBehavior(),
-                    preparedChats.getApprovedModel(),
+                    requestedModel,
                     Constants.DEFAULT_TEMPERATURE,
                     tokenLimit,
                     true
@@ -189,7 +198,7 @@ public class GetChatWebSocket_Legacy {
             GeneratedChat gc = new GeneratedChat(
                     chat,
                     null,
-                    preparedChats.getApprovedModel().getName(),
+                    requestedModel.getName(),
                     null,
                     null,
                     null,
@@ -206,7 +215,7 @@ public class GetChatWebSocket_Legacy {
             beforeStartStreamTime = LocalDateTime.now();
 
             // Do stream request with OpenAI right here for now TODO:
-            stream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI);
+            stream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI, httpClient);
 
             AtomicReference<Boolean> isFirstChat = new AtomicReference<>(true);
 

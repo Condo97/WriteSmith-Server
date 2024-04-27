@@ -11,6 +11,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 public class ClassifyChatTests {
 
@@ -24,6 +26,9 @@ public class ClassifyChatTests {
                 .addText(input)
                 .build();
 
+        // Create HttpClient
+        final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build();
+
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 ClassifyChatFC.class,
@@ -31,6 +36,7 @@ public class ClassifyChatTests {
                 800,
                 Constants.DEFAULT_TEMPERATURE,
                 Keys.openAiAPI,
+                httpClient,
                 message
         );
 

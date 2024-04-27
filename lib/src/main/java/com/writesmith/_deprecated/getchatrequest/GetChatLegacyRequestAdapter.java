@@ -14,6 +14,7 @@ public class GetChatLegacyRequestAdapter {
                 getChatLegacyRequest.getInputText(),
                 getChatLegacyRequest.getImageData(),
                 getChatLegacyRequest.getImageURL(),
+                null,
                 Sender.USER
         );
 
@@ -22,6 +23,8 @@ public class GetChatLegacyRequestAdapter {
                 getChatLegacyRequest.getBehavior(),
                 List.of(chat),
                 getChatLegacyRequest.getConversationID(),
+                null,
+                null,
                 getChatLegacyRequest.getUsePaidModel(),
                 getChatLegacyRequest.getDebug()
         );

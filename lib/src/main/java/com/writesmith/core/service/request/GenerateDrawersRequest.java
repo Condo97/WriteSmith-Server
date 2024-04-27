@@ -1,15 +1,15 @@
 package com.writesmith.core.service.request;
 
-public class GenerateTitleRequest extends AuthRequest {
+public class GenerateDrawersRequest extends AuthRequest {
 
     private String input;
     private String imageData;
 
-    public GenerateTitleRequest() {
+    public GenerateDrawersRequest() {
 
     }
 
-    public GenerateTitleRequest(String authToken, String input, String imageData) {
+    public GenerateDrawersRequest(String authToken, String imageData, String input) {
         super(authToken);
         this.input = input;
         this.imageData = imageData;

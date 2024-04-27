@@ -24,19 +24,22 @@ public class RegisterUserEndpoint {
         AuthResponse registerUserResponse = new AuthResponse(u_aT.getAuthToken());
 
         // Print log
-        printLog();
+        printLog(u_aT.getUserID());
 
         return BodyResponseFactory.createSuccessBodyResponse(registerUserResponse);
     }
 
 
-    private static void printLog() {
+    private static void printLog(Integer userID) {
         StringBuilder sb = new StringBuilder();
 
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         Date date = new Date();
 
-        sb.append("Registered User ");
+        sb.append("Registered User");
+        sb.append(" ");
+        sb.append(userID);
+        sb.append(" ");
         sb.append(sdf.format(date));
 
         System.out.println(sb);

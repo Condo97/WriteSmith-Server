@@ -9,6 +9,7 @@ import com.writesmith.core.service.websockets.GetChatWebSocket;
 import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy;
 import com.writesmith.core.service.ResponseStatus;
 import com.writesmith.core.service.websockets.GetChatWithPersistentImageWebSocket;
+import com.writesmith.exceptions.responsestatus.InvalidFileTypeException;
 import com.writesmith.keys.Keys;
 import com.writesmith.core.service.response.*;
 
@@ -86,6 +87,13 @@ public class Main {
             res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.INVALID_AUTHENTICATION));
         });
 
+        exception(InvalidFileTypeException.class, (error, req, res) -> {
+            System.out.println("The request: " + req.body());
+            error.printStackTrace();;
+
+            res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.INVALID_FILE_TYPE));
+        });
+
         exception(JsonMappingException.class, (error, req, res) -> {
             System.out.println("The request: " + req.body());
             error.printStackTrace();
@@ -151,6 +159,7 @@ public class Main {
         post(Constants.URIs.CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION, Server::checkIfChatRequestsImageRevision);
         post(Constants.URIs.CLASSIFY_CHAT, Server::classifyChat);
         post(Constants.URIs.DELETE_CHAT_URI, Server::deleteChat);
+        post(Constants.URIs.GENERATE_DRAWERS, Server::generateDrawers);
         post(Constants.URIs.GENERATE_SUGGESTIONS, Server::generateSuggestions);
         post(Constants.URIs.GENERATE_TITLE, Server::generateTitle);
         post(Constants.URIs.GENERATE_IMAGE, Server::generateImage);
@@ -160,8 +169,13 @@ public class Main {
         post(Constants.URIs.REGISTER_APNS, Server::registerAPNS);
         post(Constants.URIs.REGISTER_USER_URI, Server::registerUser);
         post(Constants.URIs.REGISTER_TRANSACTION_URI, Server::registerTransaction);
+        post(Constants.URIs.SEND_PUSH_NOTIFICATION, Server::sendPush);
         post(Constants.URIs.SUBMIT_FEEDBACK, Server::submitFeedback);
+        post(Constants.URIs.TRANSCRIBE_SPEECH, Server::transcribeSpeech);
         post(Constants.URIs.VALIDATE_AUTHTOKEN, Server::validateAuthToken);
+
+        // OtherFC POST Functions
+        post(Constants.URIs.OTHER_FC_GENERATE_ASSISTANT_WEBPAGE, Server::otherFC_generateAssistantWebpage);
 
 //        post(Constants.URIs.Function.CREATE_RECIPE_IDEA, Server.Func::createRecipeIdea);
 

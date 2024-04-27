@@ -3,6 +3,8 @@ package com.writesmith.database.dao;
 import com.dbclient.DBManager;
 import com.writesmith.database.model.DBRegistry;
 import com.writesmith.database.model.objects.APNSRegistration;
+import sqlcomponentizer.dbserializer.DBDeserializer;
+import sqlcomponentizer.dbserializer.DBSerializer;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 import sqlcomponentizer.preparedstatement.component.PSComponent;
@@ -16,6 +18,20 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class APNSRegistrationDAO {
+
+    public static void delete(Connection conn, Integer id) throws DBSerializerException, SQLException, InterruptedException {
+        DBManager.deleteWhere(
+                conn,
+                APNSRegistration.class,
+                DBRegistry.Table.APNSRegistration.id,
+                SQLOperators.EQUAL,
+                id
+        );
+    }
+
+    public static List<APNSRegistration> getAll(Connection conn) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        return DBManager.selectAll(conn, APNSRegistration.class);
+    }
 
     public static APNSRegistration getLatestUpdateDateByUserID(Connection conn, Integer userID) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         // Create SQL Conditions for latest update date by user ID

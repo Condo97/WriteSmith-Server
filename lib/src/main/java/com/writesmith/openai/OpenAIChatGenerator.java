@@ -3,9 +3,8 @@ package com.writesmith.openai;
 import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
-import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.core.WSChatGenerationLimiter;
 import com.writesmith.core.WSGenerationTierLimits;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.keys.Keys;
@@ -17,11 +16,16 @@ import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.http.HttpClient;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class OpenAIChatGenerator {
+
+    private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
+
 
     /***
      * Gets ChatCompletionResponse from OpenAI API postChatCompletion and turns it into a Generated Chat
@@ -30,23 +34,30 @@ public class OpenAIChatGenerator {
         // Get Chats
         List<Chat> chats = ConversationDAOPooled.getChats(conversation, true);
 
+        // Set model to offered model
+        model = WSGenerationTierLimits.getOfferedModelForTier(
+                model,
+                isPremium
+        );
+
         // Get limited chats and approved model
-        WSChatGenerationPreparer.PreparedChats preparedChats = WSChatGenerationPreparer.prepare(
+        WSChatGenerationLimiter.LimitedChats limitedChats = WSChatGenerationLimiter.limit(
                 chats,
                 model,
-                false,
                 isPremium
         );
 
         // Get tokenLimit if there is one
-        int tokenLimit = WSGenerationTierLimits.getTokenLimit(preparedChats.getApprovedModel(), isPremium);
+        int tokenLimit = WSGenerationTierLimits.getTokenLimit(model, isPremium);
 
         // Create the request
         OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedRequest = OpenAIGPTChatCompletionRequestFactory.with(
-                preparedChats.getLimitedChats(),
+                limitedChats.getLimitedChats(),
+                null,
+                null,
                 null,
                 conversation.getBehavior(),
-                preparedChats.getApprovedModel(),
+                model,
                 temperature,
                 tokenLimit,
                 false
@@ -54,7 +65,7 @@ public class OpenAIChatGenerator {
 
         // Get response from OpenAIGPTHttpHelper
         try {
-            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(purifiedRequest.getRequest(), Keys.openAiAPI);
+            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(purifiedRequest.getRequest(), Keys.openAiAPI, httpClient);
 
             // Return first choice if it exists
             if (response.getChoices().length > 0) {

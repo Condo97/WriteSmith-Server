@@ -8,7 +8,7 @@ import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
-import com.writesmith.core.WSChatGenerationPreparer;
+import com.writesmith.core.WSChatGenerationLimiter;
 import com.writesmith.core.service.endpoints.*;
 import com.writesmith.core.service.request.*;
 import com.writesmith.core.service.response.*;
@@ -32,7 +32,6 @@ import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import com.writesmith.apple.iapvalidation.networking.itunes.request.verifyreceipt.VerifyReceiptRequest;
 import com.writesmith.apple.iapvalidation.networking.itunes.response.verifyreceipt.VerifyReceiptResponse;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -70,6 +69,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Tests {
+
+    private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
 
     private static String authTokenRandom = "DQ4yr8KmudhBWzYPYQe4sM4PSveVrdyQEXOgnmVqMnNBE0NG6SopHgmlYjr2iwtLV5UK7MEf2RA4GCahqGzBHLmws2B+JCYpJ+Gi5wzmqOkfuO+0qJa6slGWnj8RGKO24qHFXe5e4ZDRN9sXpsjxes8YHBZrk92sXV7gYaSZ/3c=";
 
@@ -162,7 +163,7 @@ public class Tests {
         };
 
         try {
-            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(promptRequest, Keys.openAiAPI);
+            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(promptRequest, Keys.openAiAPI, httpClient);
             System.out.println(response.getChoices()[0].getMessage().getContent());
 
         } catch (OpenAIGPTException e) {
@@ -455,46 +456,40 @@ public class Tests {
 
         // Get preparedChats for GPT_3.5_Turbo and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc1 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc1 = WSChatGenerationLimiter.limit(
                     noImageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
-                    false,
                     false
             );
             int pc1CharCount = pc1.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc1ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
 
-            assert (pc1.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc1 characters: " + pc1CharCount + " should be near: " + pc1ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4 and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc2 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc2 = WSChatGenerationLimiter.limit(
                     noImageChats,
                     OpenAIGPTModels.GPT_4,
-                    false,
                     false
             );
             int pc2CharCount = pc2.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc2ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
 
-            assert (pc2.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc2 characters: " + pc2CharCount + " should be near: " + pc2ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4_Vision and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc3 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc3 = WSChatGenerationLimiter.limit(
                     noImageChats,
                     OpenAIGPTModels.GPT_4_VISION,
-                    false,
                     false
             );
             int pc3CharCount = pc3.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc3ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
 
-            assert (pc3.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc3 characters: " + pc3CharCount + " should be near: " + pc3ExpectedCharCount);
         }
 
@@ -502,46 +497,40 @@ public class Tests {
 
         // Get preparedChats for GPT_3.5_Turbo and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc4 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc4 = WSChatGenerationLimiter.limit(
                     imageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
-                    false,
                     true
             );
             int pc4CharCount = pc4.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc4ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
 
-            assert (pc4.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc4 characters: " + pc4CharCount + " should be near: " + pc4ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4 and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc5 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc5 = WSChatGenerationLimiter.limit(
                     imageChats,
                     OpenAIGPTModels.GPT_4,
-                    true,
                     false
             );
             int pc5CharCount = pc5.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc5ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
 
-            assert (pc5.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc5 characters: " + pc5CharCount + " should be near: " + pc5ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4_Vision and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc6 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc6 = WSChatGenerationLimiter.limit(
                     imageChats,
                     OpenAIGPTModels.GPT_4_VISION,
-                    true,
                     false
             );
             int pc6CharCount = pc6.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc6ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Free;
 
-            assert (pc6.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc6 characters: " + pc6CharCount + " should be near: " + pc6ExpectedCharCount);
         }
 
@@ -551,46 +540,40 @@ public class Tests {
 
         // Get preparedChats for GPT_3.5_Turbo and isPremium true no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo paid character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc7 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc7 = WSChatGenerationLimiter.limit(
                     noImageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
-                    false,
                     true
             );
             int pc7CharCount = pc7.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc7ExpectedCharCount = Constants.Character_Limit_GPT_3_Turbo_Paid;
 
-            assert (pc7.getApprovedModel() == OpenAIGPTModels.GPT_3_5_TURBO);
             System.out.println("pc7 characters: " + pc7CharCount + " should be near: " + pc7ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4 and isPremium true no images, should use GPT_4 and have GPT_4 paid character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc8 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc8 = WSChatGenerationLimiter.limit(
                     noImageChats,
                     OpenAIGPTModels.GPT_4,
-                    false,
                     true
             );
             int pc8CharCount = pc8.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc8ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
 
-            assert (pc8.getApprovedModel() == OpenAIGPTModels.GPT_4);
             System.out.println("pc8 characters: " + pc8CharCount + " should be near: " + pc8ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4_Vision and isPremium true no images, should use GPT_4_Vision and have GPT_4 paid character limit, but this shouldn't happen in production... I think it should just always upgrade, no? The way that it's integrated in the app, it should just send it as GPT_4, and it will auto-upgrade to GPT_4_Vision if there are images TODO: If this is supposed to happen, maybe add different GPT_4_Vision character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc9 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc9 = WSChatGenerationLimiter.limit(
                     noImageChats,
                     OpenAIGPTModels.GPT_4_VISION,
-                    false,
                     true
             );
             int pc9CharCount = pc9.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc9ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
 
-            assert (pc9.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
             System.out.println("pc9 characters: " + pc9CharCount + " should be near: " + pc9ExpectedCharCount);
         }
 
@@ -598,46 +581,40 @@ public class Tests {
 
         // Get preparedChats for GPT_3.5_Turbo and isPremium true with images, should use defaultVisionModel (GPT_4_Vision) and have GPT_4 paid character limit TODO: Maybe add different GPT_4_Vision character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc10 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc10 = WSChatGenerationLimiter.limit(
                     imageChats,
                     OpenAIGPTModels.GPT_3_5_TURBO,
-                    true,
                     true
             );
             int pc10CharCount = pc10.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc10ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
 
-            assert (pc10.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
             System.out.println("pc10 characters: " + pc10CharCount + " should be near: " + pc10ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4 and isPremium true with images, should use defaultVisionModel (GPT_4_Vision) and have GPT_4 paid character limit TODO: Maybe add different GPT_4_Vision character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc11 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc11 = WSChatGenerationLimiter.limit(
                     imageChats,
                     OpenAIGPTModels.GPT_4,
-                    true,
                     true
             );
             int pc11CharCount = pc11.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc11ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
 
-            assert (pc11.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
             System.out.println("pc11 characters: " + pc11CharCount + " should be near: " + pc11ExpectedCharCount);
         }
 
         // Get preparedChats for GPT_4_Vision and isPremium true with images, should use GPT_4_Vision and have GPT_4 paid character limit, but this should never happen if the previous little blurb I wrote is enacted, since the server would always theoretically receive GPT_4 and have it upgraded to vision if there are images TODO: Maybe add different GPT_4_Vision character limit
         {
-            WSChatGenerationPreparer.PreparedChats pc12 = WSChatGenerationPreparer.prepare(
+            WSChatGenerationLimiter.LimitedChats pc12 = WSChatGenerationLimiter.limit(
                     imageChats,
                     OpenAIGPTModels.GPT_4_VISION,
-                    true,
                     true
             );
             int pc12CharCount = pc12.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
             int pc12ExpectedCharCount = Constants.Character_Limit_GPT_4_Paid;
 
-            assert (pc12.getApprovedModel() == OpenAIGPTModels.GPT_4_VISION);
             System.out.println("pc11 characters: " + pc12CharCount + " should be near: " + pc12ExpectedCharCount);
         }
     }
@@ -685,7 +662,7 @@ public class Tests {
                  OAISerializerException | OpenAIGPTException | OAIDeserializerException | IOException e) {
             throw new RuntimeException(e);
         }
-
+// Generate a simple sentence that starts with a verb like "help" or "write" with suggestions on how to use ChatGPT for ideas on unique ways to use ChatGPT
         System.out.println(String.join(", ", generateSuggestionsResponse.getSuggestions()));
 
         assert(generateSuggestionsResponse.getSuggestions().size() > 0);

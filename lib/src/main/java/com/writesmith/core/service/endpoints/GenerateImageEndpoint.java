@@ -20,7 +20,7 @@ import java.util.Date;
 public class GenerateImageEndpoint {
 
     public static GenerateImageResponse generateImage(GenerateImageRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, OpenAIGPTException, IOException {
-        // Get u_aT from authRequest
+        // Get u_aT from request
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 
         // Generate image

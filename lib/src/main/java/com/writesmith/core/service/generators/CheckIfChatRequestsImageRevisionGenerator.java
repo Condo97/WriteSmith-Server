@@ -11,6 +11,8 @@ import com.writesmith.core.gpt_function_calls.ClassifyChatFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
+import java.time.Duration;
 
 public class CheckIfChatRequestsImageRevisionGenerator {
 
@@ -46,6 +48,9 @@ public class CheckIfChatRequestsImageRevisionGenerator {
                 .addText(chat)
                 .build();
 
+        // Create HttpClient
+        final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build();
+
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 CheckIfChatRequestsImageRevisionFC.class,
@@ -53,6 +58,7 @@ public class CheckIfChatRequestsImageRevisionGenerator {
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
                 API_KEY,
+                httpClient,
                 message
         );
 

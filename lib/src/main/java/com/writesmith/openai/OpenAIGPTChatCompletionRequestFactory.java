@@ -1,6 +1,7 @@
 package com.writesmith.openai;
 
 import com.oaigptconnector.model.CompletionRole;
+import com.oaigptconnector.model.InputImageDetail;
 import com.oaigptconnector.model.OAIChatCompletionRequestMessageBuilder;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
@@ -38,7 +39,7 @@ public class OpenAIGPTChatCompletionRequestFactory {
 
     }
 
-    public static PurifiedOAIChatCompletionRequest with(List<Chat> chats, String imageData, String behavior, OpenAIGPTModels model, Integer temperature, Integer tokenLimit, boolean stream) {
+    public static PurifiedOAIChatCompletionRequest with(List<Chat> chats, String latestChatImageData, List<String> persistentImageData, InputImageDetail imageDetail, String behavior, OpenAIGPTModels model, Integer temperature, Integer tokenLimit, boolean stream) {
         // Create removedImages variable
         boolean removedImages = false;
 
@@ -64,10 +65,10 @@ public class OpenAIGPTChatCompletionRequestFactory {
             }
 
 //            // Add image data if not null and not empty
-//            if (imageData != null && !imageData.isEmpty()) {
+//            if (latestChatImageData != null && !latestChatImageData.isEmpty()) {
 //                if (model.isVision()) {
 //                    // If model is vision, add image
-//                    messageBuilder.addImage(imageData);
+//                    messageBuilder.addImage(latestChatImageData);
 //                } else {
 //                    // If model is not vision, set removedImages to true
 //                    removedImages = true;
@@ -78,7 +79,7 @@ public class OpenAIGPTChatCompletionRequestFactory {
             if (chat.getImageURL() != null && !chat.getImageURL().isEmpty()) {
                 if (model.isVision()) {
                     // If model is vision, add image URL
-                    messageBuilder.addImageURL(chat.getImageURL());
+                    messageBuilder.addImageURL(chat.getImageURL(), imageDetail);
                 } else {
                     // If model is not vision, set removedImages to true
                     removedImages = true;
@@ -89,12 +90,28 @@ public class OpenAIGPTChatCompletionRequestFactory {
             messageRequests.add(messageBuilder.build());
         }//new OAIChatCompletionRequestMessage(RoleMapper.getRole(v.getSender()), v.getText())));
 
-        // Create and insert image message request to messageRequests if there is imageData and model is vision
-        if (imageData != null && !imageData.isEmpty()) {
+        // Create and insert image message requests starting from first index to messageRequests if persistentImageData is not null or empty and model is vision
+        if (persistentImageData != null && !persistentImageData.isEmpty()) {
+            if (model.isVision()) {
+                // If model is vision, create and insert image messages starting from the first index of messageRequests
+                for (int i = 0; i < persistentImageData.size(); i++) {
+                    OAIChatCompletionRequestMessage imageMessage = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
+                            .addImage("data:image/png;base64,\n" + persistentImageData.get(i), imageDetail) // TODO: This assumes the image is png, which may not always be true ? Or is it pretty much universally envoded and just tells the server how to interpret it? Or what? hmm lol
+                            .build();
+
+                    System.out.println("ADDED PERSISTENT IMAGE");
+                    System.out.println(persistentImageData.get(i).substring(0, 100));
+                    messageRequests.add(i, imageMessage);
+                }
+            }
+        }
+
+        // Create and append image message request to messageRequests if there is latestChatImageData and model is vision
+        if (latestChatImageData != null && !latestChatImageData.isEmpty()) {
             if (model.isVision()) {
                 // If model is vision, create and add image message to messageRequests
                 OAIChatCompletionRequestMessage imageMessage = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
-                        .addImage(imageData)
+                        .addImage("data:image/png;base64,\n" + latestChatImageData, imageDetail)
                         .build();
 
                 messageRequests.add(imageMessage);
