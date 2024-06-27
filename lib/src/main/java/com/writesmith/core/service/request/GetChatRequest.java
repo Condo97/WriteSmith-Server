@@ -58,6 +58,7 @@ public class GetChatRequest extends AuthRequest {
     private List<Chat> chats;
     private List<String> persistentImagesData;
     private String persistentImagesDetail;
+    private String additionalText;
     private Integer conversationID;
     private Boolean usePaidModel, debug;
 
@@ -66,13 +67,14 @@ public class GetChatRequest extends AuthRequest {
 
     }
 
-    public GetChatRequest(String authToken, String behavior, List<Chat> chats, Integer conversationID, List<String> persistentImagesData, String persistentImagesDetail, Boolean usePaidModel, Boolean debug) {
+    public GetChatRequest(String authToken, String behavior, List<Chat> chats, List<String> persistentImagesData, String persistentImagesDetail, String additionalText, Integer conversationID, Boolean usePaidModel, Boolean debug) {
         super(authToken);
         this.behavior = behavior;
         this.chats = chats;
-        this.conversationID = conversationID;
         this.persistentImagesData = persistentImagesData;
         this.persistentImagesDetail = persistentImagesDetail;
+        this.additionalText = additionalText;
+        this.conversationID = conversationID;
         this.usePaidModel = usePaidModel;
         this.debug = debug;
     }
@@ -93,6 +95,10 @@ public class GetChatRequest extends AuthRequest {
         return persistentImagesDetail;
     }
 
+    public String getAdditionalText() {
+        return additionalText;
+    }
+
     public Integer getConversationID() {
         return conversationID;
     }
@@ -104,5 +110,5 @@ public class GetChatRequest extends AuthRequest {
     public Boolean getDebug() {
         return debug;
     }
-
+    
 }

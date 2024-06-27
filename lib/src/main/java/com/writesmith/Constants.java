@@ -11,7 +11,7 @@ public final class Constants {
 
     /* In-App Purchases Pricing */
     public static final int DEFAULT_PRICE_INDEX = 0;
-    public static final double PRICE_VAR2_DISPLAY_CHANCE = 0.5;
+    public static final double PRICE_VAR2_DISPLAY_CHANCE = 0.1;
     public static final String WEEKLY_PRICE_VAR1 = "6.95";
     public static final String WEEKLY_NAME_VAR1 = "chitchatultra";
     public static final String MONTHLY_PRICE_VAR1 = "19.99";
@@ -25,6 +25,8 @@ public final class Constants {
     public static final String YEARLY_NAME = "chitchatultrayearly";
 
     /* Tiered Limits */
+    public static final int Character_Limit_Additional_Text_Free = 8000;
+    public static final int Character_Limit_Additional_Text_Paid = 16000;
     public static final int Response_Token_Limit_GPT_3_Turbo_Free = 240;
     public static final int Response_Token_Limit_GPT_3_Turbo_Paid = 1400;
     public static final int Response_Token_Limit_GPT_4_Free = 400;
@@ -64,6 +66,7 @@ public final class Constants {
         public static final String CLASSIFY_CHAT = "/classifyChat";
         public static final String DELETE_CHAT_URI = "/deleteChat";
         public static final String GENERATE_DRAWERS = "/generateDrawers";
+        public static final String GENERATE_GOOGLE_QUERY = "/generateGoogleQuery";
         public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
         public static final String GENERATE_TITLE = "/generateTitle";
         public static final String GENERATE_IMAGE = "/generateImage";
@@ -75,7 +78,9 @@ public final class Constants {
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
         public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
         public static final String GET_REMAINING_URI = "/getRemaining";
+        public static final String GOOGLE_SEARCH_URI = "/googleSearch";
         public static final String OTHER_FC_GENERATE_ASSISTANT_WEBPAGE = "/otherFCGenerateAssistantWebpage";
+        public static final String PRINT_TO_CONSOLE = "/printToConsole";
         public static final String REGISTER_APNS = "/registerAPNS";
         public static final String REGISTER_USER_URI = "/registerUser";
         public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
@@ -118,6 +123,10 @@ public final class Constants {
     /* ChatSonic Server Constants */
     public static URI CHATSONIC_URI = URI.create("https://api.writesonic.com/v2/business/content/chatsonic?engine=premium");
 
+    /* Google Constants */
+    public static String Google_Search_Base_URL = "https://customsearch.googleapis.com/customsearch/v1";
+    public static long GOOGLE_TIMEOUT_MINUTES = 1;
+
     /* OpenAI Constants */
     public static URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
     public static long AI_TIMEOUT_MINUTES = 4;
@@ -125,6 +134,6 @@ public final class Constants {
     public static String PAID_MODEL_NAME = "gpt-4-1106-preview";
     public static String DEFAULT_BEHAVIOR = null;
     public static CompletionRole LEGACY_DEFAULT_ROLE = CompletionRole.USER;
-    public static int DEFAULT_TEMPERATURE = 0;
+    public static int DEFAULT_TEMPERATURE = 1;
 
 }

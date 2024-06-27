@@ -116,7 +116,7 @@ public class DrawerGenerator {
         );
 
         // Get responseString from response
-        String responseString = response.getChoices()[0].getMessage().getFunction_call().getArguments();
+        String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create DrawersFC
         DrawersFC drawersFC = OAIFunctionCallDeserializer.deserialize(responseString, DrawersFC.class);

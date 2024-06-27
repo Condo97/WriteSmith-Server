@@ -26,7 +26,8 @@ public class ClassifyChatEndpoint {
 
         // Transpose to ClassifyChatResponse and return
         ClassifyChatResponse ccResponse = new ClassifyChatResponse(
-                classifiedChat.getWantsImageGeneration()
+                classifiedChat.getWantsImageGeneration(),
+                classifiedChat.getWantsWebSearch()
         );
 
         return ccResponse;

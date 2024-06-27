@@ -22,9 +22,10 @@ public class GetChatLegacyRequestAdapter {
                 getChatLegacyRequest.getAuthToken(),
                 getChatLegacyRequest.getBehavior(),
                 List.of(chat),
+                null,
+                null,
+                null,
                 getChatLegacyRequest.getConversationID(),
-                null,
-                null,
                 getChatLegacyRequest.getUsePaidModel(),
                 getChatLegacyRequest.getDebug()
         );

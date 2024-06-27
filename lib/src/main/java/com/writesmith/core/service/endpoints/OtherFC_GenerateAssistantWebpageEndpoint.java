@@ -40,7 +40,7 @@ public class OtherFC_GenerateAssistantWebpageEndpoint {
         System.out.println(fcResponse);
 
         // Deserialize response and return as string
-        OtherFC_GenerateAssistantWebpageFC gawResponse = OAIFunctionCallDeserializer.deserialize(fcResponse.getChoices()[0].getMessage().getFunction_call().getArguments(), OtherFC_GenerateAssistantWebpageFC.class);
+        OtherFC_GenerateAssistantWebpageFC gawResponse = OAIFunctionCallDeserializer.deserialize(fcResponse.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments(), OtherFC_GenerateAssistantWebpageFC.class);
 
         return new ObjectMapper().writeValueAsString(gawResponse);
     }

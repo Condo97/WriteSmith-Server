@@ -41,7 +41,7 @@ public class ClassifyChatTests {
         );
 
         // Get responseString from response
-        String responseString = response.getChoices()[0].getMessage().getFunction_call().getArguments();
+        String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create classifyChatFC
         ClassifyChatFC classifyChatFC = OAIFunctionCallDeserializer.deserialize(responseString, ClassifyChatFC.class);

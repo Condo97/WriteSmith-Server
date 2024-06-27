@@ -68,7 +68,7 @@ public class TitleGenerator {
         );
 
         // Get responseString from response
-        String responseString = response.getChoices()[0].getMessage().getFunction_call().getArguments();
+        String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create generateTitleFC
         GenerateTitleFC generateTitleFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateTitleFC.class);

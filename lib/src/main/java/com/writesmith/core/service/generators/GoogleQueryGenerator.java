@@ -6,51 +6,41 @@ import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.ClassifyChatFC;
+import com.writesmith.core.gpt_function_calls.GenerateGoogleQueryFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
-public class ClassifyChatGenerator {
+public class GoogleQueryGenerator {
 
     private static final int MAX_TOKENS = 800;
     private static final int DEFAULT_TEMPERATURE = Constants.DEFAULT_TEMPERATURE;
     private static final String API_KEY = Keys.openAiAPI;
-    
-    public static class ClassifiedChat {
-        
-        private Boolean wantsImageGeneration;
-        private Boolean wantsWebSearch;
 
-        public ClassifiedChat() {
-            
+    public static class GoogleQuery {
+
+        private String query;
+
+        public GoogleQuery() {
+
         }
 
-        public ClassifiedChat(Boolean wantsImageGeneration, Boolean wantsWebSearch) {
-            this.wantsImageGeneration = wantsImageGeneration;
-            this.wantsWebSearch = wantsWebSearch;
+        public GoogleQuery(String query) {
+            this.query = query;
         }
 
-        public Boolean getWantsImageGeneration() {
-            return wantsImageGeneration;
-        }
-
-        public Boolean getWantsWebSearch() {
-            return wantsWebSearch;
+        public String getQuery() {
+            return query;
         }
 
     }
 
-    public static ClassifiedChat classifyChat(String chat) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
-        return generateClassifiedChat(chat);
-    }
-    
-    private static ClassifiedChat generateClassifiedChat(String chat) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    public static GoogleQuery generateGoogleQuery(String input) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
         // Create message for GPT
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
-                .addText(chat)
+                .addText(input)
                 .build();
 
         // Create HttpClient
@@ -58,7 +48,7 @@ public class ClassifyChatGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                ClassifyChatFC.class,
+                GenerateGoogleQueryFC.class,
                 OpenAIGPTModels.GPT_3_5_TURBO.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -70,16 +60,15 @@ public class ClassifyChatGenerator {
         // Get responseString from response
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
-        // Create classifyChatFC
-        ClassifyChatFC classifyChatFC = OAIFunctionCallDeserializer.deserialize(responseString, ClassifyChatFC.class);
+        // Create generateGoogleQueryFC
+        GenerateGoogleQueryFC generateGoogleQueryFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateGoogleQueryFC.class);
 
-        // Transpose classifyChatFC result to ClassifiedChat and return
-        ClassifiedChat classifiedChat = new ClassifiedChat(
-                classifyChatFC.getWantsImageGeneration(),
-                classifyChatFC.getWantsWebSearch()
+        // Transpose generateGoogleQueryFC result to GoogleQuery and return
+        GoogleQuery googleQuery = new GoogleQuery(
+                generateGoogleQueryFC.getQuery()
         );
 
-        return classifiedChat;
+        return googleQuery;
     }
-    
+
 }

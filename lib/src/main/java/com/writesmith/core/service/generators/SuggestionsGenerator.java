@@ -118,7 +118,7 @@ public class SuggestionsGenerator {
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 GenerateSuggestionsFC.class,
-                OpenAIGPTModels.GPT_4.getName(),
+                OpenAIGPTModels.GPT_3_5_TURBO.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
                 API_KEY,
@@ -127,7 +127,7 @@ public class SuggestionsGenerator {
         );
 
         // Get responseString from response
-        String responseString = response.getChoices()[0].getMessage().getFunction_call().getArguments();
+        String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create generateSuggestionsFC
         GenerateSuggestionsFC generateSuggestionsFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateSuggestionsFC.class);

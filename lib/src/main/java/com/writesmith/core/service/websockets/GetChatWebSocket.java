@@ -435,13 +435,16 @@ public class GetChatWebSocket {
         // Get the token limit if there is one
         int tokenLimit = WSGenerationTierLimits.getTokenLimit(requestedModel, isPremium);
 
+        // Get additionalText which will be added to behavior setting to blank if null and concatenating if too large
+        String additionalText = gcRequest.getAdditionalText() == null ? "" : gcRequest.getAdditionalText().substring(0, Math.min(gcRequest.getAdditionalText().length(), isPremium ? Constants.Character_Limit_Additional_Text_Free : Constants.Character_Limit_Additional_Text_Paid));
+
         // Get the PurifiedOAIChatCompletionRequest
         OpenAIGPTChatCompletionRequestFactory.PurifiedOAIChatCompletionRequest purifiedOAIChatCompletionRequest = OpenAIGPTChatCompletionRequestFactory.with(
                 limitedChats.getLimitedChats(),
                 firstImageData,
                 gcRequest.getPersistentImagesData(),
                 InputImageDetail.fromString(gcRequest.getPersistentImagesDetail()),
-                conversation.getBehavior() + " You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see.",
+                conversation.getBehavior() + "\n\n" + additionalText + "\n\n" + " You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google.",
                 requestedModel,
                 Constants.DEFAULT_TEMPERATURE,
                 tokenLimit,
