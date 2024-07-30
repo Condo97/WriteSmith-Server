@@ -1,6 +1,6 @@
 package com.writesmith.core;
 
-import com.oaigptconnector.model.CompletionRole;
+import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.writesmith.database.model.Sender;
 
 public class RoleMapper {

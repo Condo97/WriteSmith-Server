@@ -5,8 +5,7 @@ import com.dbclient.DBClient;
 import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.*;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.core.WSChatGenerationLimiter;
 import com.writesmith.core.service.endpoints.*;
@@ -72,7 +71,7 @@ public class Tests {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
 
-    private static String authTokenRandom = "DQ4yr8KmudhBWzYPYQe4sM4PSveVrdyQEXOgnmVqMnNBE0NG6SopHgmlYjr2iwtLV5UK7MEf2RA4GCahqGzBHLmws2B+JCYpJ+Gi5wzmqOkfuO+0qJa6slGWnj8RGKO24qHFXe5e4ZDRN9sXpsjxes8YHBZrk92sXV7gYaSZ/3c=";
+    private static String authTokenRandom = "RBdpat4XJLYgQDZe8mlLo/Q6skCwPbGxfD9x0pPdJAbAa5VXp9cPC7fN3BD0mbB/prufGLDJ7PtZsNI5OOeKwbEIAB4ldKpGFQIapftF1LfGxeinPkcTGC0zWvLvcbLwnAs/T8eZ3YwULBNbp3lGmQw2O6MTtwkPVHYiabL/S0E=";
 
     @BeforeAll
     static void setUp() throws SQLException {
@@ -157,7 +156,12 @@ public class Tests {
         OAIChatCompletionRequestMessage promptMessageRequest = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText("write me a short joke")
                 .build();//new OAIChatCompletionRequestMessage(CompletionRole.USER, "write me a short joke");
-        OAIChatCompletionRequest promptRequest = OAIChatCompletionRequest.build("gpt-3.5-turbo", 100, 0.7, Arrays.asList(promptMessageRequest));
+        OAIChatCompletionRequest promptRequest = OAIChatCompletionRequest.build(
+                "gpt-3.5-turbo",
+                100,
+                0.7,
+                new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
+                Arrays.asList(promptMessageRequest));
         Consumer<HttpRequest.Builder> c = requestBuilder -> {
             requestBuilder.setHeader("Authorization", "Bearer " + Keys.openAiAPI);
         };
@@ -370,7 +374,7 @@ public class Tests {
     void testTransactionValidation() throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, InterruptedException, InvocationTargetException, IllegalAccessException, AppStoreErrorResponseException, UnrecoverableKeyException, DBObjectNotFoundFromQueryException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, PreparedStatementMissingArgumentException, AppleItunesResponseException {
         /* REGISTER TRANSACTION ENDPOINT */
         // Input
-        final Long sampleTransactionId = 2000000351816446l;
+        final Long sampleTransactionId = 2000000406355171l;
         // Expected Results
         final AppStoreSubscriptionStatus expectedStatus = AppStoreSubscriptionStatus.EXPIRED;
         final Boolean expectedIsPremiumValue1 = false;
@@ -458,7 +462,7 @@ public class Tests {
         {
             WSChatGenerationLimiter.LimitedChats pc1 = WSChatGenerationLimiter.limit(
                     noImageChats,
-                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    OpenAIGPTModels.GPT_4_MINI,
                     false
             );
             int pc1CharCount = pc1.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -499,7 +503,7 @@ public class Tests {
         {
             WSChatGenerationLimiter.LimitedChats pc4 = WSChatGenerationLimiter.limit(
                     imageChats,
-                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    OpenAIGPTModels.GPT_4_MINI,
                     true
             );
             int pc4CharCount = pc4.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -542,7 +546,7 @@ public class Tests {
         {
             WSChatGenerationLimiter.LimitedChats pc7 = WSChatGenerationLimiter.limit(
                     noImageChats,
-                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    OpenAIGPTModels.GPT_4_MINI,
                     true
             );
             int pc7CharCount = pc7.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();
@@ -583,7 +587,7 @@ public class Tests {
         {
             WSChatGenerationLimiter.LimitedChats pc10 = WSChatGenerationLimiter.limit(
                     imageChats,
-                    OpenAIGPTModels.GPT_3_5_TURBO,
+                    OpenAIGPTModels.GPT_4_MINI,
                     true
             );
             int pc10CharCount = pc10.getLimitedChats().stream().map(c -> c.getText()).collect(Collectors.joining()).length();

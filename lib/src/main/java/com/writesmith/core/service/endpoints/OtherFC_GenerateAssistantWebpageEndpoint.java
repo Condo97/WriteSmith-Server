@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
+import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.gpt_function_calls.OtherFC_GenerateAssistantWebpageFC;
@@ -32,6 +35,7 @@ public class OtherFC_GenerateAssistantWebpageEndpoint {
                 OpenAIGPTModels.GPT_4.getName(),
                 4096,
                 Constants.DEFAULT_TEMPERATURE,
+                new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 Keys.openAiAPI,
                 httpClient,
                 message

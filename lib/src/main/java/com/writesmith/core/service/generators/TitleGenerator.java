@@ -3,7 +3,11 @@ package com.writesmith.core.service.generators;
 import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
+import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
+import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.gpt_function_calls.GenerateTitleFC;
@@ -40,7 +44,7 @@ public class TitleGenerator {
     public static Title generateTitle(String input, String imageData) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
         // Create message and set requested model for GPT
         OAIChatCompletionRequestMessageBuilder messageBuilder = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER);
-        OpenAIGPTModels requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+        OpenAIGPTModels requestedModel = OpenAIGPTModels.GPT_4_MINI;
 
         if (input != null && !input.isEmpty()) {
             // Add text as input if it's not null or empty
@@ -62,6 +66,7 @@ public class TitleGenerator {
                 requestedModel.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
+                new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 API_KEY,
                 httpClient,
                 messageBuilder.build()

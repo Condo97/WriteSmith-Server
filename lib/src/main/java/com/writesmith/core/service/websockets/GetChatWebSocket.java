@@ -5,11 +5,11 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oaigptconnector.model.InputImageDetail;
 import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContent;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentText;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
@@ -314,7 +314,7 @@ public class GetChatWebSocket {
         if (gcRequest.getUsePaidModel() != null && gcRequest.getUsePaidModel())
             requestedModel = OpenAIGPTModels.GPT_4;
         else
-            requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+            requestedModel = OpenAIGPTModels.GPT_4_MINI;
 
         /*** GET IS PREMIUM ***/
 
@@ -739,8 +739,8 @@ public class GetChatWebSocket {
         int charsInCompletionRequest = 0;
         for (OAIChatCompletionRequestMessage message: completionRequest.getMessages())
             for (OAIChatCompletionRequestMessageContent content: message.getContent())
-                switch (content.getType()) {
-                    case TEXT -> charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText)content).getText().length();
+                if (content.getClass().equals(OAIChatCompletionRequestMessageContentText.class)) {
+                    charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText) content).getText().length();
                     // TODO: Image and ImageURL maybe
                 }
 

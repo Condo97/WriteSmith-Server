@@ -1,11 +1,9 @@
 package com.writesmith.openai;
 
-import com.oaigptconnector.model.CompletionRole;
-import com.oaigptconnector.model.InputImageDetail;
 import com.oaigptconnector.model.OAIChatCompletionRequestMessageBuilder;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.*;
+import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.model.objects.Chat;
 import com.writesmith.database.model.objects.Conversation;
@@ -135,6 +133,8 @@ public class OpenAIGPTChatCompletionRequestFactory {
                 tokenLimit,
                 temperature,
                 stream,
+                new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
+                new OAIChatCompletionRequestStreamOptions(true),
                 messages
         );
 

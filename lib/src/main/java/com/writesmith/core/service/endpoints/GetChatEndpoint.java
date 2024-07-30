@@ -75,7 +75,7 @@ public class GetChatEndpoint {
             if (request.getUsePaidModel() != null && request.getUsePaidModel())
                 model = OpenAIGPTModels.GPT_4;
             else
-                model = OpenAIGPTModels.GPT_3_5_TURBO;
+                model = OpenAIGPTModels.GPT_4_MINI;
 
             // Generate chat with conversation
 //            WSChat WSChat = GenerationGrantor.generateFromConversationIfPermitted(conversation, usePaidModel);

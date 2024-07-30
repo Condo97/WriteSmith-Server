@@ -10,9 +10,9 @@ public class WSGenerationTierLimits {
         if (isPremium) {
             if (model == OpenAIGPTModels.GPT_4_VISION) {
                 return Constants.Response_Token_Limit_GPT_4_Vision_Paid;
-            } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
+            } else if (model == OpenAIGPTModels.GPT_4) {
                 return Constants.Response_Token_Limit_GPT_4_Paid;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
+            } else if (model == OpenAIGPTModels.GPT_4_MINI) {
                 return Constants.Response_Token_Limit_GPT_3_Turbo_Paid;
             } else {
                 System.out.println("Model not specified when getting paid tokenLimit, using GPT_3_Turbo_Paid");
@@ -21,9 +21,9 @@ public class WSGenerationTierLimits {
         } else {
             if (model == OpenAIGPTModels.GPT_4_VISION) {
                 return Constants.Response_Token_Limit_GPT_4_Vision_Free;
-            } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
+            } else if (model == OpenAIGPTModels.GPT_4) {
                 return Constants.Response_Token_Limit_GPT_4_Free;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
+            } else if (model == OpenAIGPTModels.GPT_4_MINI) {
                 return Constants.Response_Token_Limit_GPT_3_Turbo_Free;
             } else {
                 System.out.println("Model not specified when getting free tokenLimit, using GPT_3_Turbo_Free");
@@ -36,9 +36,9 @@ public class WSGenerationTierLimits {
         if (isPremium) {
             if (model == OpenAIGPTModels.GPT_4_VISION) {
                 return Constants.Character_Limit_GPT_4_Vision_Paid;
-            } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
+            } else if (model == OpenAIGPTModels.GPT_4) {
                 return Constants.Character_Limit_GPT_4_Paid;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
+            } else if (model == OpenAIGPTModels.GPT_4_MINI) {
                 return Constants.Character_Limit_GPT_3_Turbo_Paid;
             } else {
                 System.out.println("Model not specified when getting paid characterLimit, using GPT_3_Turbo_Paid");
@@ -47,9 +47,9 @@ public class WSGenerationTierLimits {
         } else {
             if (model == OpenAIGPTModels.GPT_4_VISION) {
                 return Constants.Character_Limit_GPT_4_Vision_Free;
-            } else if (model == OpenAIGPTModels.GPT_4 || model == OpenAIGPTModels.GPT_4_LONGINPUT) {
+            } else if (model == OpenAIGPTModels.GPT_4) {
                 return Constants.Character_Limit_GPT_4_Free;
-            } else if (model == OpenAIGPTModels.GPT_3_5_TURBO) {
+            } else if (model == OpenAIGPTModels.GPT_4_MINI) {
                 return Constants.Character_Limit_GPT_3_Turbo_Free;
             } else {
                 System.out.println("Model not specified when getting free characterLimit, using GPT_3_Turbo_Free");

@@ -6,16 +6,15 @@ import java.util.List;
 
 public class OpenAIGPTModelTierSpecification {
 
-    public static final OpenAIGPTModels defaultModel = OpenAIGPTModels.GPT_3_5_TURBO;
-    public static final OpenAIGPTModels defaultFunctionModel = OpenAIGPTModels.GPT_3_5_TURBO;
+    public static final OpenAIGPTModels defaultModel = OpenAIGPTModels.GPT_4_MINI;
+    public static final OpenAIGPTModels defaultFunctionModel = OpenAIGPTModels.GPT_4_MINI;
     public static final OpenAIGPTModels defaultFreeVisionModel = OpenAIGPTModels.GPT_4_VISION;
     public static final OpenAIGPTModels defaultPaidVisionModel = OpenAIGPTModels.GPT_4_VISION;
     public static final List<OpenAIGPTModels> freeModels = List.of(
-            OpenAIGPTModels.GPT_3_5_TURBO
+            OpenAIGPTModels.GPT_4_MINI
     );
     public static final List<OpenAIGPTModels> paidModels = List.of(
             OpenAIGPTModels.GPT_4,
-            OpenAIGPTModels.GPT_4_LONGINPUT,
             OpenAIGPTModels.GPT_4_VISION
     );
 

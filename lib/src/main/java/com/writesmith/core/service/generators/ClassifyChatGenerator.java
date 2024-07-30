@@ -3,7 +3,10 @@ package com.writesmith.core.service.generators;
 import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
+import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.gpt_function_calls.ClassifyChatFC;
@@ -59,9 +62,10 @@ public class ClassifyChatGenerator {
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 ClassifyChatFC.class,
-                OpenAIGPTModels.GPT_3_5_TURBO.getName(),
+                OpenAIGPTModels.GPT_4_MINI.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
+                new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 API_KEY,
                 httpClient,
                 message

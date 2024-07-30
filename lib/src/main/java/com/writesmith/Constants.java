@@ -1,6 +1,6 @@
 package com.writesmith;
 
-import com.oaigptconnector.model.CompletionRole;
+import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 
 import java.net.URI;
 

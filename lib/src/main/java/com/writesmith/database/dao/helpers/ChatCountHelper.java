@@ -41,6 +41,7 @@ public class ChatCountHelper {
         return DBManager.countObjectWhereInnerJoin(
                 conn,
                 Conversation.class,
+                false,
                 sqlConditions,
                 Chat.class,
                 DBRegistry.Table.Conversation.conversation_id

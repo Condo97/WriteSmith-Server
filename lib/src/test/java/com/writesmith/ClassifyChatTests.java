@@ -3,7 +3,10 @@ package com.writesmith;
 import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
+import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.core.gpt_function_calls.ClassifyChatFC;
 import com.writesmith.keys.Keys;
@@ -35,6 +38,7 @@ public class ClassifyChatTests {
                 OpenAIGPTModels.GPT_4.getName(),
                 800,
                 Constants.DEFAULT_TEMPERATURE,
+                new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 Keys.openAiAPI,
                 httpClient,
                 message

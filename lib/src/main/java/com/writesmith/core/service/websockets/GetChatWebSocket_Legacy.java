@@ -115,7 +115,7 @@ public class GetChatWebSocket_Legacy {
             if (gcr.getUsePaidModel())
                 requestedModel = OpenAIGPTModels.GPT_4;
             else
-                requestedModel = OpenAIGPTModels.GPT_3_5_TURBO;
+                requestedModel = OpenAIGPTModels.GPT_4_MINI;
 
             // Get isPremium Apple update if requested model is not permitted from WSPremiumValidator
             boolean isPremium = WSPremiumValidator.getIsPremiumAppleUpdateIfRequestedModelIsNotPermitted(u_aT.getUserID(), requestedModel);
@@ -473,8 +473,8 @@ public class GetChatWebSocket_Legacy {
         int charsInCompletionRequest = 0;
         for (OAIChatCompletionRequestMessage message: completionRequest.getMessages())
             for (OAIChatCompletionRequestMessageContent content: message.getContent())
-                switch (content.getType()) {
-                    case TEXT -> charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText)content).getText().length();
+                if (content.getClass().equals(OAIChatCompletionRequestMessageContentText.class)) {
+                    charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText) content).getText().length();
                     // TODO: Image and ImageURL maybe
                 }
 
