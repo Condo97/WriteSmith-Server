@@ -10,7 +10,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.OtherFC_GenerateAssistantWebpageFC;
+import com.writesmith.openai.functioncall.OtherFC_GenerateAssistantWebpageFC;
 import com.writesmith.core.service.request.StringRequest;
 import com.writesmith.keys.Keys;
 

@@ -21,18 +21,18 @@ import com.writesmith.core.WSGenerationTierLimits;
 import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.core.service.GetChatCapReachedResponses;
 import com.writesmith.core.service.ResponseStatus;
-import com.writesmith.core.service.request.GetChatRequest;
+import com.writesmith.core.service.request.GetChatRequest_Legacy;
 import com.writesmith.core.service.request.GetChatWithPersistentImageRequest;
 import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.ErrorResponse;
 import com.writesmith.core.service.response.GetChatResponse;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
-import com.writesmith.database.dao.factory.ChatFactoryDAO;
-import com.writesmith.database.dao.pooled.ChatDAOPooled;
+import com.writesmith.database.dao.factory.ChatLegacyFactoryDAO;
+import com.writesmith.database.dao.pooled.ChatLegacyDAOPooled;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.dao.pooled.GeneratedChatDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.objects.GeneratedChat;
 import com.writesmith.database.model.objects.User_AuthToken;
@@ -201,17 +201,17 @@ public class GetChatWithPersistentImageWebSocket {
 
         // Create chats and response input chats from request chats sorted by index, saving to database
         String firstImageData = null;
-        List<Chat> requestChats = new ArrayList<>();
+        List<ChatLegacy> requestChatLegacies = new ArrayList<>();
         List<GetChatResponse.Chat> responseInputChats = new ArrayList<>();
-        List<GetChatRequest.Chat> sortedRequestChats = gcwpiRequest.getChats()
+        List<GetChatRequest_Legacy.Chat> sortedRequestChats = gcwpiRequest.getChats()
                 .stream()
-                .sorted(Comparator.comparing(GetChatRequest.Chat::getIndex))
+                .sorted(Comparator.comparing(GetChatRequest_Legacy.Chat::getIndex))
                 .toList();
-        for (GetChatRequest.Chat requestChat: sortedRequestChats) {
+        for (GetChatRequest_Legacy.Chat requestChat: sortedRequestChats) {
             // Create chat
-            Chat chat = null;
+            ChatLegacy chatLegacy = null;
             try {
-                chat = ChatFactoryDAO.create(
+                chatLegacy = ChatLegacyFactoryDAO.create(
                         conversation.getConversation_id(),
                         requestChat.getSender(),
                         requestChat.getInput(),
@@ -225,12 +225,12 @@ public class GetChatWithPersistentImageWebSocket {
             }
 
             // Add chat to chats
-            requestChats.add(chat);
+            requestChatLegacies.add(chatLegacy);
 
             // Create responseInputChat
             GetChatResponse.Chat responseInputChat = new GetChatResponse.Chat(
                     requestChat.getIndex(),
-                    chat.getChat_id()
+                    chatLegacy.getChat_id()
             );
 
             // Add responseInputChat to responseInputChats
@@ -326,9 +326,9 @@ public class GetChatWithPersistentImageWebSocket {
         /*** GENERATION - Prepare ***/
 
         // Get Chats
-        List<Chat> chats;
+        List<ChatLegacy> chatLegacies;
         try {
-            chats = ConversationDAOPooled.getChats(conversation, true);
+            chatLegacies = ConversationDAOPooled.getChats(conversation, true);
         } catch (DBSerializerException | SQLException | InterruptedException | InvocationTargetException |
                  IllegalAccessException | NoSuchMethodException | InstantiationException e) {
             // I think these are just setup errors, so print stack trace and throw UnhandledException unless I see it in the console
@@ -349,7 +349,7 @@ public class GetChatWithPersistentImageWebSocket {
 
         // Get limited chats and model
         WSChatGenerationLimiter.LimitedChats limitedChats = WSChatGenerationLimiter.limit(
-                chats,
+                chatLegacies,
                 requestedModel,
                 isPremium
         );
@@ -371,9 +371,9 @@ public class GetChatWithPersistentImageWebSocket {
         );
 
         // Create blank AI Chat
-        Chat aiChat = null;
+        ChatLegacy aiChatLegacy = null;
         try {
-            aiChat = ChatFactoryDAO.createBlankAISent(conversation.getConversation_id());
+            aiChatLegacy = ChatLegacyFactoryDAO.createBlankAISent(conversation.getConversation_id());
         } catch (DBSerializerPrimaryKeyMissingException | DBSerializerException | SQLException | InterruptedException |
                  InvocationTargetException | IllegalAccessException e) {
             // Pretty sure these are all setup stuff, so throw UnhandledException unless I see it throwing in the console :)
@@ -382,7 +382,7 @@ public class GetChatWithPersistentImageWebSocket {
 
         // Create GeneratedChat
         GeneratedChat gc = new GeneratedChat(
-                aiChat,
+                aiChatLegacy,
                 null,
                 requestedModel.getName(),
                 null,
@@ -517,7 +517,7 @@ public class GetChatWithPersistentImageWebSocket {
         // Set generated chat text and update in database
         gc.getChat().setText(generatedOutput.toString());
         try {
-            ChatDAOPooled.updateText(gc.getChat());
+            ChatLegacyDAOPooled.updateText(gc.getChat());
         } catch (DBSerializerPrimaryKeyMissingException | DBSerializerException | SQLException | InterruptedException |
                  IllegalAccessException e) {
             // Pretty sure these are all setup stuff, so throw UnhandledException unless I see it throwing in the console :)

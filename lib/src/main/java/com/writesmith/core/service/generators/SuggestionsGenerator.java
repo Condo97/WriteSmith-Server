@@ -9,7 +9,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.GenerateSuggestionsFC;
+import com.writesmith.openai.functioncall.GenerateSuggestionsFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;

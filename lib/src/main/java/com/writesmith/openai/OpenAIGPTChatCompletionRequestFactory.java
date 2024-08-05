@@ -4,14 +4,9 @@ import com.oaigptconnector.model.OAIChatCompletionRequestMessageBuilder;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.*;
 import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
-import com.writesmith.database.dao.pooled.ConversationDAOPooled;
-import com.writesmith.database.model.objects.Chat;
-import com.writesmith.database.model.objects.Conversation;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.core.RoleMapper;
-import sqlcomponentizer.dbserializer.DBSerializerException;
 
-import java.lang.reflect.InvocationTargetException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +32,7 @@ public class OpenAIGPTChatCompletionRequestFactory {
 
     }
 
-    public static PurifiedOAIChatCompletionRequest with(List<Chat> chats, String latestChatImageData, List<String> persistentImageData, InputImageDetail imageDetail, String behavior, OpenAIGPTModels model, Integer temperature, Integer tokenLimit, boolean stream) {
+    public static PurifiedOAIChatCompletionRequest with(List<ChatLegacy> chatLegacies, String latestChatImageData, List<String> persistentImageData, InputImageDetail imageDetail, String behavior, OpenAIGPTModels model, Integer temperature, Integer tokenLimit, boolean stream) {
         // Create removedImages variable
         boolean removedImages = false;
 
@@ -52,14 +47,14 @@ public class OpenAIGPTChatCompletionRequestFactory {
         }
 
         // Append chats as message requests in reverse order
-        for (int i = chats.size() - 1; i >= 0; i--) {
-            Chat chat = chats.get(i);
+        for (int i = chatLegacies.size() - 1; i >= 0; i--) {
+            ChatLegacy chatLegacy = chatLegacies.get(i);
 
-            OAIChatCompletionRequestMessageBuilder messageBuilder = new OAIChatCompletionRequestMessageBuilder(RoleMapper.getRole(chat.getSender()));
+            OAIChatCompletionRequestMessageBuilder messageBuilder = new OAIChatCompletionRequestMessageBuilder(RoleMapper.getRole(chatLegacy.getSender()));
 
             // Add text if not null and not empty
-            if (chat.getText() != null && !chat.getText().isEmpty()) {
-                messageBuilder.addText(chat.getText());
+            if (chatLegacy.getText() != null && !chatLegacy.getText().isEmpty()) {
+                messageBuilder.addText(chatLegacy.getText());
             }
 
 //            // Add image data if not null and not empty
@@ -74,10 +69,10 @@ public class OpenAIGPTChatCompletionRequestFactory {
 //            }
 
             // Add image URL if not null and not empty
-            if (chat.getImageURL() != null && !chat.getImageURL().isEmpty()) {
+            if (chatLegacy.getImageURL() != null && !chatLegacy.getImageURL().isEmpty()) {
                 if (model.isVision()) {
                     // If model is vision, add image URL
-                    messageBuilder.addImageURL(chat.getImageURL(), imageDetail);
+                    messageBuilder.addImageURL(chatLegacy.getImageURL(), imageDetail);
                 } else {
                     // If model is not vision, set removedImages to true
                     removedImages = true;

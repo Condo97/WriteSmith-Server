@@ -30,16 +30,16 @@ public class GeneratedChat {
     private Boolean removedImages;
 
     @DBSubObject()
-    private Chat chat;
+    private ChatLegacy chatLegacy;
 
 
     public GeneratedChat() {
 
     }
 
-    public GeneratedChat(Chat chat, String finish_reason, String modelName, Integer completionTokens, Integer promptTokens, Integer totalTokens, Boolean removedImages) {
-        this.chat = chat;
-        chat_id = chat.getChat_id();
+    public GeneratedChat(ChatLegacy chatLegacy, String finish_reason, String modelName, Integer completionTokens, Integer promptTokens, Integer totalTokens, Boolean removedImages) {
+        this.chatLegacy = chatLegacy;
+        chat_id = chatLegacy.getChat_id();
         this.finish_reason = finish_reason;
         this.modelName = modelName;
         this.completionTokens = completionTokens;
@@ -48,13 +48,13 @@ public class GeneratedChat {
         this.removedImages = removedImages;
     }
 
-    public Chat getChat() {
-        return chat;
+    public ChatLegacy getChat() {
+        return chatLegacy;
     }
 
-    public void setChat(Chat chat) {
-        this.chat = chat;
-        chat_id = chat.getChat_id();
+    public void setChat(ChatLegacy chatLegacy) {
+        this.chatLegacy = chatLegacy;
+        chat_id = chatLegacy.getChat_id();
     }
 
     public Integer getChat_id() {

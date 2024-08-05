@@ -1,7 +1,7 @@
 package com.writesmith.database.dao.pooled;
 
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.dao.ConversationDAO;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -41,7 +41,7 @@ public class ConversationDAOPooled {
         }
     }
 
-    public static List<Chat> getChats(Conversation conversation, Boolean excludeDeleted) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static List<ChatLegacy> getChats(Conversation conversation, Boolean excludeDeleted) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         Connection conn = SQLConnectionPoolInstance.getConnection();
         try {
             return ConversationDAO.getChats(conn, conversation, excludeDeleted);

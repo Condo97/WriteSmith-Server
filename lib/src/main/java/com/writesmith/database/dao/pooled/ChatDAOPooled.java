@@ -30,22 +30,4 @@ public class ChatDAOPooled {
         }
     }
 
-    public static void updateDeleted(Chat chat) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException {
-        Connection conn = SQLConnectionPoolInstance.getConnection();
-        try {
-            ChatDAO.updateDeleted(conn, chat);
-        } finally {
-            SQLConnectionPoolInstance.releaseConnection(conn);
-        }
-    }
-
-    public static void updateText(Chat chat) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException {
-        Connection conn = SQLConnectionPoolInstance.getConnection();
-        try {
-            ChatDAO.updateText(conn, chat);
-        } finally {
-            SQLConnectionPoolInstance.releaseConnection(conn);
-        }
-    }
-
 }

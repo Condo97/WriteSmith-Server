@@ -8,14 +8,14 @@ import com.writesmith.exceptions.CapReachedException;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
 import com.writesmith.core.WSGenerationService;
-import com.writesmith.database.dao.factory.ChatFactoryDAO;
+import com.writesmith.database.dao.factory.ChatLegacyFactoryDAO;
 import com.writesmith.database.dao.factory.ConversationFactoryDAO;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.dao.pooled.GeneratedChatDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
 import com.writesmith.database.model.Sender;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.objects.GeneratedChat;
 import com.writesmith.database.model.objects.User_AuthToken;
@@ -54,7 +54,7 @@ public class GetChatEndpoint {
 
         /* CREATE IN DB */
         // Save input chat to database by createInDB
-        Chat inputChat = ChatFactoryDAO.create(
+        ChatLegacy inputChatLegacy = ChatLegacyFactoryDAO.create(
                 conversation.getConversation_id(),
                 Sender.USER,
                 request.getInputText(),
@@ -101,7 +101,7 @@ public class GetChatEndpoint {
             printGeneratedChat(wsChat.getGeneratedChat());
 
             // Construct and return the GetChatResponse
-            getChatResponse = new GetChatLegacyResponse(aiChatTextResponse, wsChat.getGeneratedChat().getFinish_reason(), conversation.getConversation_id(), inputChat.getChat_id(), wsChat.getGeneratedChat().getChat().getChat_id(), remainingNotNull);
+            getChatResponse = new GetChatLegacyResponse(aiChatTextResponse, wsChat.getGeneratedChat().getFinish_reason(), conversation.getConversation_id(), inputChatLegacy.getChat_id(), wsChat.getGeneratedChat().getChat().getChat_id(), remainingNotNull);
 
             // Add debug field(s) if necessary
             if (request.getDebug() != null && request.getDebug()) {

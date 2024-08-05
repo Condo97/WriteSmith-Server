@@ -1,8 +1,6 @@
 package com.writesmith.core.service.request;
 
-import java.util.List;
-
-public class GetChatWithPersistentImageRequest extends GetChatRequest {
+public class GetChatWithPersistentImageRequest extends GetChatRequest_Legacy {
 
 //    private String persistentImageData;
 //

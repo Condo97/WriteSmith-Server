@@ -2,7 +2,7 @@ package com.writesmith.database.dao.helpers;
 
 import com.dbclient.DBManager;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.DBRegistry;
 import com.writesmith.database.model.Sender;
@@ -32,8 +32,8 @@ public class ChatCountHelper {
     public static Long countTodaysGeneratedChats(Connection conn, Integer userID) throws DBSerializerException, InterruptedException, SQLException {
         // Build SQL conditions
         SQLOperatorCondition userIDCondition = new SQLOperatorCondition(DBRegistry.Table.Conversation.user_id, SQLOperators.EQUAL, userID);
-        SQLOperatorCondition senderNotUserCondition = new SQLOperatorCondition(DBRegistry.Table.Chat.sender, SQLOperators.NOT_EQUAL, Sender.USER.toString());
-        SQLOperatorCondition dateCondition = new SQLOperatorCondition(DBRegistry.Table.Chat.date, SQLOperators.GREATER_THAN, LocalDateTime.now().minus(Duration.ofDays(1)));
+        SQLOperatorCondition senderNotUserCondition = new SQLOperatorCondition(DBRegistry.Table.ChatLegacy2.sender, SQLOperators.NOT_EQUAL, Sender.USER.toString());
+        SQLOperatorCondition dateCondition = new SQLOperatorCondition(DBRegistry.Table.ChatLegacy2.date, SQLOperators.GREATER_THAN, LocalDateTime.now().minus(Duration.ofDays(1)));
 
         List<PSComponent> sqlConditions = List.of(userIDCondition, senderNotUserCondition, dateCondition);
 
@@ -43,7 +43,7 @@ public class ChatCountHelper {
                 Conversation.class,
                 false,
                 sqlConditions,
-                Chat.class,
+                ChatLegacy.class,
                 DBRegistry.Table.Conversation.conversation_id
         );
     }

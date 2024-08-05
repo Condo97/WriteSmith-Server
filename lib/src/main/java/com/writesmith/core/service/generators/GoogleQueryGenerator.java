@@ -9,14 +9,13 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.GenerateGoogleQueryFC;
+import com.writesmith.openai.functioncall.GenerateGoogleQueryFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class GoogleQueryGenerator {
 

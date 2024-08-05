@@ -71,8 +71,9 @@ public final class Constants {
         public static final String GENERATE_TITLE = "/generateTitle";
         public static final String GENERATE_IMAGE = "/generateImage";
         public static final String GET_CHAT_URI = "/getChat";
-        public static final String GET_CHAT_STREAM_URI = "/streamChat";
-        public static final String GET_CHAT_STREAM_URI_LEGACY = "/getChatStream";
+        public static final String GET_CHAT_STREAM_URI = "/streamChatDirect";
+        public static final String GET_CHAT_STREAM_URI_LEGACY_1 = "/getChatStream";
+        public static final String GET_CHAT_STREAM_URI_LEGACY_2 = "/streamChat";
         public static final String GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET = "/streamChatWithPersistentImage";
         public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";

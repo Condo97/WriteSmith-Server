@@ -2,7 +2,7 @@ package com.writesmith.database.dao;
 
 import com.dbclient.DBManager;
 import com.writesmith.Constants;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.DBRegistry;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -81,29 +81,29 @@ public class ConversationDAO {
         return null;
     }
 
-    public static List<Chat> getChats(Connection conn, Conversation conversation, Boolean excludeDeleted) throws DBSerializerException, SQLException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+    public static List<ChatLegacy> getChats(Connection conn, Conversation conversation, Boolean excludeDeleted) throws DBSerializerException, SQLException, InterruptedException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // Create whereColValMap depending on excludeDeleted
         Map<String, Object> whereColValMap = new HashMap<>();
         whereColValMap.put(
-                DBRegistry.Table.Chat.conversation_id, conversation.getConversation_id()
+                DBRegistry.Table.ChatLegacy2.conversation_id, conversation.getConversation_id()
         );
 
         if (excludeDeleted)
             whereColValMap.put(
-                    DBRegistry.Table.Chat.deleted, false
+                    DBRegistry.Table.ChatLegacy2.deleted, false
             );
 
         // Create chat list from DB
-        List<Chat> chats = DBManager.selectAllWhereOrderByLimit(
+        List<ChatLegacy> chatLegacies = DBManager.selectAllWhereOrderByLimit(
                 conn,
-                Chat.class,
+                ChatLegacy.class,
                 whereColValMap,
                 SQLOperators.EQUAL,
-                List.of(DBRegistry.Table.Chat.chat_id),
+                List.of(DBRegistry.Table.ChatLegacy2.chat_id),
                 OrderByComponent.Direction.DESC,
                 Constants.Chat_Context_Select_Query_Limit);
 
-        return chats;
+        return chatLegacies;
     }
 
     public static void updateBehavior(Connection conn, Conversation conversation) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException {

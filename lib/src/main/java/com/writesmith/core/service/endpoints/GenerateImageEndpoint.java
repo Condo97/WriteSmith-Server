@@ -3,8 +3,6 @@ package com.writesmith.core.service.endpoints;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.core.service.request.GenerateImageRequest;
 import com.writesmith.core.service.response.GenerateImageResponse;
-import com.writesmith.database.dao.factory.ChatFactoryDAO;
-import com.writesmith.database.dao.factory.ConversationFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;

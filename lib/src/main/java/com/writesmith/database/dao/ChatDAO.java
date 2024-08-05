@@ -1,7 +1,6 @@
 package com.writesmith.database.dao;
 
 import com.dbclient.DBManager;
-import com.writesmith.database.model.DBRegistry;
 import com.writesmith.database.model.objects.Chat;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
@@ -27,24 +26,6 @@ public class ChatDAO {
 
     public static void insert(Connection conn, Chat chat) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException {
         DBManager.insert(conn, chat);
-    }
-
-    public static void updateDeleted(Connection conn, Chat chat) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException {
-        DBManager.updateWhereByPrimaryKey(
-                conn,
-                chat,
-                DBRegistry.Table.Chat.deleted,
-                chat.getDeleted()
-        );
-    }
-
-    public static void updateText(Connection conn, Chat chat) throws DBSerializerException, SQLException, InterruptedException, DBSerializerPrimaryKeyMissingException, IllegalAccessException {
-        DBManager.updateWhereByPrimaryKey(
-                conn,
-                chat,
-                DBRegistry.Table.Chat.text,
-                chat.getText()
-        );
     }
 
 }

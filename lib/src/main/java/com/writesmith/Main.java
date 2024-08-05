@@ -6,7 +6,8 @@ import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.Server;
 import com.writesmith.core.service.websockets.GetChatWebSocket;
-import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy;
+import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy_2;
+import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy_1;
 import com.writesmith.core.service.ResponseStatus;
 import com.writesmith.core.service.websockets.GetChatWithPersistentImageWebSocket;
 import com.writesmith.exceptions.responsestatus.InvalidFileTypeException;
@@ -139,14 +140,15 @@ public class Main {
         final String v1Path = "/v1";
 
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
-        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY, GetChatWebSocket_Legacy.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_2, GetChatWebSocket_Legacy_2.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_1, GetChatWebSocket_Legacy_1.class);
         webSocket(v1Path + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
 
         /* dev */
         final String devPath = "/dev";
 
-        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
-        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY, GetChatWebSocket_Legacy.class);
+        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_2, GetChatWebSocket_Legacy_2.class);
+        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_1, GetChatWebSocket_Legacy_1.class);
         webSocket(devPath + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
     }
 

@@ -1,15 +1,15 @@
 package com.writesmith._deprecated.getchatrequest;
 
 import com.writesmith.database.model.Sender;
-import com.writesmith.core.service.request.GetChatRequest;
+import com.writesmith.core.service.request.GetChatRequest_Legacy;
 
 import java.util.List;
 
 public class GetChatLegacyRequestAdapter {
 
-    public static GetChatRequest adapt(GetChatLegacyRequest getChatLegacyRequest) {
+    public static GetChatRequest_Legacy adapt(GetChatLegacyRequest getChatLegacyRequest) {
         // Create GetChatRequest Chat
-        GetChatRequest.Chat chat = new GetChatRequest.Chat(
+        GetChatRequest_Legacy.Chat chat = new GetChatRequest_Legacy.Chat(
                 0,
                 getChatLegacyRequest.getInputText(),
                 getChatLegacyRequest.getImageData(),
@@ -18,7 +18,7 @@ public class GetChatLegacyRequestAdapter {
                 Sender.USER
         );
 
-        GetChatRequest gcr = new GetChatRequest(
+        GetChatRequest_Legacy gcr = new GetChatRequest_Legacy(
                 getChatLegacyRequest.getAuthToken(),
                 getChatLegacyRequest.getBehavior(),
                 List.of(chat),

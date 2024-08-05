@@ -10,7 +10,7 @@ import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.DrawersFC;
+import com.writesmith.openai.functioncall.DrawersFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;

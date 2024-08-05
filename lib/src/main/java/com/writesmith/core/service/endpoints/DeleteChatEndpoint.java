@@ -2,11 +2,11 @@ package com.writesmith.core.service.endpoints;
 
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.ValidationException;
-import com.writesmith.database.dao.pooled.ChatDAOPooled;
+import com.writesmith.database.dao.pooled.ChatLegacyDAOPooled;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.core.service.response.factory.StatusResponseFactory;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.core.service.request.DeleteChatRequest;
@@ -25,10 +25,10 @@ public class DeleteChatEndpoint {
 
         // TODO: The chatID and userID verification can be done by a delete where inner join
         /* Get Chat */
-        Chat chat = ChatDAOPooled.getFirstByPrimaryKey(request.getChatID());
+        ChatLegacy chatLegacy = ChatLegacyDAOPooled.getFirstByPrimaryKey(request.getChatID());
 
         /* Get Conversation */
-        Conversation conversation = ConversationDAOPooled.getFirstByPrimaryKey(chat.getConversationID());
+        Conversation conversation = ConversationDAOPooled.getFirstByPrimaryKey(chatLegacy.getConversationID());
 
         /* If userID does not equal Conversation userID, throw validation error */
         if (!u_aT.getUserID().equals(conversation.getUser_id()))
@@ -37,10 +37,10 @@ public class DeleteChatEndpoint {
 
         /* Delete chat */
         // Set chat deleted to true
-        chat.setDeleted(true);
+        chatLegacy.setDeleted(true);
 
         // Update deleted in database with new deleted value
-        ChatDAOPooled.updateDeleted(chat);
+        ChatLegacyDAOPooled.updateDeleted(chatLegacy);
 
         // Create and return success status response
         return StatusResponseFactory.createSuccessStatusResponse();

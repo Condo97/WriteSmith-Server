@@ -19,6 +19,17 @@ public class DBRegistry {
 
             public static final String TABLE_NAME = "Chat";
             public static final String chat_id = "chat_id";
+            public static final String user_id = "user_id";
+            public static final String completion_tokens = "completion_tokens";
+            public static final String prompt_tokens = "prompt_tokens";
+            public static final String date = "date";
+
+        }
+
+        public class ChatLegacy2 {
+
+            public static final String TABLE_NAME = "ChatLegacy2";
+            public static final String chat_id = "chat_id";
             public static final String conversation_id = "conversation_id";
             public static final String sender = "sender";
             public static final String text = "text";
@@ -29,9 +40,9 @@ public class DBRegistry {
 
         }
 
-        public class ChatLegacy {
+        public class ChatLegacy1 {
 
-            public static final String TABLE_NAME = "ChatLegacy";
+            public static final String TABLE_NAME = "ChatLegacy1";
             public static final String chat_id = "chat_id";
             public static final String user_id = "user_id";
             public static final String user_text = "user_text";

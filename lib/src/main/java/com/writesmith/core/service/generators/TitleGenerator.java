@@ -4,13 +4,12 @@ import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.CompletionRole;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.gpt_function_calls.GenerateTitleFC;
+import com.writesmith.openai.functioncall.GenerateTitleFC;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;

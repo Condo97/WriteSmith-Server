@@ -1,8 +1,8 @@
 package com.writesmith.database.dao.factory;
 
 import com.writesmith.database.model.objects.ChatLegacy;
-import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.database.dao.pooled.ChatLegacyDAOPooled;
+import com.writesmith.database.model.Sender;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -12,11 +12,19 @@ import java.time.LocalDateTime;
 
 public class ChatLegacyFactoryDAO {
 
-    public static ChatLegacy create(Integer userID, String userText, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, AutoIncrementingDBObjectExistsException, IllegalAccessException, InterruptedException, InvocationTargetException {
-        // Create ChatLegacy
-        ChatLegacy chatLegacy = new ChatLegacy(userID, userText, date);
+    public static ChatLegacy createBlankAISent(Integer conversationID) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException {
+        return create(conversationID, Sender.AI, LocalDateTime.now());
+    }
 
-        // Insert using ChatLegacyDAOPooled and return
+    private static ChatLegacy create(Integer conversationID, Sender sender, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException {
+        return create(conversationID, sender, null, null, date);
+    }
+
+    public static ChatLegacy create(Integer conversationID, Sender sender, String text, String imageURL, LocalDateTime date) throws DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, IllegalAccessException, InvocationTargetException {
+        // Create Chat object
+        ChatLegacy chatLegacy = new ChatLegacy(conversationID, sender, text, imageURL, date, false);
+
+        // Insert using ChatDAOPooled and return
         ChatLegacyDAOPooled.insert(chatLegacy);
 
         return chatLegacy;

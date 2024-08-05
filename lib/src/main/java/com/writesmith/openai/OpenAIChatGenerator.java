@@ -9,7 +9,7 @@ import com.writesmith.core.WSGenerationTierLimits;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
 import com.writesmith.keys.Keys;
 import com.writesmith.database.model.Sender;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Conversation;
 import com.writesmith.database.model.objects.GeneratedChat;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -32,7 +32,7 @@ public class OpenAIChatGenerator {
      */
     public static GeneratedChat generateFromConversation(Conversation conversation, int contextCharacterLimit, OpenAIGPTModels model, Integer temperature, boolean isPremium) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, IOException, OpenAIGPTException {
         // Get Chats
-        List<Chat> chats = ConversationDAOPooled.getChats(conversation, true);
+        List<ChatLegacy> chatLegacies = ConversationDAOPooled.getChats(conversation, true);
 
         // Set model to offered model
         model = WSGenerationTierLimits.getOfferedModelForTier(
@@ -42,7 +42,7 @@ public class OpenAIChatGenerator {
 
         // Get limited chats and approved model
         WSChatGenerationLimiter.LimitedChats limitedChats = WSChatGenerationLimiter.limit(
-                chats,
+                chatLegacies,
                 model,
                 isPremium
         );
@@ -69,7 +69,7 @@ public class OpenAIChatGenerator {
 
             // Return first choice if it exists
             if (response.getChoices().length > 0) {
-                Chat chat = new Chat(
+                ChatLegacy chatLegacy = new ChatLegacy(
                         conversation.getConversation_id(),
                         Sender.AI,
                         response.getChoices()[0].getMessage().getContent(),
@@ -79,7 +79,7 @@ public class OpenAIChatGenerator {
                 );
 
                 return new GeneratedChat(
-                        chat,
+                        chatLegacy,
                         response.getChoices()[0].getFinish_reason(),
                         model.getName(),
                         response.getUsage().getCompletion_tokens(),

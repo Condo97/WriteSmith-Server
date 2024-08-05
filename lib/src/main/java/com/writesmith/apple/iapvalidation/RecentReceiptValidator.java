@@ -2,7 +2,6 @@ package com.writesmith.apple.iapvalidation;
 
 import com.writesmith.Constants;
 import com.writesmith.database.dao.pooled.ReceiptDAOPooled;
-import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.database.model.objects.Receipt;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
@@ -17,9 +16,9 @@ import java.time.LocalDateTime;
 
 public class RecentReceiptValidator extends ReceiptValidator {
 
-    public static Receipt getAndValidateMostRecentReceipt(ChatLegacy chatLegacy) throws SQLException, PreparedStatementMissingArgumentException, IOException, InterruptedException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
-        return getAndValidateMostRecentReceipt(chatLegacy.getUserID());
-    }
+//    public static Receipt getAndValidateMostRecentReceipt(ChatLegacy1 chatLegacy1) throws SQLException, PreparedStatementMissingArgumentException, IOException, InterruptedException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+//        return getAndValidateMostRecentReceipt(chatLegacy1.getUserID());
+//    }
 
     public static Receipt getAndValidateMostRecentReceipt(Integer userID) throws IOException, InterruptedException, SQLException, PreparedStatementMissingArgumentException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // Try to get receipt with userID

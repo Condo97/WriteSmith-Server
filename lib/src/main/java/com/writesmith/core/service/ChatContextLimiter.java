@@ -1,11 +1,9 @@
 package com.writesmith.core.service;
 
-import com.writesmith.Constants;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 public class ChatContextLimiter {
 
@@ -35,20 +33,20 @@ public class ChatContextLimiter {
 //
 //    }
 
-    public static List<Chat> getLimitedChats(List<Chat> chats, int characterLimit) {
-        List<Chat> limitedChats = new ArrayList<>();
+    public static List<ChatLegacy> getLimitedChats(List<ChatLegacy> chatLegacies, int characterLimit) {
+        List<ChatLegacy> limitedChatLegacies = new ArrayList<>();
 
         int totalChars = 0;
 
         // Loop through Chats asc, if totalChars is less than characterLimit add Chat to limitedChats removing image if necessary and setting removedImage accordingly
-        for (int i = 0; i < chats.size(); i++) {
+        for (int i = 0; i < chatLegacies.size(); i++) {
             if (totalChars < characterLimit) {
                 // Add Chat to limitedChats
-                limitedChats.add(chats.get(i));
+                limitedChatLegacies.add(chatLegacies.get(i));
 
                 // If Chat contains text, add to totalChars
-                if (chats.get(i).getText() != null && !chats.get(i).getText().isEmpty()) {
-                    totalChars += chats.get(i).getText().length();
+                if (chatLegacies.get(i).getText() != null && !chatLegacies.get(i).getText().isEmpty()) {
+                    totalChars += chatLegacies.get(i).getText().length();
                 }
             } else {
                 break;
@@ -56,7 +54,7 @@ public class ChatContextLimiter {
         }
 
         // Return LimitedChats with limitedChats, removedImage, and removedImageURL
-        return limitedChats;
+        return limitedChatLegacies;
     }
 
 //    public static List<Chat> getLimitedChats(List<Chat> chats, int characterLimit, boolean skipImages) {

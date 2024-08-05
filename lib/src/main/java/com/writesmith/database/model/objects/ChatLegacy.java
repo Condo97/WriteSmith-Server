@@ -1,94 +1,96 @@
 package com.writesmith.database.model.objects;
 
 import com.writesmith.database.model.DBRegistry;
+import com.writesmith.database.model.Sender;
 import sqlcomponentizer.dbserializer.DBColumn;
 import sqlcomponentizer.dbserializer.DBSerializable;
 
 import java.time.LocalDateTime;
 
-@DBSerializable(tableName = DBRegistry.Table.ChatLegacy.TABLE_NAME)
+@DBSerializable(tableName = DBRegistry.Table.ChatLegacy2.TABLE_NAME)
 public class ChatLegacy {
 
-    @DBColumn(name = DBRegistry.Table.ChatLegacy.chat_id, primaryKey = true)
-    private Integer id;
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.chat_id, primaryKey = true)
+    private Integer chat_id;
 
-    @DBColumn(name = DBRegistry.Table.ChatLegacy.user_id)
-    private Integer userID;
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.conversation_id)
+    private Integer conversationID;
 
-    @DBColumn(name = DBRegistry.Table.ChatLegacy.user_text)
-    private String userText;
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.sender)
+    private Sender sender;
 
-    @DBColumn(name = DBRegistry.Table.ChatLegacy.ai_text)
-    private String aiText;
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.text)
+    private String text;
 
-    @DBColumn(name = DBRegistry.Table.ChatLegacy.finish_reason)
-    private String finishReason;
+//    @DBColumn(name = DBRegistry.Table.Chat.image_data)
+//    private String imageData;
 
-    @DBColumn(name = DBRegistry.Table.ChatLegacy.date)
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.image_url)
+    private String imageURL;
+
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.date)
     private LocalDateTime date;
+
+    @DBColumn(name = DBRegistry.Table.ChatLegacy2.deleted)
+    private Boolean deleted;
 
 
     public ChatLegacy() {
 
     }
 
-    public ChatLegacy(Integer userID, String userText, LocalDateTime date) {
-        this.userID = userID;
-        this.userText = userText;
+    public ChatLegacy(Integer conversationID, Sender sender, String text, String imageURL, LocalDateTime date, Boolean deleted) {
+        this(null, conversationID, sender, text, imageURL, date, deleted);
+    }
+
+    public ChatLegacy(Integer chat_id, Integer conversationID, Sender sender, String text, String imageURL, LocalDateTime date, Boolean deleted) {
+        this.chat_id = chat_id;
+        this.conversationID = conversationID;
+        this.sender = sender;
+        this.text = text;
+        this.imageURL = imageURL;
         this.date = date;
-
-        this.id = null;
-        this.aiText = null;
-        this.finishReason = null;
+        this.deleted = deleted;
     }
 
-    public ChatLegacy(Integer id, Integer userID, String userText, String aiText, String finishReason, LocalDateTime date) {
-        this.id = id;
-        this.userID = userID;
-        this.userText = userText;
-        this.aiText = aiText;
-        this.finishReason = finishReason;
-        this.date = date;
+    public Integer getChat_id() {
+        return chat_id;
     }
 
-    public Integer getID() {
-        return id;
+    public void setChat_id(Integer chat_id) {
+        this.chat_id = chat_id;
     }
 
-    public void setID(Integer id) {
-        this.id = id;
+    public Integer getConversationID() {
+        return conversationID;
     }
 
-    public Integer getUserID() {
-        return userID;
+    public void setConversationID(Integer conversationID) {
+        this.conversationID = conversationID;
     }
 
-    public void setUserID(Integer userID) {
-        this.userID = userID;
+    public Sender getSender() {
+        return sender;
     }
 
-    public String getUserText() {
-        return userText;
+    public void setSender(Sender sender) {
+        this.sender = sender;
     }
 
-    public void setUserText(String userText) {
-        this.userText = userText;
+    public String getText() {
+        return text;
     }
 
-    public String getAiText() {
-        return aiText;
+//    public String getImageData() {
+//        return imageData;
+//    }
+
+    public String getImageURL() {
+        return imageURL;
     }
 
-    public void setAiText(String aiText) {
-        this.aiText = aiText;
-    }
-
-    public String getFinishReason() {
-        return finishReason;
-    }
-
-    public void setFinishReason(String finishReason) {
-        this.finishReason = finishReason;
+    public void setText(String text) {
+        this.text = text;
     }
 
     public LocalDateTime getDate() {
@@ -98,4 +100,13 @@ public class ChatLegacy {
     public void setDate(LocalDateTime date) {
         this.date = date;
     }
+
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
+    }
+
 }

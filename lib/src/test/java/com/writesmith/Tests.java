@@ -12,7 +12,7 @@ import com.writesmith.core.service.endpoints.*;
 import com.writesmith.core.service.request.*;
 import com.writesmith.core.service.response.*;
 import com.writesmith.database.model.Sender;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 import com.writesmith.exceptions.AutoIncrementingDBObjectExistsException;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.exceptions.PreparedStatementMissingArgumentException;
@@ -425,14 +425,14 @@ public class Tests {
     @DisplayName("Test WSChatGenerationPreparer")
     void testWSChatGenerationPreparer() {
         /*** isPremium False ***/
-        List<Chat> noImageChats = new ArrayList<>();
-        List<Chat> imageChats = new ArrayList<>();
+        List<ChatLegacy> noImageChatLegacies = new ArrayList<>();
+        List<ChatLegacy> imageChatLegacies = new ArrayList<>();
 
         int chatCharLength = 400;
         int chatCreationIterations = 20;
 
         for (int i = 0; i < chatCreationIterations; i++) {
-            Chat noImageChat = new Chat(
+            ChatLegacy noImageChatLegacy = new ChatLegacy(
                     -1,
                     i % 2 == 0 ? Sender.AI : Sender.USER,
                     "T".repeat(chatCharLength),
@@ -441,7 +441,7 @@ public class Tests {
                     false
             );
 
-            Chat imageChat = new Chat(
+            ChatLegacy imageChatLegacy = new ChatLegacy(
                     -1,
                     i % 2 == 0 ? Sender.USER : Sender.AI,
                     i % 2 == 0 ? ("I").repeat(chatCharLength) : null,
@@ -450,10 +450,10 @@ public class Tests {
                     false
             );
 
-            noImageChats.add(noImageChat);
+            noImageChatLegacies.add(noImageChatLegacy);
 
-            imageChats.add(noImageChat);
-            imageChats.add(imageChat);
+            imageChatLegacies.add(noImageChatLegacy);
+            imageChatLegacies.add(imageChatLegacy);
         }
 
         // No Image //
@@ -461,7 +461,7 @@ public class Tests {
         // Get preparedChats for GPT_3.5_Turbo and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
             WSChatGenerationLimiter.LimitedChats pc1 = WSChatGenerationLimiter.limit(
-                    noImageChats,
+                    noImageChatLegacies,
                     OpenAIGPTModels.GPT_4_MINI,
                     false
             );
@@ -474,7 +474,7 @@ public class Tests {
         // Get preparedChats for GPT_4 and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
             WSChatGenerationLimiter.LimitedChats pc2 = WSChatGenerationLimiter.limit(
-                    noImageChats,
+                    noImageChatLegacies,
                     OpenAIGPTModels.GPT_4,
                     false
             );
@@ -487,7 +487,7 @@ public class Tests {
         // Get preparedChats for GPT_4_Vision and isPremium false no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
             WSChatGenerationLimiter.LimitedChats pc3 = WSChatGenerationLimiter.limit(
-                    noImageChats,
+                    noImageChatLegacies,
                     OpenAIGPTModels.GPT_4_VISION,
                     false
             );
@@ -502,7 +502,7 @@ public class Tests {
         // Get preparedChats for GPT_3.5_Turbo and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
             WSChatGenerationLimiter.LimitedChats pc4 = WSChatGenerationLimiter.limit(
-                    imageChats,
+                    imageChatLegacies,
                     OpenAIGPTModels.GPT_4_MINI,
                     true
             );
@@ -515,7 +515,7 @@ public class Tests {
         // Get preparedChats for GPT_4 and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
             WSChatGenerationLimiter.LimitedChats pc5 = WSChatGenerationLimiter.limit(
-                    imageChats,
+                    imageChatLegacies,
                     OpenAIGPTModels.GPT_4,
                     false
             );
@@ -528,7 +528,7 @@ public class Tests {
         // Get preparedChats for GPT_4_Vision and isPremium false with images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo free character limit
         {
             WSChatGenerationLimiter.LimitedChats pc6 = WSChatGenerationLimiter.limit(
-                    imageChats,
+                    imageChatLegacies,
                     OpenAIGPTModels.GPT_4_VISION,
                     false
             );
@@ -545,7 +545,7 @@ public class Tests {
         // Get preparedChats for GPT_3.5_Turbo and isPremium true no images, should use GPT_3.5_Turbo and have GPT_3.5_Turbo paid character limit
         {
             WSChatGenerationLimiter.LimitedChats pc7 = WSChatGenerationLimiter.limit(
-                    noImageChats,
+                    noImageChatLegacies,
                     OpenAIGPTModels.GPT_4_MINI,
                     true
             );
@@ -558,7 +558,7 @@ public class Tests {
         // Get preparedChats for GPT_4 and isPremium true no images, should use GPT_4 and have GPT_4 paid character limit
         {
             WSChatGenerationLimiter.LimitedChats pc8 = WSChatGenerationLimiter.limit(
-                    noImageChats,
+                    noImageChatLegacies,
                     OpenAIGPTModels.GPT_4,
                     true
             );
@@ -571,7 +571,7 @@ public class Tests {
         // Get preparedChats for GPT_4_Vision and isPremium true no images, should use GPT_4_Vision and have GPT_4 paid character limit, but this shouldn't happen in production... I think it should just always upgrade, no? The way that it's integrated in the app, it should just send it as GPT_4, and it will auto-upgrade to GPT_4_Vision if there are images TODO: If this is supposed to happen, maybe add different GPT_4_Vision character limit
         {
             WSChatGenerationLimiter.LimitedChats pc9 = WSChatGenerationLimiter.limit(
-                    noImageChats,
+                    noImageChatLegacies,
                     OpenAIGPTModels.GPT_4_VISION,
                     true
             );
@@ -586,7 +586,7 @@ public class Tests {
         // Get preparedChats for GPT_3.5_Turbo and isPremium true with images, should use defaultVisionModel (GPT_4_Vision) and have GPT_4 paid character limit TODO: Maybe add different GPT_4_Vision character limit
         {
             WSChatGenerationLimiter.LimitedChats pc10 = WSChatGenerationLimiter.limit(
-                    imageChats,
+                    imageChatLegacies,
                     OpenAIGPTModels.GPT_4_MINI,
                     true
             );
@@ -599,7 +599,7 @@ public class Tests {
         // Get preparedChats for GPT_4 and isPremium true with images, should use defaultVisionModel (GPT_4_Vision) and have GPT_4 paid character limit TODO: Maybe add different GPT_4_Vision character limit
         {
             WSChatGenerationLimiter.LimitedChats pc11 = WSChatGenerationLimiter.limit(
-                    imageChats,
+                    imageChatLegacies,
                     OpenAIGPTModels.GPT_4,
                     true
             );
@@ -612,7 +612,7 @@ public class Tests {
         // Get preparedChats for GPT_4_Vision and isPremium true with images, should use GPT_4_Vision and have GPT_4 paid character limit, but this should never happen if the previous little blurb I wrote is enacted, since the server would always theoretically receive GPT_4 and have it upgraded to vision if there are images TODO: Maybe add different GPT_4_Vision character limit
         {
             WSChatGenerationLimiter.LimitedChats pc12 = WSChatGenerationLimiter.limit(
-                    imageChats,
+                    imageChatLegacies,
                     OpenAIGPTModels.GPT_4_VISION,
                     true
             );

@@ -1,114 +1,39 @@
 package com.writesmith.core.service.request;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.writesmith.database.model.Sender;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
+import com.writesmith.openai.functioncall.FunctionCalls;
 
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetChatRequest extends AuthRequest {
 
-    public static class Chat {
-
-        Integer index;
-        private String input, imageData, imageURL, detail;
-        private Sender sender;
-
-        public Chat() {
-
-        }
-
-        public Chat(Integer index, String input, String imageData, String imageURL, String detail, Sender sender) {
-            this.index = index;
-            this.input = input;
-            this.imageData = imageData;
-            this.imageURL = imageURL;
-            this.detail = detail;
-            this.sender = sender;
-        }
-
-        public Integer getIndex() {
-            return index;
-        }
-
-        public String getInput() {
-            return input;
-        }
-
-        public String getImageData() {
-            return imageData;
-        }
-
-        public String getImageURL() {
-            return imageURL;
-        }
-
-        public String getDetail() {
-            return detail;
-        }
-
-        public Sender getSender() {
-            return sender;
-        }
-
-    }
-
-    private String behavior;
-    private List<Chat> chats;
-    private List<String> persistentImagesData;
-    private String persistentImagesDetail;
-    private String additionalText;
-    private Integer conversationID;
-    private Boolean usePaidModel, debug;
-
+    private OAIChatCompletionRequest chatCompletionRequest;
+    private FunctionCalls function;
+//    private OpenAIGPTModels model;
 
     public GetChatRequest() {
 
     }
 
-    public GetChatRequest(String authToken, String behavior, List<Chat> chats, List<String> persistentImagesData, String persistentImagesDetail, String additionalText, Integer conversationID, Boolean usePaidModel, Boolean debug) {
+    public GetChatRequest(String authToken, String openAIKey, OAIChatCompletionRequest chatCompletionRequest, FunctionCalls function) {
         super(authToken);
-        this.behavior = behavior;
-        this.chats = chats;
-        this.persistentImagesData = persistentImagesData;
-        this.persistentImagesDetail = persistentImagesDetail;
-        this.additionalText = additionalText;
-        this.conversationID = conversationID;
-        this.usePaidModel = usePaidModel;
-        this.debug = debug;
+        this.chatCompletionRequest = chatCompletionRequest;
+        this.function = function;
     }
 
-    public String getBehavior() {
-        return behavior;
+    public OAIChatCompletionRequest getChatCompletionRequest() {
+        return chatCompletionRequest;
     }
 
-    public List<Chat> getChats() {
-        return chats;
+    public FunctionCalls getFunction() {
+        return function;
     }
 
-    public List<String> getPersistentImagesData() {
-        return persistentImagesData;
-    }
+    //    public OpenAIGPTModels getModel() {
+//        return model;
+//    }
 
-    public String getPersistentImagesDetail() {
-        return persistentImagesDetail;
-    }
-
-    public String getAdditionalText() {
-        return additionalText;
-    }
-
-    public Integer getConversationID() {
-        return conversationID;
-    }
-
-    public Boolean getUsePaidModel() {
-        return usePaidModel;
-    }
-
-    public Boolean getDebug() {
-        return debug;
-    }
-    
 }

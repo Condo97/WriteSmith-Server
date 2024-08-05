@@ -2,7 +2,7 @@ package com.writesmith.core;
 
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.writesmith.core.service.ChatContextLimiter;
-import com.writesmith.database.model.objects.Chat;
+import com.writesmith.database.model.objects.ChatLegacy;
 
 import java.util.List;
 
@@ -10,20 +10,20 @@ public class WSChatGenerationLimiter {
 
     public static class LimitedChats {
 
-        private List<Chat> limitedChats;
+        private List<ChatLegacy> limitedChatLegacies;
 //        private OpenAIGPTModels approvedModel;
 
-        public LimitedChats(List<Chat> limitedChats) {
-            this.limitedChats = limitedChats;
+        public LimitedChats(List<ChatLegacy> limitedChatLegacies) {
+            this.limitedChatLegacies = limitedChatLegacies;
         }
 
-        public List<Chat> getLimitedChats() {
-            return limitedChats;
+        public List<ChatLegacy> getLimitedChats() {
+            return limitedChatLegacies;
         }
 
     }
 
-    public static LimitedChats limit(List<Chat> chats, OpenAIGPTModels requestedModel, boolean isPremium) {
+    public static LimitedChats limit(List<ChatLegacy> chatLegacies, OpenAIGPTModels requestedModel, boolean isPremium) {
         // Create null offeredModel
         OpenAIGPTModels offeredModel = null;
 
@@ -39,10 +39,10 @@ public class WSChatGenerationLimiter {
         int requestedModelCharacterLimit = WSGenerationTierLimits.getContextCharacterLimit(requestedModel, isPremium);
 
         // Get limited chats for offered model
-        List<Chat> limitedChats = ChatContextLimiter.getLimitedChats(chats, requestedModelCharacterLimit);
+        List<ChatLegacy> limitedChatLegacies = ChatContextLimiter.getLimitedChats(chatLegacies, requestedModelCharacterLimit);
 
         return new LimitedChats(
-                limitedChats
+                limitedChatLegacies
         );
 
 //        return prepare(chats, requestedModel, isPremium, true);
