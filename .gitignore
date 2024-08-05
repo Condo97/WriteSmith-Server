@@ -7,8 +7,9 @@ build
 # Ignore Keys class
 /lib/src/main/java/writesmith/keys/Keys.java
 
-# Ignore Out directory
-/lib/out/
+# Ignore Select Contents of Out directory
+/lib/out/keys
+/lib/out/chitchatserver.com.jks
 
 # Ignore testing keystore
 /chitchatserver.com.jks

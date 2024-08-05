@@ -12,7 +12,7 @@ public class SQLConnectionPoolInstance {
         return instance;
     }
 
-    public synchronized static Connection getConnection() throws InterruptedException {
+    public synchronized static Connection getConnection() throws InterruptedException, SQLException {
         return instance.getConnection();
     }
 

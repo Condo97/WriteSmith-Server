@@ -27,12 +27,12 @@ public final class Constants {
     /* Tiered Limits */
     public static final int Character_Limit_Additional_Text_Free = 8000;
     public static final int Character_Limit_Additional_Text_Paid = 16000;
-    public static final int Response_Token_Limit_GPT_3_Turbo_Free = 240;
+    public static final int Response_Token_Limit_GPT_3_Turbo_Free = 350;
     public static final int Response_Token_Limit_GPT_3_Turbo_Paid = 1400;
     public static final int Response_Token_Limit_GPT_4_Free = 400;
-    public static final int Response_Token_Limit_GPT_4_Paid = 1200;
+    public static final int Response_Token_Limit_GPT_4_Paid = 2500;
     public static final int Response_Token_Limit_GPT_4_Vision_Free = 1200;
-    public static final int Response_Token_Limit_GPT_4_Vision_Paid = 1200;
+    public static final int Response_Token_Limit_GPT_4_Vision_Paid = 2500;
 
     public static final int Character_Limit_GPT_3_Turbo_Free = 800;
     public static final int Character_Limit_GPT_3_Turbo_Paid = 2800;
@@ -50,7 +50,7 @@ public final class Constants {
 
     /* Caps */
     public static final int Cap_Free_Total_Essays = 3; // This is just a constant sent to the device, which handles everything
-    public static final Integer Cap_Chat_Daily_Free = 10;
+    public static final Integer Cap_Chat_Daily_Free = null;
     public static final Integer Cap_Chat_Daily_Paid = null;
     public static final int Cap_Chat_Daily_Paid_Legacy = -1; //-1 is unlimited
 
