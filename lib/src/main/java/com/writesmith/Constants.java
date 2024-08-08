@@ -9,6 +9,13 @@ public final class Constants {
     private Constants() {
     }
 
+    public final class Additional {
+
+        public static final Integer functionCallGenerationTokenLimit = 1500;
+        public static final Integer functionCallDefaultTemperature = 1;
+
+    }
+
     /* In-App Purchases Pricing */
     public static final int DEFAULT_PRICE_INDEX = 0;
     public static final double PRICE_VAR2_DISPLAY_CHANCE = 0.1;
@@ -57,9 +64,13 @@ public final class Constants {
     /* URIs for HTTPSServer */
     class URIs {
         class Function {
-            private static final String SUBDIRECTORY_PREFIX = "/func";
-            public static final String CREATE_RECIPE_IDEA = SUBDIRECTORY_PREFIX + "/createRecipeIdea";
-            public static final String MAKE_RECIPE = SUBDIRECTORY_PREFIX + "/makeRecipeFromIdea";
+            public static final String SUBDIRECTORY_PREFIX = "/func";
+            public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
+            public static final String CLASSIFY_CHAT = "/classifyChat";
+            public static final String GENERATE_DRAWERS = "/generateDrawers";
+            public static final String GENERATE_GOOGLE_QUERY = "/generateGoogleQuery";
+            public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
+            public static final String GENERATE_TITLE = "/generateTitle";
         }
 
         public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";

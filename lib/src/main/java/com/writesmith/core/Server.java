@@ -152,6 +152,43 @@ public class Server {
     }
 
     /***
+     * Function Call
+     *
+     * Performs the given function call and returns the response.
+     *
+     * Request: {
+     *     authToken: String - Authentication token generated from registerUser
+     *     model: String - The GPT model to use
+     *     input: String - The input given
+     * }
+     *
+     * Response: {
+     *     response: OAIGPTChatCompletionResponse - The response given by OpenAI GPT's server to the function call
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON response as String
+     */
+    public static String functionCall(Request req, Response res, Class<?> fcClass) throws IOException, MalformedJSONException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        FunctionCallRequest fcRequest;
+
+        try {
+            fcRequest = new ObjectMapper().readValue(req.body(), FunctionCallRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Getting Remaining Tokens... The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage());
+        }
+
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(
+                FunctionCallEndpoint.functionCall(fcRequest, fcClass)
+        );
+
+        return new ObjectMapper().writeValueAsString(br);
+    }
+
+    /***
      * Generate Drawers
      *
      * Generates output in drawer format
