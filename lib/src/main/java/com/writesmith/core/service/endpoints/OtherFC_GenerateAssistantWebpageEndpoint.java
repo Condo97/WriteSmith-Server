@@ -20,7 +20,7 @@ import java.time.Duration;
 
 public class OtherFC_GenerateAssistantWebpageEndpoint {
 
-    public static String generateAssistant(StringRequest request) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    public static String generateAssistant(StringRequest request) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         // Create message
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText(request.getString())
@@ -44,7 +44,7 @@ public class OtherFC_GenerateAssistantWebpageEndpoint {
         System.out.println(fcResponse);
 
         // Deserialize response and return as string
-        OtherFC_GenerateAssistantWebpageFC gawResponse = OAIFunctionCallDeserializer.deserialize(fcResponse.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments(), OtherFC_GenerateAssistantWebpageFC.class);
+        OtherFC_GenerateAssistantWebpageFC gawResponse = JSONSchemaDeserializer.deserialize(fcResponse.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments(), OtherFC_GenerateAssistantWebpageFC.class);
 
         return new ObjectMapper().writeValueAsString(gawResponse);
     }

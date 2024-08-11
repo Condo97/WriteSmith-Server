@@ -1,6 +1,6 @@
 package com.writesmith.core.service.endpoints;
 
-import com.oaigptconnector.model.OAIDeserializerException;
+import com.oaigptconnector.model.JSONSchemaDeserializerException;
 import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.core.service.generators.DrawerGenerator;
@@ -19,7 +19,7 @@ import java.util.Date;
 
 public class GenerateDrawersEndpoint {
 
-    public static GenerateDrawersResponse generateDrawers(GenerateDrawersRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException {
+    public static GenerateDrawersResponse generateDrawers(GenerateDrawersRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException {
         // Get u_aT from request
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 

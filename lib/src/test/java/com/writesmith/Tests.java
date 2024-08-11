@@ -663,7 +663,7 @@ public class Tests {
             generateSuggestionsResponse = GenerateSuggestionsEndpoint.generateSuggestions(generateSuggestionsRequest);
         } catch (DBSerializerException | SQLException | DBObjectNotFoundFromQueryException | InterruptedException |
                  InvocationTargetException | IllegalAccessException | NoSuchMethodException | InstantiationException |
-                 OAISerializerException | OpenAIGPTException | OAIDeserializerException | IOException e) {
+                 OAISerializerException | OpenAIGPTException | JSONSchemaDeserializerException | IOException e) {
             throw new RuntimeException(e);
         }
 // Generate a simple sentence that starts with a verb like "help" or "write" with suggestions on how to use ChatGPT for ideas on unique ways to use ChatGPT
@@ -704,7 +704,7 @@ public class Tests {
             generateSuggestionsResponse = GenerateSuggestionsEndpoint.generateSuggestions(generateSuggestionsRequest);
         } catch (DBSerializerException | SQLException | DBObjectNotFoundFromQueryException | InterruptedException |
                  InvocationTargetException | IllegalAccessException | NoSuchMethodException | InstantiationException |
-                 OAISerializerException | OpenAIGPTException | OAIDeserializerException | IOException e) {
+                 OAISerializerException | OpenAIGPTException | JSONSchemaDeserializerException | IOException e) {
             throw new RuntimeException(e);
         }
 
@@ -717,7 +717,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Classify Chat Endpoint - Requesting Image")
-    void testClassifyChatEndpoint_RequestingImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testClassifyChatEndpoint_RequestingImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "I want u to make me an image of a little tiny bear on the tip of a needle.";
         final Boolean expectedWantsImageGenerationResult = true;
 
@@ -738,7 +738,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Classify Chat Endpoint - Not Requesting Image")
-    void testClassifyChatEndpoint_NotRequestingImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testClassifyChatEndpoint_NotRequestingImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "I want u to tell me a story of a little tiny elephant on a fingernail.";
         final Boolean expectedWantsImageGenerationResult = false;
 
@@ -780,7 +780,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Check if Chat Requests Image Revision - Requesting Revision")
-    void testCheckIfChatRequestsImageRevision_RequestingRevision() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testCheckIfChatRequestsImageRevision_RequestingRevision() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "Now make it an earring.";
         final Boolean expectedRequestsImageRevisionResult = true;
 
@@ -803,7 +803,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision Simple")
-    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionSimple() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionSimple() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "Now write a short story about a cat.";
         final Boolean expectedRequestsImageRevisionResult = false;
 
@@ -826,7 +826,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision by Requesting Another Image")
-    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionByRequestingAnotherImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionByRequestingAnotherImage() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "Now make an image of a cat.";
         final Boolean expectedRequestsImageRevisionResult = false;
 
@@ -849,7 +849,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision, Sorta Unclear")
-    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionSortaUnclear() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionSortaUnclear() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "I want to brainstorm more ideas about this image.";
         final Boolean expectedRequestsImageRevisionResult = false;
 
@@ -874,7 +874,7 @@ public class Tests {
 
     @Test
     @DisplayName("Test Check if Chat Requests Image Revision - Not Requesting Revision, Directly Prompting to Revise")
-    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionDirectlyPromptingToRevise() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    void testCheckIfChatRequestsImageRevision_NotRequestingRevisionDirectlyPromptingToRevise() throws DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         final String prompt = "Revise an image.";
         final Boolean expectedRequestsImageRevisionResult = false;
 

@@ -8,7 +8,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
-import com.writesmith.openai.functioncall.ClassifyChatFC;
+import com.writesmith.openai.structuredoutput.ClassifyChatSO;
 import com.writesmith.keys.Keys;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ public class ClassifyChatTestsLegacyLegacy2 {
 
     @Test
     @DisplayName("Test Classify Chats")
-    void testClassifyChats() throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    void testClassifyChats() throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, JSONSchemaDeserializerException {
         final String input = "Consider a setting for a video game that takes place in a futuristic cityscape at night. What architectural styles and neon lighting effects might populate this scene?";
 
         // Create message for GPT
@@ -34,7 +34,7 @@ public class ClassifyChatTestsLegacyLegacy2 {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                ClassifyChatFC.class,
+                ClassifyChatSO.class,
                 OpenAIGPTModels.GPT_4.getName(),
                 800,
                 Constants.DEFAULT_TEMPERATURE,
@@ -48,10 +48,10 @@ public class ClassifyChatTestsLegacyLegacy2 {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create classifyChatFC
-        ClassifyChatFC classifyChatFC = OAIFunctionCallDeserializer.deserialize(responseString, ClassifyChatFC.class);
+        ClassifyChatSO classifyChatSO = JSONSchemaDeserializer.deserialize(responseString, ClassifyChatSO.class);
 
         // Print and test
-        System.out.println("Wants image generation: " + classifyChatFC.getWantsImageGeneration());
+        System.out.println("Wants image generation: " + classifyChatSO.getWantsImageGeneration());
     }
 
 }

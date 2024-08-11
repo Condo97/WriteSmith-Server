@@ -7,8 +7,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oaigptconnector.Constants;
+import com.oaigptconnector.model.FCJSONSchemaSerializer;
+import com.oaigptconnector.model.JSONSchemaSerializer;
 import com.oaigptconnector.model.OAIClient;
-import com.oaigptconnector.model.OAIFunctionCallSerializer;
 import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.request.chat.completion.*;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
@@ -19,7 +20,6 @@ import com.writesmith.core.service.response.ErrorResponse;
 import com.writesmith.core.service.response.GetChatStreamResponse;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
 import com.writesmith.database.dao.factory.ChatFactoryDAO;
-import com.writesmith.database.dao.factory.ChatLegacyFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.exceptions.CapReachedException;
@@ -179,12 +179,12 @@ public class GetChatWebSocket {
         chatCompletionRequest.setStream_options(new OAIChatCompletionRequestStreamOptions(true));
 
         // If function call and function call class are not null serialize and add the function to chatCompletionRequest
-        if (gcRequest.getFunction() != null && gcRequest.getFunction().getFunctionClass() != null) {
+        if (gcRequest.getFunction() != null && gcRequest.getFunction().getJSONSchemaClass() != null) {
             // Serialize FC object
-            Object serializedFCObject = OAIFunctionCallSerializer.objectify(gcRequest.getFunction().getFunctionClass());
+            Object serializedFCObject = FCJSONSchemaSerializer.objectify(gcRequest.getFunction().getJSONSchemaClass());
 
             // Get FC name
-            String fcName = OAIFunctionCallSerializer.getFunctionName(gcRequest.getFunction().getFunctionClass());
+            String fcName = JSONSchemaSerializer.getFunctionName(gcRequest.getFunction().getJSONSchemaClass());
 
             // Create ToolChoiceFunction
             OAIChatCompletionRequestToolChoiceFunction.Function requestToolChoiceFunction = new OAIChatCompletionRequestToolChoiceFunction.Function(fcName);

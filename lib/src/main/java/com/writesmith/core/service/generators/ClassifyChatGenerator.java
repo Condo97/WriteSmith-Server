@@ -9,7 +9,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.openai.functioncall.ClassifyChatFC;
+import com.writesmith.openai.structuredoutput.ClassifyChatSO;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -46,11 +46,11 @@ public class ClassifyChatGenerator {
 
     }
 
-    public static ClassifiedChat classifyChat(String chat) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static ClassifiedChat classifyChat(String chat) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         return generateClassifiedChat(chat);
     }
     
-    private static ClassifiedChat generateClassifiedChat(String chat) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    private static ClassifiedChat generateClassifiedChat(String chat) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         // Create message for GPT
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText(chat)
@@ -61,7 +61,7 @@ public class ClassifyChatGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                ClassifyChatFC.class,
+                ClassifyChatSO.class,
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -75,12 +75,12 @@ public class ClassifyChatGenerator {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create classifyChatFC
-        ClassifyChatFC classifyChatFC = OAIFunctionCallDeserializer.deserialize(responseString, ClassifyChatFC.class);
+        ClassifyChatSO classifyChatSO = JSONSchemaDeserializer.deserialize(responseString, ClassifyChatSO.class);
 
         // Transpose classifyChatFC result to ClassifiedChat and return
         ClassifiedChat classifiedChat = new ClassifiedChat(
-                classifyChatFC.getWantsImageGeneration(),
-                classifyChatFC.getWantsWebSearch()
+                classifyChatSO.getWantsImageGeneration(),
+                classifyChatSO.getWantsWebSearch()
         );
 
         return classifiedChat;

@@ -9,7 +9,7 @@ import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.openai.functioncall.GenerateTitleFC;
+import com.writesmith.openai.structuredoutput.GenerateTitleSO;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -40,7 +40,7 @@ public class TitleGenerator {
 
     }
 
-    public static Title generateTitle(String input, String imageData) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    public static Title generateTitle(String input, String imageData) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         // Create message and set requested model for GPT
         OAIChatCompletionRequestMessageBuilder messageBuilder = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER);
         OpenAIGPTModels requestedModel = OpenAIGPTModels.GPT_4_MINI;
@@ -61,7 +61,7 @@ public class TitleGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                GenerateTitleFC.class,
+                GenerateTitleSO.class,
                 requestedModel.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -75,10 +75,10 @@ public class TitleGenerator {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create generateTitleFC
-        GenerateTitleFC generateTitleFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateTitleFC.class);
+        GenerateTitleSO generateTitleSO = JSONSchemaDeserializer.deserialize(responseString, GenerateTitleSO.class);
 
         // Transpose generateTitleFC to Title
-        Title title = new Title(generateTitleFC.getTitle());
+        Title title = new Title(generateTitleSO.getTitle());
 
         // Return title
         return title;

@@ -9,7 +9,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.openai.functioncall.GenerateSuggestionsFC;
+import com.writesmith.openai.structuredoutput.GenerateSuggestionsSO;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -59,23 +59,23 @@ public class SuggestionsGenerator {
 
     }
 
-    public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         return generateSuggestions(count, conversation, (List<String>)null);
     }
 
-    public static List<Suggestion> generateSuggestions(Integer count, String conversation, String differentThan) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static List<Suggestion> generateSuggestions(Integer count, String conversation, String differentThan) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         return generateSuggestions(count, List.of(conversation), List.of(differentThan));
     }
 
-    public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation, String differentThan) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation, String differentThan) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         return generateSuggestions(count, conversation, List.of(differentThan));
     }
 
-    public static List<Suggestion> generateSuggestions(Integer count, String conversation, List<String> differentThan) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static List<Suggestion> generateSuggestions(Integer count, String conversation, List<String> differentThan) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         return generateSuggestions(count, List.of(conversation), differentThan);
     }
 
-    public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation, List<String> differentThan) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static List<Suggestion> generateSuggestions(Integer count, List<String> conversation, List<String> differentThan) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         // Create prompt String
         String prompt = "";
 
@@ -109,7 +109,7 @@ public class SuggestionsGenerator {
         return generateSuggestions(prompt);
     }
 
-    public static List<Suggestion> generateSuggestions(String prompt) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    public static List<Suggestion> generateSuggestions(String prompt) throws OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, IOException, InterruptedException {
         // Create message for GPT
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText(prompt)
@@ -120,7 +120,7 @@ public class SuggestionsGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                GenerateSuggestionsFC.class,
+                GenerateSuggestionsSO.class,
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -134,10 +134,10 @@ public class SuggestionsGenerator {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create generateSuggestionsFC
-        GenerateSuggestionsFC generateSuggestionsFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateSuggestionsFC.class);
+        GenerateSuggestionsSO generateSuggestionsSO = JSONSchemaDeserializer.deserialize(responseString, GenerateSuggestionsSO.class);
 
         // Transpose getSuggestionsFC result to Suggestion list
-        List<Suggestion> suggestions = generateSuggestionsFC.getSuggestions().stream()
+        List<Suggestion> suggestions = generateSuggestionsSO.getSuggestions().stream()
                 .map(Suggestion::new)
                 .toList();
 

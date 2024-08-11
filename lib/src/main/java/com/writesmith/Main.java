@@ -5,9 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.Server;
-import com.writesmith.core.service.request.CheckIfChatRequestsImageRevisionRequest;
-import com.writesmith.core.service.request.GenerateDrawersRequest;
-import com.writesmith.core.service.request.GenerateGoogleQueryRequest;
 import com.writesmith.core.service.websockets.GetChatWebSocket;
 import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy_2;
 import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy_1;
@@ -16,7 +13,7 @@ import com.writesmith.core.service.websockets.GetChatWithPersistentImageWebSocke
 import com.writesmith.exceptions.responsestatus.InvalidFileTypeException;
 import com.writesmith.keys.Keys;
 import com.writesmith.core.service.response.*;
-import com.writesmith.openai.functioncall.*;
+import com.writesmith.openai.structuredoutput.*;
 
 import javax.security.sasl.AuthenticationException;
 import java.sql.DriverManager;
@@ -77,7 +74,7 @@ public class Main {
 
         // Set up https v1 path
         path("/v1", () -> configureHttpEndpoints());
-        path("/v1" + Constants.URIs.Function.SUBDIRECTORY_PREFIX, () -> configureFuncEndpoints());
+        path("/v1" + Constants.URIs.Function.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputEndpoints());
 
         // Set up https dev path
         path("/dev", () -> configureHttpEndpoints(true));
@@ -157,14 +154,14 @@ public class Main {
         webSocket(devPath + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
     }
 
-    private static void configureFuncEndpoints() {
-        // Function Calls
-        post(Constants.URIs.Function.CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION, (req, res) -> Server.functionCall(req, res, CheckIfChatRequestsImageRevisionRequest.class));
-        post(Constants.URIs.Function.CLASSIFY_CHAT, (req, res) -> Server.functionCall(req, res, ClassifyChatFC.class));
-        post(Constants.URIs.Function.GENERATE_DRAWERS, (req, res) -> Server.functionCall(req, res, DrawersFC.class));
-        post(Constants.URIs.Function.GENERATE_GOOGLE_QUERY, (req, res) -> Server.functionCall(req, res, GenerateGoogleQueryFC.class));
-        post(Constants.URIs.Function.GENERATE_SUGGESTIONS, (req, res) -> Server.functionCall(req, res, GenerateSuggestionsFC.class));
-        post(Constants.URIs.Function.GENERATE_TITLE, (req, res) -> Server.functionCall(req, res, GenerateTitleFC.class));
+    private static void configureStructuredOutputEndpoints() {
+        // Structured Outputs
+        post(Constants.URIs.Function.CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION, (req, res) -> Server.structuredOutput(req, res, CheckIfChatRequestsImageRevisionSO.class));
+        post(Constants.URIs.Function.CLASSIFY_CHAT, (req, res) -> Server.structuredOutput(req, res, ClassifyChatSO.class));
+        post(Constants.URIs.Function.GENERATE_DRAWERS, (req, res) -> Server.structuredOutput(req, res, DrawersSO.class));
+        post(Constants.URIs.Function.GENERATE_GOOGLE_QUERY, (req, res) -> Server.structuredOutput(req, res, GenerateGoogleQuerySO.class));
+        post(Constants.URIs.Function.GENERATE_SUGGESTIONS, (req, res) -> Server.structuredOutput(req, res, GenerateSuggestionsSO.class));
+        post(Constants.URIs.Function.GENERATE_TITLE, (req, res) -> Server.structuredOutput(req, res, GenerateTitleSO.class));
     }
 
     private static void configureHttpEndpoints() {

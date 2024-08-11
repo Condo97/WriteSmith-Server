@@ -9,7 +9,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.openai.functioncall.CheckIfChatRequestsImageRevisionFC;
+import com.writesmith.openai.structuredoutput.CheckIfChatRequestsImageRevisionSO;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -40,11 +40,11 @@ public class CheckIfChatRequestsImageRevisionGenerator {
 
     }
 
-    public static ChatRequestsImageRevision requestsImageRevision(String chat) throws OAISerializerException, OpenAIGPTException, OAIDeserializerException, IOException, InterruptedException {
+    public static ChatRequestsImageRevision requestsImageRevision(String chat) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         return generateChatRequestsImageRevision(chat);
     }
 
-    private static ChatRequestsImageRevision generateChatRequestsImageRevision(String chat) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    private static ChatRequestsImageRevision generateChatRequestsImageRevision(String chat) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         // Create message for GPT
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText(chat)
@@ -55,7 +55,7 @@ public class CheckIfChatRequestsImageRevisionGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                CheckIfChatRequestsImageRevisionFC.class,
+                CheckIfChatRequestsImageRevisionSO.class,
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -69,11 +69,11 @@ public class CheckIfChatRequestsImageRevisionGenerator {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create classifyChatFC
-        CheckIfChatRequestsImageRevisionFC checkIfChatRequestsImageRevisionFC = OAIFunctionCallDeserializer.deserialize(responseString, CheckIfChatRequestsImageRevisionFC.class);
+        CheckIfChatRequestsImageRevisionSO checkIfChatRequestsImageRevisionSO = JSONSchemaDeserializer.deserialize(responseString, CheckIfChatRequestsImageRevisionSO.class);
 
         // Transpose classifyChatFC result to ClassifiedChat and return
         ChatRequestsImageRevision chatRequestsImageRevision = new ChatRequestsImageRevision(
-                checkIfChatRequestsImageRevisionFC.getRequestsRevision()
+                checkIfChatRequestsImageRevisionSO.getRequestsRevision()
         );
 
         return chatRequestsImageRevision;

@@ -10,7 +10,7 @@ import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.openai.functioncall.DrawersFC;
+import com.writesmith.openai.structuredoutput.DrawersSO;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -98,7 +98,7 @@ public class DrawerGenerator {
 
     }
 
-    public static Drawers generateDrawers(String input, String imageData) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    public static Drawers generateDrawers(String input, String imageData) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         // Create message for GPT
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText(input)
@@ -110,7 +110,7 @@ public class DrawerGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                DrawersFC.class,
+                DrawersSO.class,
                 OpenAIGPTModels.GPT_4.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -124,12 +124,12 @@ public class DrawerGenerator {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create DrawersFC
-        DrawersFC drawersFC = OAIFunctionCallDeserializer.deserialize(responseString, DrawersFC.class);
+        DrawersSO drawersSO = JSONSchemaDeserializer.deserialize(responseString, DrawersSO.class);
 
         // Transpose drawersFC result to Drawers and return
         Drawers drawers = new Drawers(
-                drawersFC.getTitle(),
-                drawersFC.getDrawers().stream()
+                drawersSO.getTitle(),
+                drawersSO.getDrawers().stream()
                         .map(d -> new Drawers.Drawer(
                                 d.getIndex(),
                                 d.getTitle(),

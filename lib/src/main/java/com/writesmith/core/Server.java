@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.oaigptconnector.model.OAIDeserializerException;
+import com.oaigptconnector.model.JSONSchemaDeserializerException;
 import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.core.service.generators.CheckIfChatRequestsImageRevisionGenerator;
@@ -59,7 +59,7 @@ public class Server {
      * @param response Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String checkIfChatRequestsImageRevision(Request request, Response response) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String checkIfChatRequestsImageRevision(Request request, Response response) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         CheckIfChatRequestsImageRevisionRequest cicrirRequest;
 
         try {
@@ -98,7 +98,7 @@ public class Server {
      * @param response Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String classifyChat(Request request, Response response) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String classifyChat(Request request, Response response) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         ClassifyChatRequest ccRequest;
 
         try {
@@ -215,7 +215,7 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String generateDrawers(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String generateDrawers(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         GenerateDrawersRequest gdRequest;
 
         try {
@@ -255,7 +255,7 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String generateGoogleQuery(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String generateGoogleQuery(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         GenerateGoogleQueryRequest ggqRequest;
 
         try {
@@ -297,7 +297,7 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String generateSuggestions(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String generateSuggestions(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, JSONSchemaDeserializerException, SQLException, OAISerializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         GenerateSuggestionsRequest gsRequest;
 
         try {
@@ -336,7 +336,7 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String generateTitle(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String generateTitle(Request req, Response res) throws IOException, MalformedJSONException, DBSerializerException, SQLException, OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         GenerateTitleRequest gtRequest;
 
         try {
@@ -615,6 +615,43 @@ public class Server {
     }
 
     /***
+     * Structured Output
+     *
+     * Gives the response in a structured output.
+     *
+     * Request: {
+     *     authToken: String - Authentication token generated from registerUser
+     *     model: String - The GPT model to use
+     *     input: String - The input given
+     * }
+     *
+     * Response: {
+     *     response: OAIGPTChatCompletionResponse - The response given by OpenAI GPT's server to the function call
+     * }
+     *
+     * @param req Request object given by Spark
+     * @param res Response object given by Spark
+     * @return Value of JSON response as String
+     */
+    public static String structuredOutput(Request req, Response res, Class<?> fcClass) throws IOException, MalformedJSONException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+        StructuredOutputRequest soRequest;
+
+        try {
+            soRequest = new ObjectMapper().readValue(req.body(), StructuredOutputRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Getting Remaining Tokens... The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage());
+        }
+
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(
+                StructuredOutputEndpoint.structuredOutput(soRequest, fcClass)
+        );
+
+        return new ObjectMapper().writeValueAsString(br);
+    }
+
+    /***
      * Submit Feedback
      *
      * Stores feedback :)
@@ -809,7 +846,7 @@ public class Server {
 
     // -- Other Function Call Stuff -- //
 
-    public static Object otherFC_generateAssistantWebpage(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, OAIDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static Object otherFC_generateAssistantWebpage(Request req, Response res) throws MalformedJSONException, IOException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, JSONSchemaDeserializerException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
         StringRequest sRequest;
 
         try {

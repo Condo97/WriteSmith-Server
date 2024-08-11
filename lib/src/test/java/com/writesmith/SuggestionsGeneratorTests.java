@@ -1,28 +1,16 @@
 package com.writesmith;
 
-import com.oaigptconnector.model.OAIDeserializerException;
+import com.oaigptconnector.model.JSONSchemaDeserializerException;
 import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
-import com.writesmith.core.service.endpoints.GenerateSuggestionsEndpoint;
-import com.writesmith.core.service.endpoints.SubmitFeedbackEndpoint;
 import com.writesmith.core.service.generators.SuggestionsGenerator;
-import com.writesmith.core.service.request.FeedbackRequest;
-import com.writesmith.core.service.request.GenerateSuggestionsRequest;
-import com.writesmith.core.service.response.GenerateSuggestionsResponse;
-import com.writesmith.core.service.response.StatusResponse;
-import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import sqlcomponentizer.dbserializer.DBSerializerException;
-import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SuggestionsGeneratorTests {
 
@@ -47,8 +35,7 @@ public class SuggestionsGeneratorTests {
         try {
             suggestions = SuggestionsGenerator.generateSuggestions(1, conversation, differentThan);
 
-        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException |
-                 OAIDeserializerException e) {
+        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException | JSONSchemaDeserializerException e) {
             throw new RuntimeException(e);
         }
 
@@ -66,8 +53,7 @@ public class SuggestionsGeneratorTests {
         try {
             suggestions = SuggestionsGenerator.generateSuggestions(1, conversation, differentThan);
 
-        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException |
-                 OAIDeserializerException e) {
+        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException | JSONSchemaDeserializerException e) {
             throw new RuntimeException(e);
         }
 
@@ -85,8 +71,7 @@ public class SuggestionsGeneratorTests {
         try {
             suggestions = SuggestionsGenerator.generateSuggestions(1, conversation, differentThan);
 
-        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException |
-                 OAIDeserializerException e) {
+        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException | JSONSchemaDeserializerException e) {
             throw new RuntimeException(e);
         }
 
@@ -104,8 +89,7 @@ public class SuggestionsGeneratorTests {
         try {
             suggestions = SuggestionsGenerator.generateSuggestions(1, conversation, differentThan);
 
-        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException |
-                 OAIDeserializerException e) {
+        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException | JSONSchemaDeserializerException e) {
             throw new RuntimeException(e);
         }
 
@@ -123,8 +107,7 @@ public class SuggestionsGeneratorTests {
         try {
             suggestions = SuggestionsGenerator.generateSuggestions(1, conversation, differentThan);
 
-        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException |
-                 OAIDeserializerException e) {
+        } catch (OAISerializerException | OpenAIGPTException | IOException | InterruptedException | JSONSchemaDeserializerException e) {
             throw new RuntimeException(e);
         }
 

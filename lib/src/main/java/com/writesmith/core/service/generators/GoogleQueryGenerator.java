@@ -9,7 +9,7 @@ import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionReques
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.openai.functioncall.GenerateGoogleQueryFC;
+import com.writesmith.openai.structuredoutput.GenerateGoogleQuerySO;
 import com.writesmith.keys.Keys;
 
 import java.io.IOException;
@@ -65,7 +65,7 @@ public class GoogleQueryGenerator {
 
     }
 
-    public static GoogleQuery generateGoogleQuery(List<InputChat> inputChats) throws OAISerializerException, OpenAIGPTException, IOException, InterruptedException, OAIDeserializerException {
+    public static GoogleQuery generateGoogleQuery(List<InputChat> inputChats) throws OAISerializerException, JSONSchemaDeserializerException, OpenAIGPTException, IOException, InterruptedException {
         // Create message for GPT
         List<OAIChatCompletionRequestMessage> messages = inputChats.stream().map(i ->
                 new OAIChatCompletionRequestMessageBuilder(i.getRole())
@@ -78,7 +78,7 @@ public class GoogleQueryGenerator {
 
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
-                GenerateGoogleQueryFC.class,
+                GenerateGoogleQuerySO.class,
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
@@ -92,11 +92,11 @@ public class GoogleQueryGenerator {
         String responseString = response.getChoices()[0].getMessage().getTool_calls().get(0).getFunction().getArguments();
 
         // Create generateGoogleQueryFC
-        GenerateGoogleQueryFC generateGoogleQueryFC = OAIFunctionCallDeserializer.deserialize(responseString, GenerateGoogleQueryFC.class);
+        GenerateGoogleQuerySO generateGoogleQuerySO = JSONSchemaDeserializer.deserialize(responseString, GenerateGoogleQuerySO.class);
 
         // Transpose generateGoogleQueryFC result to GoogleQuery and return
         GoogleQuery googleQuery = new GoogleQuery(
-                generateGoogleQueryFC.getQuery()
+                generateGoogleQuerySO.getQuery()
         );
 
         return googleQuery;
