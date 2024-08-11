@@ -74,7 +74,7 @@ public class Main {
 
         // Set up https v1 path
         path("/v1", () -> configureHttpEndpoints());
-        path("/v1" + Constants.URIs.Function.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputEndpoints());
+        path("/v1" + Constants.URIs.StructuredOutput.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputEndpoints());
 
         // Set up https dev path
         path("/dev", () -> configureHttpEndpoints(true));
@@ -156,12 +156,13 @@ public class Main {
 
     private static void configureStructuredOutputEndpoints() {
         // Structured Outputs
-        post(Constants.URIs.Function.CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION, (req, res) -> Server.structuredOutput(req, res, CheckIfChatRequestsImageRevisionSO.class));
-        post(Constants.URIs.Function.CLASSIFY_CHAT, (req, res) -> Server.structuredOutput(req, res, ClassifyChatSO.class));
-        post(Constants.URIs.Function.GENERATE_DRAWERS, (req, res) -> Server.structuredOutput(req, res, DrawersSO.class));
-        post(Constants.URIs.Function.GENERATE_GOOGLE_QUERY, (req, res) -> Server.structuredOutput(req, res, GenerateGoogleQuerySO.class));
-        post(Constants.URIs.Function.GENERATE_SUGGESTIONS, (req, res) -> Server.structuredOutput(req, res, GenerateSuggestionsSO.class));
-        post(Constants.URIs.Function.GENERATE_TITLE, (req, res) -> Server.structuredOutput(req, res, GenerateTitleSO.class));
+        post(Constants.URIs.StructuredOutput.CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION, (req, res) -> Server.structuredOutput(req, res, CheckIfChatRequestsImageRevisionSO.class));
+        post(Constants.URIs.StructuredOutput.CLASSIFY_CHAT, (req, res) -> Server.structuredOutput(req, res, ClassifyChatSO.class));
+        post(Constants.URIs.StructuredOutput.GENERATE_DRAWERS, (req, res) -> Server.structuredOutput(req, res, DrawersSO.class));
+        post(Constants.URIs.StructuredOutput.GENERATE_FLASH_CARDS, (req, res) -> Server.structuredOutput(req, res, FlashCardsSO.class));
+        post(Constants.URIs.StructuredOutput.GENERATE_GOOGLE_QUERY, (req, res) -> Server.structuredOutput(req, res, GenerateGoogleQuerySO.class));
+        post(Constants.URIs.StructuredOutput.GENERATE_SUGGESTIONS, (req, res) -> Server.structuredOutput(req, res, GenerateSuggestionsSO.class));
+        post(Constants.URIs.StructuredOutput.GENERATE_TITLE, (req, res) -> Server.structuredOutput(req, res, GenerateTitleSO.class));
     }
 
     private static void configureHttpEndpoints() {

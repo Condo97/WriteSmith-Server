@@ -63,11 +63,12 @@ public final class Constants {
 
     /* URIs for HTTPSServer */
     class URIs {
-        class Function {
+        class StructuredOutput {
             public static final String SUBDIRECTORY_PREFIX = "/func";
             public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
             public static final String CLASSIFY_CHAT = "/classifyChat";
             public static final String GENERATE_DRAWERS = "/generateDrawers";
+            public static final String GENERATE_FLASH_CARDS = "/generateFlashCards";
             public static final String GENERATE_GOOGLE_QUERY = "/generateGoogleQuery";
             public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
             public static final String GENERATE_TITLE = "/generateTitle";
