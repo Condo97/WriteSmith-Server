@@ -6,6 +6,9 @@ import com.oaigptconnector.model.JSONSchemaParameter;
 @JSONSchema(name = "Classify_Chat", functionDescription = "Takes an input chat and classifies it.", strict = JSONSchema.NullableBool.TRUE)
 public class ClassifyChatSO {
 
+    @JSONSchemaParameter(name = "Requested_Flashcards", description = "True if the user explicitly and certainly requested flash cards to be created or previous flash cards to be revised.")
+    private Boolean wantsFlashCards;
+
     @JSONSchemaParameter(name = "Provided_Image_Generation_Prompt_And_Requested_Generation", description = "True if the user explicitly and certainly requested image generation, creation, making, or similar and provided a prompt to use in DALL-E, otherwise false.")
     private Boolean wantsImageGeneration;
 
@@ -14,6 +17,10 @@ public class ClassifyChatSO {
 
     public ClassifyChatSO() {
 
+    }
+
+    public Boolean getWantsFlashCards() {
+        return wantsFlashCards;
     }
 
     public Boolean getWantsImageGeneration() {
