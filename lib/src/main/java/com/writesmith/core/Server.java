@@ -633,7 +633,7 @@ public class Server {
      * @param res Response object given by Spark
      * @return Value of JSON response as String
      */
-    public static String structuredOutput(Request req, Response res, Class<?> fcClass) throws IOException, MalformedJSONException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+    public static String structuredOutput(Request req, Response res, Class<?> fcClass) throws IOException, MalformedJSONException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, JSONSchemaDeserializerException {
         StructuredOutputRequest soRequest;
 
         try {

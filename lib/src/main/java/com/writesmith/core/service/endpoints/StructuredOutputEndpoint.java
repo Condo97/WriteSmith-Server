@@ -1,9 +1,6 @@
 package com.writesmith.core.service.endpoints;
 
-import com.oaigptconnector.model.FCClient;
-import com.oaigptconnector.model.OAIClient;
-import com.oaigptconnector.model.OAISerializerException;
-import com.oaigptconnector.model.SOJSONSchemaSerializer;
+import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
@@ -14,6 +11,7 @@ import com.writesmith.Constants;
 import com.writesmith.core.service.request.FunctionCallRequest;
 import com.writesmith.core.service.request.StructuredOutputRequest;
 import com.writesmith.core.service.response.OAICompletionResponse;
+import com.writesmith.core.service.response.StructuredOutputResponse;
 import com.writesmith.database.dao.factory.ChatFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.database.model.objects.User_AuthToken;
@@ -32,7 +30,7 @@ public class StructuredOutputEndpoint {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build();
 
-    public static OAICompletionResponse structuredOutput(StructuredOutputRequest request, Class<?> soClass) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, OAISerializerException, OpenAIGPTException, IOException, DBSerializerPrimaryKeyMissingException {
+    public static StructuredOutputResponse structuredOutput(StructuredOutputRequest request, Class<?> soClass) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, OAISerializerException, OpenAIGPTException, IOException, DBSerializerPrimaryKeyMissingException, JSONSchemaDeserializerException {
         // Get u_aT
         User_AuthToken u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
 
@@ -54,13 +52,19 @@ public class StructuredOutputEndpoint {
                 request.getMessages()
         );
 
-        // Return response
-        return new OAICompletionResponse(
-                OAIClient.postChatCompletion(
+        // Get response
+        OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(
                 chatCompletionRequest,
                 openAIKey,
                 httpClient
-            )
+        );
+
+        // Transform back into requested StructuredOutput class
+        Object responseSOObject = JSONSchemaDeserializer.deserialize(response.getChoices()[0].getMessage().getContent(), soClass);
+
+        // Return response
+        return new StructuredOutputResponse(
+                responseSOObject
         );
 
 
