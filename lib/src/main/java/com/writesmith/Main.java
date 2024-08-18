@@ -75,6 +75,7 @@ public class Main {
         // Set up https v1 path
         path("/v1", () -> configureHttpEndpoints());
         path("/v1" + Constants.URIs.StructuredOutput.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputEndpoints());
+        path("/v1" + Constants.URIs.StructuredOutput.SUBDIRECTORY_PREFIX_LEGACY, () -> configureStructuredOutputEndpoints());
 
         // Set up https dev path
         path("/dev", () -> configureHttpEndpoints(true));

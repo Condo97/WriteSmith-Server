@@ -64,7 +64,8 @@ public final class Constants {
     /* URIs for HTTPSServer */
     class URIs {
         class StructuredOutput {
-            public static final String SUBDIRECTORY_PREFIX = "/func";
+            public static final String SUBDIRECTORY_PREFIX = "/structuredOutput";
+            public static final String SUBDIRECTORY_PREFIX_LEGACY = "/structuredOutput";
             public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
             public static final String CLASSIFY_CHAT = "/classifyChat";
             public static final String GENERATE_DRAWERS = "/generateDrawers";
