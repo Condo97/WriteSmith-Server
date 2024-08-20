@@ -11,7 +11,10 @@ import com.oaigptconnector.model.FCJSONSchemaSerializer;
 import com.oaigptconnector.model.JSONSchemaSerializer;
 import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.OAISerializerException;
+import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.*;
+import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContent;
+import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentText;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
 import com.writesmith.core.service.ResponseStatus;
 import com.writesmith.core.service.request.GetChatRequest;
@@ -49,6 +52,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -234,8 +238,6 @@ public class GetChatWebSocket {
                 // Get response as JsonNode
                 JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
 
-                System.out.println("RESPONSE: " + response);
-
                 // Get responseJSON as OpenAIGPTChatCompletionStreamResponse
                 OpenAIGPTChatCompletionStreamResponse streamResponse;
                 try {
@@ -302,7 +304,11 @@ public class GetChatWebSocket {
                 promptTokens.get()
         );
 
-//        // Print log to console
+        // Print log to console
+        printStreamedGeneratedChatDoBetterLoggingLol(
+                u_aT.getUserID(),
+                chatCompletionRequest
+        );
 //        printStreamedGeneratedChatDoBetterLoggingLol(gc, purifiedOAIChatCompletionRequest.getRequest(), isPremium, startTime, getAuthTokenTime, getIsPremiumTime, beforeStartStreamTime, firstChatTime);
     }
 
@@ -352,80 +358,30 @@ public class GetChatWebSocket {
 
     }
 
-//    // TODO: Better logging lol
-//    private void printStreamedGeneratedChatDoBetterLoggingLol(GeneratedChat gc, OAIChatCompletionRequest completionRequest, Boolean isPremium, LocalDateTime startTime, LocalDateTime getAuthTokenTime, LocalDateTime getIsPremiumTime, LocalDateTime beforeStartStreamTime, AtomicReference<LocalDateTime> firstChatTime) {
-//        final int maxLength = 40;
-//
-//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-//        Date date = new Date();
-//
+    // TODO: Better logging lol
+    private void printStreamedGeneratedChatDoBetterLoggingLol(Integer userID, OAIChatCompletionRequest completionRequest/*, LocalDateTime startTime, LocalDateTime getAuthTokenTime, LocalDateTime getIsPremiumTime, LocalDateTime beforeStartStreamTime, AtomicReference<LocalDateTime> firstChatTime*/) {
+        final int maxLength = 40;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date();
+
 //        String output = gc.getChat().getText();
-//
-//        int charsInCompletionRequest = 0;
-//        for (OAIChatCompletionRequestMessage message: completionRequest.getMessages())
-//            for (OAIChatCompletionRequestMessageContent content: message.getContent())
-//                switch (content.getType()) {
-//                    case TEXT -> charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText)content).getText().length();
-//                    // TODO: Image and ImageURL maybe
-//                }
-//
-//        StringBuilder sb = new StringBuilder();
-//        sb.append("Chat ");
-//        sb.append(gc.getChat().getChat_id());
-//        sb.append(" Streamed ");
-//        sb.append(sdf.format(date));
-//        if (output != null) {
-//            sb.append("\t");
-//            sb.append(output.length() >= maxLength ? output.substring(0, maxLength) : output);
-//            sb.append("... ");
-//            sb.append(output.length() + charsInCompletionRequest);
-//            sb.append(" total chars");
-//        }
-//
-//        // Append isPremium to sb if isPremium is true
-//        if (isPremium) {
-//            sb.append(", is premium");
-//        }
-//
-//        // Get current time
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        // Append difference from startTime to getAuthTokenTime to sb
-//        if (getAuthTokenTime != null && startTime != null) {
-//            long startToAuthTokenMS = Duration.between(startTime, getAuthTokenTime).toMillis();
-//            sb.append(", Start to authToken: " + startToAuthTokenMS + "ms");
-//        }
-//
-//        // Append difference from getAuthTokenTime to getIsPremiumTime
-//        if (getIsPremiumTime != null && getAuthTokenTime != null) {
-//            long authTokenToIsPremiumMS = Duration.between(getAuthTokenTime, getIsPremiumTime).toMillis();
-//            sb.append(", to isPremium: " + authTokenToIsPremiumMS + "ms");
-//        }
-//
-//        // Append difference from getIsPremiumTime to beforeStartStreamTime
-//        if (beforeStartStreamTime != null && getIsPremiumTime != null) {
-//            long isPremiumToStartStreamMS = Duration.between(getIsPremiumTime, beforeStartStreamTime).toMillis();
-//            sb.append(", to before stream start: " + isPremiumToStartStreamMS + "ms");
-//        }
-//
-//        // Append difference from beforeStreamStartTime to firstChatTime
-//        if (firstChatTime != null && firstChatTime.get() != null && beforeStartStreamTime != null) {
-//            long startStreamToFirstChatMS = Duration.between(beforeStartStreamTime, firstChatTime.get()).toMillis();
-//            sb.append(", to first chat: " + startStreamToFirstChatMS + "ms");
-//        }
-//
-//        // Append difference in seconds from start time to first chat generated to sb
-//        if (firstChatTime != null && firstChatTime.get() != null && startTime != null) {
-//            long startToFirstChatSeconds = Duration.between(startTime, firstChatTime.get()).toSeconds();
-//            sb.append(", first chat took " + startToFirstChatSeconds + " seconds,");
-//        }
-//
-//        if (now != null && startTime != null) {
-//            long startToFinishGeneratingSeconds = Duration.between(startTime, now).toSeconds();
-//            sb.append(" complete generation took " + startToFinishGeneratingSeconds + " seconds.");
-//        }
-//
-//        System.out.println(sb.toString());
-//    }
+
+        int charsInCompletionRequest = 0;
+        for (OAIChatCompletionRequestMessage message: completionRequest.getMessages())
+            for (OAIChatCompletionRequestMessageContent content: message.getContent())
+                if (content instanceof OAIChatCompletionRequestMessageContentText)
+                    charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText)content).getText().length();
+                    // TODO: Image and ImageURL maybe
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(sdf.format(date));
+        sb.append(" User ");
+        sb.append(userID);
+        sb.append(" Streamed Chat - ");
+        sb.append(completionRequest.getModel());
+
+        System.out.println(sb.toString());
+    }
 
 }
