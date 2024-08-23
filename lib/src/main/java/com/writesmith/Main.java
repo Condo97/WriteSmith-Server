@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.writesmith.connectionpool.SQLConnectionPoolInstance;
 import com.writesmith.core.Server;
+import com.writesmith.core.service.endpoints.GenerateSpeechEndpoint;
 import com.writesmith.core.service.websockets.GetChatWebSocket;
 import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy_2;
 import com.writesmith.core.service.websockets.GetChatWebSocket_Legacy_1;
@@ -192,6 +193,9 @@ public class Main {
         post(Constants.URIs.SUBMIT_FEEDBACK, Server::submitFeedback);
         post(Constants.URIs.TRANSCRIBE_SPEECH, Server::transcribeSpeech);
         post(Constants.URIs.VALIDATE_AUTHTOKEN, Server::validateAuthToken);
+
+        // Other POST Functions that are different lol
+        post(Constants.URIs.GENERATE_SPEECH, GenerateSpeechEndpoint::generateSpeech);
 
         // OtherFC POST Functions
         post(Constants.URIs.OTHER_FC_GENERATE_ASSISTANT_WEBPAGE, Server::otherFC_generateAssistantWebpage);

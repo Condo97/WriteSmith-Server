@@ -9,7 +9,7 @@ public final class Constants {
     private Constants() {
     }
 
-    public final class Additional {
+    public static final class Additional {
 
         public static final Integer functionCallGenerationTokenLimit = 1500;
         public static final Integer functionCallDefaultTemperature = 1;
@@ -92,6 +92,8 @@ public final class Constants {
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
         public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
         public static final String GET_REMAINING_URI = "/getRemaining";
+
+        public static final String GENERATE_SPEECH = "/generateSpeech";
         public static final String GOOGLE_SEARCH_URI = "/googleSearch";
         public static final String OTHER_FC_GENERATE_ASSISTANT_WEBPAGE = "/otherFCGenerateAssistantWebpage";
         public static final String PRINT_TO_CONSOLE = "/printToConsole";
