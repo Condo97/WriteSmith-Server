@@ -41,7 +41,7 @@ public class GenerateSpeechEndpoint {
                 gsRequest.getResponseFormat(),
                 gsRequest.getSpeed()
         );
-
+        System.out.println("Test");
         // Generate speech
         byte[] generatedSpeech = SpeechGenerator.postSpeechGeneration(
                 speechGenerationRequest,
