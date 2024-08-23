@@ -57,7 +57,7 @@ public class GenerateSpeechEndpoint {
         byte[] buffer = new byte[1024];
         int bytesRead;
         while ((bytesRead = inputStream.read(buffer)) != -1) {
-            res.raw().getOutputStream().write(buffer, bytesRead, bytesRead);
+            res.raw().getOutputStream().write(buffer, 0, bytesRead);
         }
         inputStream.close();
 
