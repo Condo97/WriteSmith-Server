@@ -21,7 +21,7 @@ public class SpeechGenerator {
         String requestString = new ObjectMapper().writeValueAsString(requestObject);
         HttpRequest request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.ofString(requestString))
-                .uri(Constants.OPENAI_SPEECH_TRANSCRIPTION_URI)
+                .uri(Constants.OPENAI_SPEECH_GENERATION_URI)
                 .setHeader("Content-Type", "application/json")
                 .setHeader("Authorization", "Bearer " + apiKey)
                 .build();

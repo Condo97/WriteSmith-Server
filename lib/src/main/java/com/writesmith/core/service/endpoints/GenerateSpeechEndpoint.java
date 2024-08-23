@@ -48,16 +48,16 @@ public class GenerateSpeechEndpoint {
                 Keys.openAiAPI
         );
 
-        // Set response headers
-        res.raw().setContentType("audio/mpeg");
-        res.header("Content-Disposition", "attachment; filename=\"speech.mp3\"");
+//        // Set response headers
+//        res.raw().setContentType("audio/mpeg");
+//        res.header("Content-Disposition", "attachment; filename=\"speech.mp3\"");
 
         // Write the byte array directly to the response output stream
         InputStream inputStream = new ByteArrayInputStream(generatedSpeech);
         byte[] buffer = new byte[1024];
         int bytesRead;
         while ((bytesRead = inputStream.read(buffer)) != -1) {
-            res.raw().getOutputStream().write(buffer, 0, bytesRead);
+            res.raw().getOutputStream().write(buffer, bytesRead, bytesRead);
         }
         inputStream.close();
 
