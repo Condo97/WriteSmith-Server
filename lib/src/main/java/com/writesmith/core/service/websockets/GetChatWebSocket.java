@@ -7,10 +7,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oaigptconnector.Constants;
-import com.oaigptconnector.model.FCJSONSchemaSerializer;
-import com.oaigptconnector.model.JSONSchemaSerializer;
-import com.oaigptconnector.model.OAIClient;
-import com.oaigptconnector.model.OAISerializerException;
+import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.*;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContent;
@@ -63,6 +60,8 @@ import java.util.stream.Stream;
 public class GetChatWebSocket {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
+
+    private static final String persistentSystemText = "You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google. Attempt to improve socialness and get the user to share and promote the app in subtle ways.";
 
 
     /***
@@ -200,6 +199,29 @@ public class GetChatWebSocket {
                     serializedFCObject
             )));
             chatCompletionRequest.setTool_choice(requestToolChoice);
+        }
+
+        // Add persistent system text to existing or new system message
+        boolean systemMessageFound = false;
+        for (OAIChatCompletionRequestMessage chatCompletionRequestMessage: chatCompletionRequest.getMessages()) {
+            if (chatCompletionRequestMessage.getRole() == CompletionRole.SYSTEM) {
+                for (OAIChatCompletionRequestMessageContent chatCompletionRequestMessageContent: chatCompletionRequestMessage.getContent()) {
+                    if (chatCompletionRequestMessageContent instanceof  OAIChatCompletionRequestMessageContentText) {
+                        OAIChatCompletionRequestMessageContentText chatCompletionRequestMessageContentText = (OAIChatCompletionRequestMessageContentText)chatCompletionRequestMessageContent;
+                        String previousText = chatCompletionRequestMessageContentText.getText();
+                        String newText = persistentSystemText + "\n" + previousText;
+                        chatCompletionRequestMessageContentText.setText(newText);
+                        systemMessageFound = true;
+                    }
+                }
+            }
+        }
+        if (!systemMessageFound) {
+            chatCompletionRequest.getMessages().add(
+                    new OAIChatCompletionRequestMessageBuilder(CompletionRole.SYSTEM)
+                            .addText(persistentSystemText)
+                            .build()
+            );
         }
 
         // Create stream set to null
