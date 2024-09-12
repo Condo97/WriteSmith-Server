@@ -17,6 +17,8 @@ import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
 import com.writesmith.keys.Keys;
+import com.writesmith.openai.structuredoutput.ClassifyChatSO;
+import com.writesmith.openai.structuredoutput.GenerateSuggestionsSO;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -25,6 +27,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.http.HttpClient;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.util.List;
 
 public class StructuredOutputEndpoint {
 
@@ -115,6 +118,14 @@ public class StructuredOutputEndpoint {
     }
 
     private static void printLog(Class<?> soClass, Integer userID) {
+        List<Class<?>> classesToNotPrint = List.of(
+                ClassifyChatSO.class,
+                GenerateSuggestionsSO.class
+        );
+
+        if (classesToNotPrint.contains(soClass))
+            return;
+
         System.out.println("User " + userID + " Generated SO " + soClass.toString());
     }
 
