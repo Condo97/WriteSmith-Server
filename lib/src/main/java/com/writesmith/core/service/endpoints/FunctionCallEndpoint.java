@@ -87,7 +87,7 @@ public class FunctionCallEndpoint {
     }
 
     private static void printLog(Class<?> fcClass, Integer userID) {
-        System.out.println("User " + userID + " Generated " + fcClass.toString());
+        System.out.println("User " + userID + " Generated FC " + fcClass.toString());
     }
 
 }

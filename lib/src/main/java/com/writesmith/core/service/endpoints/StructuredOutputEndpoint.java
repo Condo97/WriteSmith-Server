@@ -62,6 +62,12 @@ public class StructuredOutputEndpoint {
         // Transform back into requested StructuredOutput class
         Object responseSOObject = JSONSchemaDeserializer.deserialize(response.getChoices()[0].getMessage().getContent(), soClass);
 
+        // Print to console
+        printLog(
+                soClass,
+                u_aT.getUserID()
+        );
+
         // Return response
         return new StructuredOutputResponse(
                 responseSOObject
@@ -106,6 +112,10 @@ public class StructuredOutputEndpoint {
 //
 //        // Return OAIGPTChatCompletionResponse in OAICompletionResponse
 //        return new OAICompletionResponse(response);
+    }
+
+    private static void printLog(Class<?> soClass, Integer userID) {
+        System.out.println("User " + userID + " Generated SO " + soClass.toString());
     }
 
 }
