@@ -76,8 +76,18 @@ public class FunctionCallEndpoint {
                 response.getUsage().getPrompt_tokens()
         );
 
+        // Log to console
+        printLog(
+                fcClass,
+                u_aT.getUserID()
+        );
+
         // Return OAIGPTChatCompletionResponse in OAICompletionResponse
         return new OAICompletionResponse(response);
+    }
+
+    private static void printLog(Class<?> fcClass, Integer userID) {
+        System.out.println("User " + userID + " Generated " + fcClass.toString());
     }
 
 }
