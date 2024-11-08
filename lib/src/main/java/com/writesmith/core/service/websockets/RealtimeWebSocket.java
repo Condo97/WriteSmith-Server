@@ -126,7 +126,7 @@ public class RealtimeWebSocket {
             // For example, initiate a response
             try {
                 Map<String, Object> responseCreateEvent = Map.of(
-                        "type", "response.create",
+                        "type", "conversation.item.create",
                         "response", Map.of(
                                 "modalities", new String[]{"text", "audio"},
                                 "instructions", "Please assist the user."
@@ -134,6 +134,7 @@ public class RealtimeWebSocket {
                 );
                 String message = objectMapper.writeValueAsString(responseCreateEvent);
                 openAISession.getRemote().sendString(message);
+                openAISession.getRemote().sendString("response.create");
             } catch (IOException e) {
                 e.printStackTrace();
                 sendErrorToClient("Failed to send initial message to OpenAI Realtime API.");
