@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    // Javalin for HTTPS server
+    // SparkJava for HTTPS server
     implementation 'com.sparkjava:spark-core:2.9.4'
 
     // Apache HttpClient for new HTTP requests

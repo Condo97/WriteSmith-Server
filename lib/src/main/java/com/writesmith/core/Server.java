@@ -770,7 +770,7 @@ public class Server {
 
         // Try to parse the authRequest from request.body
         try {
-            authRequest = new ObjectMapper().readValue(request.body(), GetChatLegacyRequest.class);
+            authRequest = new ObjectMapper().readValue(request.body(), AuthRequest.class);
         } catch (JsonMappingException | JsonParseException e) {
             System.out.println("Exception when Getting Chat.. The request: " + request.body());
             e.printStackTrace();

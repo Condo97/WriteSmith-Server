@@ -97,6 +97,7 @@ public final class Constants {
         public static final String GOOGLE_SEARCH_URI = "/googleSearch";
         public static final String OTHER_FC_GENERATE_ASSISTANT_WEBPAGE = "/otherFCGenerateAssistantWebpage";
         public static final String PRINT_TO_CONSOLE = "/printToConsole";
+        public static final String REALTIME = "/realtime";
         public static final String REGISTER_APNS = "/registerAPNS";
         public static final String REGISTER_USER_URI = "/registerUser";
         public static final String REGISTER_TRANSACTION_URI = "/registerTransaction";
