@@ -12,8 +12,13 @@ import com.writesmith.exceptions.responsestatus.InvalidFileTypeException;
 import com.writesmith.keys.Keys;
 import com.writesmith.core.service.response.*;
 import com.writesmith.openai.structuredoutput.*;
+import spark.resource.ExternalResource;
 
 import javax.security.sasl.AuthenticationException;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -60,8 +65,11 @@ public class Main {
         // Set up SQLConnectionPoolInstance
         SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, connections);
 
-        // Set up Policy static file location
-        staticFiles.location("/policies");
+//        // Set up Policy static file location
+//        staticFiles.location("/policies");
+
+//        staticFiles.externalLocation(Paths.get("/public").toString());
+        staticFiles.location("/public");
 
         // Set up Spark thread pool and port
         threadPool(threads, MIN_THREADS, TIMEOUT_MS);
@@ -204,6 +212,24 @@ public class Main {
         // Get Constants
         post(Constants.URIs.GET_IMPORTANT_CONSTANTS_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetImportantConstantsResponse())));
         post(Constants.URIs.GET_IAP_STUFF_URI, (req, res) -> new ObjectMapper().writeValueAsString(new BodyResponse(ResponseStatus.SUCCESS, new GetIAPStuffResponse())));
+
+        // Pages
+        get(Constants.URIs.APPLE_ASSOCIATED_DOMAIN, (req, res) -> new String(ClassLoader.getSystemResourceAsStream("AssociatedDomainFile.json").readAllBytes(), StandardCharsets.UTF_8));
+
+        // Associated Domain Deep Link Pages
+        get(Constants.URIs.CHEF_APP_DEEP_LINK_PAGE + "/recipe/:recipeID", (req, res) -> {
+            String recipeID = req.params(":recipeID");
+
+            // Read the HTML template file
+            String htmlContent = new String(ClassLoader.getSystemResourceAsStream("public/ChefAppDeepLinkPage.html").readAllBytes(), StandardCharsets.UTF_8);
+
+
+            // Replace the placeholder with the actual recipe ID
+            htmlContent = htmlContent.replace("{recipeID}", recipeID);
+
+            // Return the modified HTML content
+            return htmlContent;
+        });
 
         // Legacy Functions
         post(Constants.GET_DISPLAY_PRICE_URI, (req, res) -> new ObjectMapper().writeValueAsString( new BodyResponse(ResponseStatus.SUCCESS, new LegacyGetDisplayPriceResponse())));

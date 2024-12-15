@@ -3,6 +3,7 @@ package com.writesmith.core.service.endpoints;
 import com.oaigptconnector.model.*;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
+import com.oaigptconnector.model.jsonschema.isobase.SOBase;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
@@ -41,7 +42,7 @@ public class StructuredOutputEndpoint {
         String openAIKey = Keys.openAiAPI;
 
         // Objectify soClass
-        Object soObject = SOJSONSchemaSerializer.objectify(soClass);
+        SOBase soObject = SOJSONSchemaSerializer.objectify(soClass);
 
         // Create request
         OAIChatCompletionRequest chatCompletionRequest = OAIChatCompletionRequest.build(

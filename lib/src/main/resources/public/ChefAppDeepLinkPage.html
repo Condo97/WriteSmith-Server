@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Placeholder for recipeID -->
+    <meta name="apple-itunes-app" content="app-id=6450523267, app-argument=chefapp://recipe/{recipeID}">
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Damion&display=swap" rel="stylesheet">
+    <title>ChefApp - Open Recipe</title>
+    <!-- Add viewport meta tag for responsiveness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Import Avenir font (if available) or fallback to sans-serif */
+        @font-face {
+            font-family: 'Avenir';
+            src: local('Avenir'), local('Avenir-Regular'), url('path-to-your-avenir-font.woff2') format('woff2');
+            /* Optional: provide a path to your custom font if hosting */
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        /* Reset some default styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Avenir', sans-serif;
+            background-color: #F9F4ED; /* Optional: background color */
+        }
+
+        /* Container to center content */
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Logo styling */
+        .logo {
+            width: 70%;
+            max-width: 300px; /* Prevent images from becoming too large on bigger screens */
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        /* App name styling */
+        .app-name {
+            width: 70%;
+            max-width: 300px;
+            text-align: center;
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: #333; /* Text color */
+            font-family: 'Damion', cursive; /* Apply Damion font */
+        }
+
+        /* Subtitle styling */
+        .subtitle {
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            font-size: 1em;
+            margin-bottom: 30px;
+            color: #555; /* Optional: subtitle color */
+        }
+
+        /* Button common styling */
+        .button {
+            width: 90%;
+            max-width: 400px;
+            padding: 15px 0;
+            border-radius: 25px; /* Rounded corners */
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none; /* Remove underline for link buttons */
+            box-sizing: border-box;
+            margin-bottom: 15px; /* Space between buttons */
+        }
+
+        /* Download Now Button styling (orange background) */
+        .download-button {
+            background-color: #FF6F61; /* Custom orange color */
+            color: #FFFDF9; /* Light text */
+            border: none;
+        }
+
+        .download-button:hover {
+            background-color: #e65b50; /* Darker shade on hover */
+        }
+
+        .download-button:active {
+            background-color: #cc4a45; /* Even darker on active */
+        }
+
+        /* Open App Button styling (inverted colors) */
+        .open-app-button {
+            background-color: #FFFDF9; /* White background */
+            color: #FF6F61; /* Orange text */
+            border: 2px solid #FF6F61; /* Orange border */
+        }
+
+        .open-app-button:hover {
+            background-color: #FF6F61; /* Orange background on hover */
+            color: #FFFFFF; /* White text on hover */
+        }
+
+        .open-app-button:active {
+            background-color: #e65b50; /* Darker orange on active */
+            color: #FFFFFF; /* White text on active */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .app-name {
+                font-size: 1.8em;
+            }
+            .subtitle {
+                font-size: 0.9em;
+            }
+            .button {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- ChefApp logo -->
+    <img src="/ChefAppLogo.png" alt="ChefApp Logo" class="logo">
+    <!-- App name -->
+    <h1 class="app-name">ChefApp</h1>
+    <!-- Subtitle -->
+    <p class="subtitle">You've received a new recipe!</p>
+    <!-- Download Now Button (now on top with orange background) -->
+    <button id="downloadDirectButton" class="button download-button">Download Now</button>
+    <!-- Open App Button (now below with inverted colors) -->
+    <button id="openAppButton" class="button open-app-button">Open in App</button>
+</div>
+<script>
+        // Function to extract the recipeID from the URL path
+        function getRecipeID() {
+            // Get the path part of the URL
+            var path = window.location.pathname;
+            // Use regex to extract the recipeID after '/chefappdeeplink/recipe/'
+            var regex = /\/chefappdeeplink\/recipe\/([^\/]+)/;
+            var match = path.match(regex);
+            if (match) {
+                return match[1]; // Return the recipeID
+            } else {
+                return null; // recipeID not found
+            }
+        }
+
+        // Function to attempt to open the app
+        function openApp() {
+            var recipeID = getRecipeID();
+            if (recipeID) {
+                // Construct the deep link URL
+                var appLink = "chefapp://recipe/" + recipeID;
+                // Attempt to open the app using the deep link
+                window.location = appLink;
+                // After a delay, redirect to the App Store if the app isn't installed
+                setTimeout(function() {
+                    window.location = "https://apps.apple.com/us/app/chefapp-ai-recipe-creator/id6450523267";
+                }, 2000);
+            } else {
+                alert("Recipe ID not found.");
+            }
+        }
+
+        // Function to handle Download Now button click
+        function downloadNow() {
+            // Redirect users to the App Store
+            window.location.href = "https://apps.apple.com/us/app/chefapp-ai-recipe-creator/id6450523267";
+        }
+
+        // Attach the openApp function to the Open App button click event
+        document.getElementById("openAppButton").addEventListener('click', openApp);
+
+        // Attach the downloadNow function to the Download Now button click event
+        document.getElementById("downloadDirectButton").addEventListener('click', downloadNow);
+    </script>
+</body>
+</html>

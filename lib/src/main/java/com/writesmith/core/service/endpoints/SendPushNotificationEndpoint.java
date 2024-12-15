@@ -1,9 +1,6 @@
 package com.writesmith.core.service.endpoints;
 
 import appletransactionclient.JWTSigner;
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.writesmith.Constants;
@@ -19,7 +16,6 @@ import sqlcomponentizer.dbserializer.DBSerializerException;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.math.BigInteger;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -79,7 +75,7 @@ public class SendPushNotificationEndpoint {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
 
             // Create APNS JWT Signer instance, JWT, and authorizationToken
-            JWTSigner jwtSigner = new JWTSigner(Constants.Apple_AuthKey_JWS_Path, Keys.apnsAuthKeyID);
+            JWTSigner jwtSigner = new JWTSigner(Constants.Apple_APNS_AuthKey_JWS_Path, Keys.apnsAuthKeyID);
 
             String jwt = APNSJWTGenerator.generateJWT(jwtSigner, Keys.apnsIssuerIDWhichIsTheTeamID);
 

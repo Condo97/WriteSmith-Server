@@ -19,7 +19,7 @@ public class APNSClient {
 
     public APNSClient() throws UnrecoverableKeyException, CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Create APNS JWT Signer instance
-        JWTSigner jwtSigner = new JWTSigner(Constants.Apple_AuthKey_JWS_Path, Keys.apnsAuthKeyID);
+        JWTSigner jwtSigner = new JWTSigner(Constants.Apple_APNS_AuthKey_JWS_Path, Keys.apnsAuthKeyID);
 
         this.jwt = APNSJWTGenerator.generateJWT(jwtSigner, Keys.apnsIssuerIDWhichIsTheTeamID);
     }

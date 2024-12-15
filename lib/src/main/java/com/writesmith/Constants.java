@@ -75,7 +75,10 @@ public final class Constants {
             public static final String GENERATE_TITLE = "/generateTitle";
         }
 
+        public static final String APPLE_ASSOCIATED_DOMAIN = "/.well-known/apple-app-site-association";
+
         public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
+        public static final String CHEF_APP_DEEP_LINK_PAGE = "/chefappdeeplink";
         public static final String CLASSIFY_CHAT = "/classifyChat";
         public static final String DELETE_CHAT_URI = "/deleteChat";
         public static final String GENERATE_DRAWERS = "/generateDrawers";
@@ -130,7 +133,7 @@ public final class Constants {
     public static final String Apple_V1_URL_Path = "/v1";
     public static final String Apple_Subscriptions_URL_Path = "/subscriptions";
     public static final String Apple_Get_Subscription_Status_V1_Full_URL_Path = Apple_In_Apps_URL_Path + Apple_V1_URL_Path + Apple_Subscriptions_URL_Path;
-    public static final String Apple_AuthKey_JWS_Path = "keys/AuthKey_3L975VA2YC.p8";
+    public static final String Apple_APNS_AuthKey_JWS_Path = "keys/AuthKey_3L975VA2YC.p8";
     public static final String Apple_SubscriptionKey_JWS_Path = "keys/SubscriptionKey_PJ323P8QVH.p8";
 
     public static final String Sandbox_Apple_Verify_Receipt_URL = "https://sandbox.itunes.apple.com/verifyReceipt";
