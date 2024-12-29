@@ -14,7 +14,7 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
-@WebSocket(maxTextMessageSize = 64 * 1024)
+@WebSocket(maxTextMessageSize = 256 * 1024)
 public class RealtimeWebSocket {
 
     private static final String OPENAI_REALTIME_API_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01";
@@ -108,6 +108,7 @@ public class RealtimeWebSocket {
 
     private void connectToOpenAIRealtimeAPI() throws Exception {
         WebSocketClient openAIClient = new WebSocketClient();
+        openAIClient.getPolicy().setMaxTextMessageSize(256 * 1024);
         openAIClient.start();
 
         ClientUpgradeRequest request = new ClientUpgradeRequest();
@@ -122,23 +123,23 @@ public class RealtimeWebSocket {
         public void onWebSocketConnect(Session session) {
             openAISession = session;
 
-            // Send initial configuration or messages if necessary
-            // For example, initiate a response
-            try {
-                Map<String, Object> responseCreateEvent = Map.of(
-                        "type", "conversation.item.create",
-                        "response", Map.of(
-                                "modalities", new String[]{"text", "audio"},
-                                "instructions", "Please assist the user."
-                        )
-                );
-                String message = objectMapper.writeValueAsString(responseCreateEvent);
-                openAISession.getRemote().sendString(message);
-                openAISession.getRemote().sendString("response.create");
-            } catch (IOException e) {
-                e.printStackTrace();
-                sendErrorToClient("Failed to send initial message to OpenAI Realtime API.");
-            }
+//            // Send initial configuration or messages if necessary
+//            // For example, initiate a response
+//            try {
+//                Map<String, Object> responseCreateEvent = Map.of(
+//                        "type", "conversation.item.create",
+//                        "response", Map.of(
+//                                "modalities", new String[]{"text", "audio"},
+//                                "instructions", "Please assist the user."
+//                        )
+//                );
+//                String message = objectMapper.writeValueAsString(responseCreateEvent);
+//                openAISession.getRemote().sendString(message);
+//                openAISession.getRemote().sendString("response.create");
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                sendErrorToClient("Failed to send initial message to OpenAI Realtime API.");
+//            }
         }
 
         @Override

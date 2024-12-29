@@ -56,7 +56,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-@WebSocket(maxTextMessageSize = 1073741824)
+@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
 public class GetChatWebSocket {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?

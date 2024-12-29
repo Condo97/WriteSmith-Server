@@ -60,7 +60,7 @@ public class Main {
 
 //        WebSocketPolicy
 
-        webSocketIdleTimeoutMillis(60 * 1000);
+//        webSocketIdleTimeoutMillis(30 * 1000);
 
         // Set up SQLConnectionPoolInstance
         SQLConnectionPoolInstance.create(Constants.MYSQL_URL, Keys.MYSQL_USER, Keys.MYSQL_PASS, connections);
@@ -218,14 +218,18 @@ public class Main {
 
         // Associated Domain Deep Link Pages
         get(Constants.URIs.CHEF_APP_DEEP_LINK_PAGE + "/recipe/:recipeID", (req, res) -> {
+            // Decode requested recipeID
             String recipeID = req.params(":recipeID");
+
+            // Fetch recipe to obtain details TODO: Implement this
 
             // Read the HTML template file
             String htmlContent = new String(ClassLoader.getSystemResourceAsStream("public/ChefAppDeepLinkPage.html").readAllBytes(), StandardCharsets.UTF_8);
 
 
-            // Replace the placeholder with the actual recipe ID
-            htmlContent = htmlContent.replace("{recipeID}", recipeID);
+//            // Replace the placeholder with the actual recipe ID
+//            htmlContent = htmlContent.replace("{recipeID}", recipeID);
+//            htmlContent = htmlContent.replace("{recipeName}", recipeName);
 
             // Return the modified HTML content
             return htmlContent;

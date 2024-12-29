@@ -3,8 +3,6 @@ package com.writesmith.core.service.endpoints;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.writesmith.Constants;
 import com.writesmith.core.service.request.GenerateSpeechRequest;
 import com.writesmith.exceptions.responsestatus.MalformedJSONException;
 import com.writesmith.keys.Keys;

@@ -81,11 +81,6 @@ public final class Constants {
         public static final String CHEF_APP_DEEP_LINK_PAGE = "/chefappdeeplink";
         public static final String CLASSIFY_CHAT = "/classifyChat";
         public static final String DELETE_CHAT_URI = "/deleteChat";
-        public static final String GENERATE_DRAWERS = "/generateDrawers";
-        public static final String GENERATE_GOOGLE_QUERY = "/generateGoogleQuery";
-        public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
-        public static final String GENERATE_TITLE = "/generateTitle";
-        public static final String GENERATE_IMAGE = "/generateImage";
         public static final String GET_CHAT_URI = "/getChat";
         public static final String GET_CHAT_STREAM_URI = "/streamChatDirect";
         public static final String GET_CHAT_STREAM_URI_LEGACY_1 = "/getChatStream";
@@ -95,7 +90,11 @@ public final class Constants {
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
         public static final String GET_IS_PREMIUM_URI = "/getIsPremium";
         public static final String GET_REMAINING_URI = "/getRemaining";
-
+        public static final String GENERATE_DRAWERS = "/generateDrawers";
+        public static final String GENERATE_GOOGLE_QUERY = "/generateGoogleQuery";
+        public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
+        public static final String GENERATE_TITLE = "/generateTitle";
+        public static final String GENERATE_IMAGE = "/generateImage";
         public static final String GENERATE_SPEECH = "/generateSpeech";
         public static final String GOOGLE_SEARCH_URI = "/googleSearch";
         public static final String OTHER_FC_GENERATE_ASSISTANT_WEBPAGE = "/otherFCGenerateAssistantWebpage";
