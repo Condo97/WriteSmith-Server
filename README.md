@@ -1,8 +1,3 @@
-
-[![Swift Version][swift-image]][swift-url]
-[![Build Status][travis-image]][travis-url]
-[![License][license-image]][license-url]
-
 # StudyAI Server
 
 The Java server supporting StudyAI. Interacts with OpenAI GPT-4o and DALL-E 3. Fully capable with image send, voice send, and more.
