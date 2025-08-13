@@ -5,6 +5,7 @@ The Java server supporting StudyAI. Interacts with OpenAI GPT-4o and DALL-E 3. F
 ## Requirements
 
 - Java 17
+- MySQL
 
 ## Installation
 
