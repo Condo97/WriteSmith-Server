@@ -35,6 +35,9 @@ public class Keys {
     /* Open AI */
     public static final String openAiAPI
 
+    /* OpenRouter */
+    public static final String openRouterAPI
+
     /* IAP */
     public static final String sharedAppSecret
     public static final String sslPassword

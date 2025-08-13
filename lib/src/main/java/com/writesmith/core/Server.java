@@ -651,6 +651,24 @@ public class Server {
         return new ObjectMapper().writeValueAsString(br);
     }
 
+    public static String structuredOutputOpenRouter(Request req, Response res, Class<?> fcClass) throws IOException, MalformedJSONException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, OAISerializerException, OpenAIGPTException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, JSONSchemaDeserializerException {
+        StructuredOutputRequest soRequest;
+
+        try {
+            soRequest = new ObjectMapper().readValue(req.body(), StructuredOutputRequest.class);
+        } catch (JsonMappingException | JsonParseException e) {
+            System.out.println("Exception when Getting Remaining Tokens... The request: " + req.body());
+            e.printStackTrace();
+            throw new MalformedJSONException("Malformed JSON - " + e.getMessage());
+        }
+
+        BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(
+                StructuredOutputEndpoint_OpenRouter.structuredOutput(soRequest, fcClass)
+        );
+
+        return new ObjectMapper().writeValueAsString(br);
+    }
+
     /***
      * Submit Feedback
      *

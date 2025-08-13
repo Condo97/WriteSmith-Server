@@ -4,6 +4,7 @@ import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
+import com.writesmith.Constants;
 import com.writesmith.core.WSChatGenerationLimiter;
 import com.writesmith.core.WSGenerationTierLimits;
 import com.writesmith.database.dao.pooled.ConversationDAOPooled;
@@ -65,7 +66,7 @@ public class OpenAIChatGenerator {
 
         // Get response from OpenAIGPTHttpHelper
         try {
-            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(purifiedRequest.getRequest(), Keys.openAiAPI, httpClient);
+            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(purifiedRequest.getRequest(), Keys.openAiAPI, httpClient, Constants.OPENAI_URI);
 
             // Return first choice if it exists
             if (response.getChoices().length > 0) {

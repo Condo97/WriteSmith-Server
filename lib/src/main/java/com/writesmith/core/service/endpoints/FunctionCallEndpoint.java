@@ -1,12 +1,9 @@
 package com.writesmith.core.service.endpoints;
 
 import com.oaigptconnector.model.FCClient;
-import com.oaigptconnector.model.OAIChatCompletionRequestMessageBuilder;
 import com.oaigptconnector.model.OAISerializerException;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
-import com.oaigptconnector.model.request.chat.completion.CompletionRole;
-import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
 import com.writesmith.core.service.request.FunctionCallRequest;
@@ -24,8 +21,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.http.HttpClient;
 import java.sql.SQLException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FunctionCallEndpoint {
 
@@ -65,6 +60,7 @@ public class FunctionCallEndpoint {
                 null, // TODO: Make a function with a signature not including responseFormatType
                 openAIKey,
                 httpClient,
+                Constants.OPENAI_URI,
                 request.getMessages(),
                 true
         );

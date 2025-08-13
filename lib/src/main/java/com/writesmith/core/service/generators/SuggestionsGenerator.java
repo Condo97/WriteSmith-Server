@@ -127,6 +127,7 @@ public class SuggestionsGenerator {
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 API_KEY,
                 httpClient,
+                Constants.OPENAI_URI,
                 message
         );
 

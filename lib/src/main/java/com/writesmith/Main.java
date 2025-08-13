@@ -82,6 +82,8 @@ public class Main {
         path("/v1", () -> configureHttpEndpoints());
         path("/v1" + Constants.URIs.StructuredOutput.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputEndpoints());
         path("/v1" + Constants.URIs.StructuredOutput.SUBDIRECTORY_PREFIX_LEGACY, () -> configureStructuredOutputEndpoints());
+        // OpenRouter structured output endpoints (parallel to existing SO endpoints)
+        path("/v1" + Constants.URIs.StructuredOutputOpenRouter.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputOpenRouterEndpoints());
 
         // Set up https dev path
         path("/dev", () -> configureHttpEndpoints(true));
@@ -149,6 +151,7 @@ public class Main {
         final String v1Path = "/v1";
 
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI, GetChatWebSocket.class);
+        webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_OPENROUTER, GetChatWebSocket_OpenRouter.class);
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_2, GetChatWebSocket_Legacy_2.class);
         webSocket(v1Path + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_1, GetChatWebSocket_Legacy_1.class);
         webSocket(v1Path + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
@@ -157,6 +160,7 @@ public class Main {
         /* dev */
         final String devPath = "/dev";
 
+        webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_OPENROUTER, GetChatWebSocket_OpenRouter.class);
         webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_2, GetChatWebSocket_Legacy_2.class);
         webSocket(devPath + Constants.URIs.GET_CHAT_STREAM_URI_LEGACY_1, GetChatWebSocket_Legacy_1.class);
         webSocket(devPath + Constants.URIs.GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET, GetChatWithPersistentImageWebSocket.class);
@@ -172,6 +176,16 @@ public class Main {
         post(Constants.URIs.StructuredOutput.GENERATE_GOOGLE_QUERY, (req, res) -> Server.structuredOutput(req, res, GenerateGoogleQuerySO.class));
         post(Constants.URIs.StructuredOutput.GENERATE_SUGGESTIONS, (req, res) -> Server.structuredOutput(req, res, GenerateSuggestionsSO.class));
         post(Constants.URIs.StructuredOutput.GENERATE_TITLE, (req, res) -> Server.structuredOutput(req, res, GenerateTitleSO.class));
+    }
+
+    private static void configureStructuredOutputOpenRouterEndpoints() {
+        post(Constants.URIs.StructuredOutputOpenRouter.CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) CheckIfChatRequestsImageRevisionSO.class));
+        post(Constants.URIs.StructuredOutputOpenRouter.CLASSIFY_CHAT, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) ClassifyChatSO.class));
+        post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_DRAWERS, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) DrawersSO.class));
+        post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_FLASH_CARDS, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) FlashCardsSO.class));
+        post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_GOOGLE_QUERY, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) GenerateGoogleQuerySO.class));
+        post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_SUGGESTIONS, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) GenerateSuggestionsSO.class));
+        post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_TITLE, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) GenerateTitleSO.class));
     }
 
     private static void configureHttpEndpoints() {

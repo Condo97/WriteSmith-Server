@@ -111,12 +111,13 @@ public class DrawerGenerator {
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 DrawersSO.class,
-                OpenAIGPTModels.GPT_4.getName(),
+                OpenAIGPTModels.GPT_4_MINI.getName(),
                 MAX_TOKENS,
                 DEFAULT_TEMPERATURE,
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 API_KEY,
                 httpClient,
+                Constants.OPENAI_URI,
                 message
         );
 

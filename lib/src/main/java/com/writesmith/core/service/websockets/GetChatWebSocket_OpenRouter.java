@@ -38,11 +38,8 @@ import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
@@ -57,76 +54,52 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
-public class GetChatWebSocket {
+public class GetChatWebSocket_OpenRouter {
 
     private static final int MAX_INPUT_MESSAGES = 25;
     private static final int MAX_MESSAGE_LENGTH = 5000;
 
-    private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
+    private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
 
     private static final String persistentSystemText = "You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google. Attempt to improve socialness and get the user to share and promote the app in subtle ways.";
 
-
-    /***
-     * Connected
-     *
-     * Gets a chat from OpenAI using the given messages map array
-     *
-     * @param session Session for Spark WebSocket
-     */
     @OnWebSocketConnect
     public void connected(Session session) {
-//        System.out.println(session.getUpgradeRequest().getQueryString());
-
     }
 
     @OnWebSocketClose
     public void closed(Session session, int statusCode, String reason) {
-//        sessions.remove(session);
     }
 
     @OnWebSocketMessage
     public void message(Session session, String message) {
-//        System.out.println("Received: " + message);
-
         try {
             getChat(session, message);
         } catch (CapReachedException e) {
-            // TODO: Cap reached stuff
+            // Ignore for now; client will handle cap states elsewhere
         } catch (MalformedJSONException | InvalidAuthenticationException e) {
-            // Print stack trace
             e.printStackTrace();
-
-            // Create ErrorResponse with responseStatus and reason
             ErrorResponse errorResponse = new ErrorResponse(
                     e.getResponseStatus(),
                     e.getMessage()
             );
-
             try {
                 session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
             } catch (IOException eI) {
-                // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
                 eI.printStackTrace();
             }
         } catch (UnhandledException e) {
-            // Print stack trace
             e.printStackTrace();
-
-            // Create ErrorResponse with responseStatus and reason
             ErrorResponse errorResponse = new ErrorResponse(
                     e.getResponseStatus(),
                     e.getMessage()
             );
-
             try {
                 session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
             } catch (IOException eI) {
-                // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
                 eI.printStackTrace();
             }
         } catch (Exception e) {
-            // TODO: Is this ever called? I'm thinking maybe for nullPointerException or something like that
             e.printStackTrace();
         } finally {
             session.close();
@@ -134,69 +107,51 @@ public class GetChatWebSocket {
     }
 
     protected void getChat(Session session, String message) throws MalformedJSONException, InvalidAuthenticationException, UnhandledException, CapReachedException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, UnrecoverableKeyException, AppStoreErrorResponseException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, OAISerializerException {
-//        System.out.println("Received message: " + message);
-
-        /*** PARSE REQUEST ***/
-
-        // Get start time
+        // Parse request
         LocalDateTime startTime = LocalDateTime.now();
         LocalDateTime getAuthTokenTime;
-        LocalDateTime getIsPremiumTime;
-        LocalDateTime beforeStartStreamTime;
         AtomicReference<LocalDateTime> firstChatTime = new AtomicReference<>();
 
-        // Read GetChatRequest, otherwise read GetChatLegacyRequest and adapt to GetChatRequest, otherwise just throw!
         GetChatRequest gcRequest;
         try {
-            // Read GetChatRequest
             gcRequest = new ObjectMapper().readValue(message, GetChatRequest.class);
         } catch (IOException e) {
-            // Print message, stacktrace, and throw MalformedJSONException with e as reason
             System.out.println("The message: " + message);
             e.printStackTrace();
             throw new MalformedJSONException(e, "Error parsing message: " + message);
         }
 
-        // Get u_aT for userID
-        User_AuthToken u_aT = null;
+        // Authenticate
+        User_AuthToken u_aT;
         try {
             u_aT = User_AuthTokenDAOPooled.get(gcRequest.getAuthToken());
         } catch (DBObjectNotFoundFromQueryException e) {
-            // I'm pretty sure this is the only one that is called if everything is correct but the authToken is invalid, so throw an InvalidAuthenticationException
             throw new InvalidAuthenticationException(e, "Error authenticating user. Please try closing and reopening the app, or report the issue if it continues giving you trouble.");
         } catch (DBSerializerException | SQLException | InterruptedException | InvocationTargetException |
                  IllegalAccessException | NoSuchMethodException | InstantiationException e) {
-            // Pretty sure these are all setup stuff, so throw UnhandledException unless I see it throwing in the console :)
             throw new UnhandledException(e, "Error getting User_AuthToken for authToken. Please report this and try again later.");
         }
 
         getAuthTokenTime = LocalDateTime.now();
 
-        // Set openAIKey to Keys.openAIKey
-        String openAIKey = Keys.openAiAPI;
+        // Use OpenRouter API key
+        String openRouterKey = Keys.openRouterAPI;
 
-        // Get and chat completion request stream_options include usage to true
+        // Prepare request; ensure stream usage info is included
         OAIChatCompletionRequest chatCompletionRequest = gcRequest.getChatCompletionRequest();
-        OAIChatCompletionRequestStreamOptions streamOptions = gcRequest.getChatCompletionRequest().getStream_options(); // Get the stream options from the chat completion request in case there are more added and the user has defined them
+        OAIChatCompletionRequestStreamOptions streamOptions = gcRequest.getChatCompletionRequest().getStream_options();
         if (streamOptions == null)
-            streamOptions = new OAIChatCompletionRequestStreamOptions(true); // If user has not included stream options create them with include usage set to true
+            streamOptions = new OAIChatCompletionRequestStreamOptions(true);
         else
-            streamOptions.setInclude_usage(true); // If user has included stream options set include usage to true
+            streamOptions.setInclude_usage(true);
         chatCompletionRequest.setStream_options(new OAIChatCompletionRequestStreamOptions(true));
 
-        // If function call and function call class are not null serialize and add the function to chatCompletionRequest
+        // Tools/function calling passthrough
         if (gcRequest.getFunction() != null && gcRequest.getFunction().getJSONSchemaClass() != null) {
-            // Serialize FC object
             Object serializedFCObject = FCJSONSchemaSerializer.objectify(gcRequest.getFunction().getJSONSchemaClass());
-
-            // Get FC name
             String fcName = JSONSchemaSerializer.getFunctionName(gcRequest.getFunction().getJSONSchemaClass());
-
-            // Create ToolChoiceFunction
             OAIChatCompletionRequestToolChoiceFunction.Function requestToolChoiceFunction = new OAIChatCompletionRequestToolChoiceFunction.Function(fcName);
             OAIChatCompletionRequestToolChoiceFunction requestToolChoice = new OAIChatCompletionRequestToolChoiceFunction(requestToolChoiceFunction);
-
-            // Add to chatCompletionRequest
             chatCompletionRequest.setTools(List.of(new OAIChatCompletionRequestTool(
                     OAIChatCompletionRequestToolType.FUNCTION,
                     serializedFCObject
@@ -204,13 +159,13 @@ public class GetChatWebSocket {
             chatCompletionRequest.setTool_choice(requestToolChoice);
         }
 
-        // Add persistent system text to existing or new system message
+        // Append persistent system text
         boolean systemMessageFound = false;
         for (OAIChatCompletionRequestMessage chatCompletionRequestMessage: chatCompletionRequest.getMessages()) {
             if (chatCompletionRequestMessage.getRole() == CompletionRole.SYSTEM) {
                 for (OAIChatCompletionRequestMessageContent chatCompletionRequestMessageContent: chatCompletionRequestMessage.getContent()) {
-                    if (chatCompletionRequestMessageContent instanceof  OAIChatCompletionRequestMessageContentText) {
-                        OAIChatCompletionRequestMessageContentText chatCompletionRequestMessageContentText = (OAIChatCompletionRequestMessageContentText)chatCompletionRequestMessageContent;
+                    if (chatCompletionRequestMessageContent instanceof OAIChatCompletionRequestMessageContentText) {
+                        OAIChatCompletionRequestMessageContentText chatCompletionRequestMessageContentText = (OAIChatCompletionRequestMessageContentText) chatCompletionRequestMessageContent;
                         String previousText = chatCompletionRequestMessageContentText.getText();
                         String newText = persistentSystemText + "\n" + previousText;
                         chatCompletionRequestMessageContentText.setText(newText);
@@ -227,26 +182,7 @@ public class GetChatWebSocket {
             );
         }
 
-        // Ensure each message is less than 8000 characters, and there are a max of 25 messages TODO: Make this better
-//        List<OAIChatCompletionRequestMessage> finalMessages = new ArrayList<>();
-//        for (int i = chatCompletionRequest.getMessages().size() - 1; i >= 0; i--) {
-//            OAIChatCompletionRequestMessage requestMessage = chatCompletionRequest.getMessages().get(i);
-//            int messageLength = 0;
-//            for (OAIChatCompletionRequestMessageContent contentPart : requestMessage.getContent()) {
-//                if (contentPart instanceof OAIChatCompletionRequestMessageContentText) {
-//                    messageLength += ((OAIChatCompletionRequestMessageContentText) contentPart).getText().length();
-//                } else if (contentPart instanceof OAIChatCompletionRequestMessageContentImageURL) {
-//                    String url = ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().getUrl();
-//                    messageLength += url.length();
-//                }
-//            }
-//            if (messageLength <= 8000) {
-//                finalMessages.add(requestMessage);
-//                if (finalMessages.size() >= 25) {
-//                    break;
-//                }
-//            }
-//        }
+        // Enforce max message sizes
         List<OAIChatCompletionRequestMessage> finalMessages = new ArrayList<>();
         for (int i = chatCompletionRequest.getMessages().size() - 1; i >= 0; i--) {
             OAIChatCompletionRequestMessage originalMessage = chatCompletionRequest.getMessages().get(i);
@@ -292,7 +228,6 @@ public class GetChatWebSocket {
             OAIChatCompletionRequestMessage modifiedMessage = new OAIChatCompletionRequestMessage();
             modifiedMessage.setContent(newContentParts);
             modifiedMessage.setRole(originalMessage.getRole());
-            // Copy any other necessary fields from originalMessage to modifiedMessage
 
             finalMessages.add(modifiedMessage);
 
@@ -301,199 +236,121 @@ public class GetChatWebSocket {
             }
         }
 
-        // Reveerse finalMessages
         Collections.reverse(finalMessages);
-
-        // Set messages to finalMessages
-        System.out.println(finalMessages);
         chatCompletionRequest.setMessages(finalMessages);
 
-        // Respect client-provided model; default to GPT-5 mini if missing/blank
+        // Respect client-provided model; leave default unchanged to mirror behavior
         String requestedModel = chatCompletionRequest.getModel();
         if (requestedModel == null || requestedModel.trim().isEmpty()) {
-            chatCompletionRequest.setModel("gpt-5-mini-2025-08-07");
+            // Keep same defaulting logic to avoid impacting client expectations
+            chatCompletionRequest.setModel("openai/gpt-5-mini");
         }
 
-        // Create stream set to null
-        Stream<String> chatStream = null;
-
-        // Do stream request with OpenAI right here for now TODO:
+        // Stream from OpenRouter
+        Stream<String> chatStream;
         try {
-            chatStream = OAIClient.postChatCompletionStream(chatCompletionRequest, openAIKey, httpClient, com.writesmith.Constants.OPENAI_URI);
+            chatStream = OAIClient.postChatCompletionStream(chatCompletionRequest, openRouterKey, httpClient, com.writesmith.Constants.OPENAPI_URI);
         } catch (IOException e) {
-            // I think this is called if the chat stream is closed at any point including when it normally finishes, so just do nothing for now... If so, these should be combined and the print should be removed and I think it's just fine lol.. Actually these may not be called unless there is an error establishing a connection.. So maybe just throw UnhandledException unless I see it throwing in the console
             System.out.println("CONNECTION CLOSED (IOException)");
             throw new UnhandledException(e, "Connection closed during chat stream. Please report this and try again later.");
         } catch (InterruptedException e) {
-            // I think this is called if the chat stream is closed at any point including when it normally finishes, so just do nothing for now... If so, these should be combined and the print should be removed and I think it's just fine lol.. Actually these may not be called unless there is an error establishing a connection.. So maybe just throw UnhandledException unless I see it throwing in the console
             System.out.println("CONNECTION CLOSED (InterruptedException)");
             throw new UnhandledException(e, "Connection closed during chat stream. Please report this and try again later.");
         }
 
-
-        /*** GENERATION - Begin ***/
-
-        // Create completionTokens and promptTokens
+        // Collect usage
         AtomicReference<Integer> completionTokens = new AtomicReference<>(0);
         AtomicReference<Integer> promptTokens = new AtomicReference<>(0);
         StringBuilder sbError = new StringBuilder();
 
-        // Parse OpenAIGPTChatCompletionStreamResponse then convert to GetChatResponse and send it in BodyResponse as response :-)
         chatStream.forEach(response -> {
-//            System.out.println(response);
             try {
-                // Trim "data: " off of response TODO: Make this better lol
                 final String dataPrefixToRemove = "data: ";
                 if (response.length() >= dataPrefixToRemove.length() && response.substring(0, dataPrefixToRemove.length()).equals(dataPrefixToRemove))
-                    response = response.substring(dataPrefixToRemove.length(), response.length());
+                    response = response.substring(dataPrefixToRemove.length());
 
-                // Get response as JsonNode
+                // Ignore OpenRouter keep-alive comments or [DONE]
+                if (response.startsWith(":") || response.equals("[DONE]")) {
+                    return;
+                }
+
+                // Log raw upstream line for OpenRouter inspection
+                System.out.println("[OpenRouter Stream] " + response);
+
                 JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
 
-                // Get responseJSON as OpenAIGPTChatCompletionStreamResponse
                 OpenAIGPTChatCompletionStreamResponse streamResponse;
                 try {
                     streamResponse = new ObjectMapper().treeToValue(responseJSON, OpenAIGPTChatCompletionStreamResponse.class);
                 } catch (JsonProcessingException e) {
                     System.out.println("Error writing as OpenAIGPTChatCompletionStreamResponse!");
-                    // If JsonProcessingException append response to sbError and return
+                    System.out.println("[OpenRouter Stream][Unparsed] " + response);
                     sbError.append(response);
-//                    BodyResponse br = BodyResponseFactory.createBodyResponse(ResponseStatus.OAIGPT_ERROR, responseJSON);
-//
-//                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
-
                     return;
                 }
 
-                // Create gcResponse with streamResponse
-                GetChatStreamResponse gcResponse = new GetChatStreamResponse(
-                        streamResponse
-                );
-
-                // Create success BodyResponse with getChatResponse
+                GetChatStreamResponse gcResponse = new GetChatStreamResponse(streamResponse);
                 BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(gcResponse);
-
-                // Send BodyResponse
                 session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
 
-                // Once received and also only once, set completion_tokens and prompt_tokens for userID TODO: This is more readable than a big conditional, but what would be even more readable than this? Like is there a more concise way to do null checks here?
                 if (completionTokens.get() == 0)
                     if (streamResponse.getUsage() != null)
                         if (streamResponse.getUsage().getCompletion_tokens() != null)
                             if (streamResponse.getUsage().getCompletion_tokens() > 0)
-                                completionTokens.compareAndSet(0, streamResponse.getUsage().getCompletion_tokens()); // CompareAndSet helps with thread safety, and the 0 is the expected value since that is the initial or empty value
+                                completionTokens.compareAndSet(0, streamResponse.getUsage().getCompletion_tokens());
                 if (promptTokens.get() == 0)
                     if (streamResponse.getUsage() != null)
                         if (streamResponse.getUsage().getPrompt_tokens() != null)
                             if (streamResponse.getUsage().getPrompt_tokens() > 0)
-                                promptTokens.compareAndSet(0, streamResponse.getUsage().getPrompt_tokens()); // CompareAndSet helps with thread safety, and the 0 is the expected value since that is the initial or empty value
+                                promptTokens.compareAndSet(0, streamResponse.getUsage().getPrompt_tokens());
 
             } catch (JsonMappingException | JsonParseException e) {
-                // TODO: If cannot map response as JSON, skip for now, this is fine as there is only one format for the response as far as I know now
-
+                // Skip non-JSON lines
             } catch (IOException e) {
-                // TODO: This is only called in this case if ObjectMapper does not throw a JsonMappingException or JsonParseException, but it is thrown in the same methods that call those, so it's okay for now for the same reason
-
+                // Ignore for now
             }
         });
 
-        // Close chatStream
         chatStream.close();
 
-
-        /*** FINISH UP ***/
-
-        // If sbError is not empty send to client in body response with OAIGPT_ERROR
+        // If any non-JSON payloads were encountered, forward as error body once (mirrors existing behavior)
         if (!sbError.isEmpty()) {
             BodyResponse br = BodyResponseFactory.createBodyResponse(ResponseStatus.OAIGPT_ERROR, sbError.toString());
             session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
         }
 
-        // If not isUsingSelfServeOpenAIKey, Insert Chat in DB
+        // Persist token usage
         ChatFactoryDAO.create(
                 u_aT.getUserID(),
                 completionTokens.get(),
                 promptTokens.get()
         );
 
-        // Print log to console
         printStreamedGeneratedChatDoBetterLoggingLol(
                 u_aT.getUserID(),
                 chatCompletionRequest
         );
-//        printStreamedGeneratedChatDoBetterLoggingLol(gc, purifiedOAIChatCompletionRequest.getRequest(), isPremium, startTime, getAuthTokenTime, getIsPremiumTime, beforeStartStreamTime, firstChatTime);
     }
 
-    protected static void dothestreamtesting() {
-        URI uri = null;
-        try {
-            uri = new URI("https://api.openai.com/v1/chat/completions");
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        String postString = """
-                {
-                    "model": "gpt-4",
-                    "messages": [{"role": "user", "content": "a totally unique mythology about an ocean"}],
-                    "stream": true,
-                    "temperature": 0.7
-                }
-                """;
-        //"messages": [{"role": "user", "content": "a totally unique mythology about an ocean"}],
-        var client = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .uri(uri)
-                .header("Authorization", "Bearer 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")
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(postString))
-                .build();
-
-        Stream<String> lines = null;
-        try {
-            lines = client.send(request, HttpResponse.BodyHandlers.ofLines()).body();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-//        lines.forEach(text -> {
-//            System.out.println(text);
-////            sessions.forEach(session -> {
-////                try {
-////                    session.getRemote().sendString(text);
-////                } catch (IOException e) {
-////                    throw new RuntimeException(e);
-////                }
-////            });
-//        });
-
-    }
-
-    // TODO: Better logging lol
-    private void printStreamedGeneratedChatDoBetterLoggingLol(Integer userID, OAIChatCompletionRequest completionRequest/*, LocalDateTime startTime, LocalDateTime getAuthTokenTime, LocalDateTime getIsPremiumTime, LocalDateTime beforeStartStreamTime, AtomicReference<LocalDateTime> firstChatTime*/) {
-        final int maxLength = 40;
-
+    private void printStreamedGeneratedChatDoBetterLoggingLol(Integer userID, OAIChatCompletionRequest completionRequest) {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         Date date = new Date();
-
-//        String output = gc.getChat().getText();
 
         int charsInCompletionRequest = 0;
         for (OAIChatCompletionRequestMessage message: completionRequest.getMessages())
             for (OAIChatCompletionRequestMessageContent content: message.getContent())
                 if (content instanceof OAIChatCompletionRequestMessageContentText)
                     charsInCompletionRequest += ((OAIChatCompletionRequestMessageContentText)content).getText().length();
-                    // TODO: Image and ImageURL maybe
 
         StringBuilder sb = new StringBuilder();
         sb.append(sdf.format(date));
         sb.append(" User ");
         sb.append(userID);
-        sb.append(" Streamed Chat - ");
+        sb.append(" Streamed Chat (OpenRouter) - ");
         sb.append(completionRequest.getModel());
 
         System.out.println(sb.toString());
     }
-
 }
+
+

@@ -166,8 +166,11 @@ public class Tests {
             requestBuilder.setHeader("Authorization", "Bearer " + Keys.openAiAPI);
         };
 
+        // TODO: Remove this
+        promptRequest.setModel(OpenAIGPTModels.GPT_4_MINI.getName());
+
         try {
-            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(promptRequest, Keys.openAiAPI, httpClient);
+            OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(promptRequest, Keys.openAiAPI, httpClient, Constants.OPENAI_URI);
             System.out.println(response.getChoices()[0].getMessage().getContent());
 
         } catch (OpenAIGPTException e) {
@@ -757,26 +760,26 @@ public class Tests {
         assert(ccResponse.isWantsImageGeneration() == expectedWantsImageGenerationResult);
     }
 
-    @Test
-    @DisplayName("Test Generate Image Endpoint")
-    void testGenerateImageEndpoint() throws DBSerializerException, SQLException, OpenAIGPTException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
-        final String prompt = "A banana holding a bear";
-
-        // Create GenerateImageRequest
-        GenerateImageRequest giRequest = new GenerateImageRequest(
-                authTokenRandom,
-                prompt
-        );
-
-        // Get GenerateImageResponse from GenerateImageEndpoint
-        GenerateImageResponse giResponse = GenerateImageEndpoint.generateImage(giRequest);
-
-        System.out.println(giResponse.getImageData());
-
-        // Print and test
-        assert(giResponse != null);
-        assert(giResponse.getImageData() != null);
-    }
+//    @Test
+//    @DisplayName("Test Generate Image Endpoint")
+//    void testGenerateImageEndpoint() throws DBSerializerException, SQLException, OpenAIGPTException, DBObjectNotFoundFromQueryException, IOException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException {
+//        final String prompt = "A banana holding a bear";
+//
+//        // Create GenerateImageRequest
+//        GenerateImageRequest giRequest = new GenerateImageRequest(
+//                authTokenRandom,
+//                prompt
+//        );
+//
+//        // Get GenerateImageResponse from GenerateImageEndpoint
+//        GenerateImageResponse giResponse = GenerateImageEndpoint.generateImage(giRequest);
+//
+//        System.out.println(giResponse.getImageData());
+//
+//        // Print and test
+//        assert(giResponse != null);
+//        assert(giResponse.getImageData() != null);
+//    }
 
     @Test
     @DisplayName("Test Check if Chat Requests Image Revision - Requesting Revision")

@@ -32,12 +32,13 @@ public class OtherFC_GenerateAssistantWebpageEndpoint {
         // Get response
         OAIGPTChatCompletionResponse fcResponse = FCClient.serializedChatCompletion(
                 OtherFC_GenerateAssistantWebpageFC.class,
-                OpenAIGPTModels.GPT_4.getName(),
+                OpenAIGPTModels.GPT_4_MINI.getName(),
                 4096,
                 Constants.DEFAULT_TEMPERATURE,
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 Keys.openAiAPI,
                 httpClient,
+                Constants.OPENAI_URI,
                 message
         );
 

@@ -215,7 +215,7 @@ public class GetChatWebSocket_Legacy_1 {
             beforeStartStreamTime = LocalDateTime.now();
 
             // Do stream request with OpenAI right here for now TODO:
-            stream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI, httpClient);
+            stream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI, httpClient, Constants.OPENAI_URI);
 
             AtomicReference<Boolean> isFirstChat = new AtomicReference<>(true);
 

@@ -62,6 +62,7 @@ public class CheckIfChatRequestsImageRevisionGenerator {
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 API_KEY,
                 httpClient,
+                Constants.OPENAI_URI,
                 message
         );
 

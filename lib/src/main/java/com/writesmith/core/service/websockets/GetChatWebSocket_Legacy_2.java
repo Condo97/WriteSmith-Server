@@ -485,9 +485,12 @@ public class GetChatWebSocket_Legacy_2 {
         // Create stream set to null
         Stream<String> chatStream = null;
 
+        // TODO: Remove this
+        purifiedOAIChatCompletionRequest.getRequest().setModel(OpenAIGPTModels.GPT_4_MINI.getName());
+
         // Do stream request with OpenAI right here for now TODO:
         try {
-            chatStream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI, httpClient);
+            chatStream = OAIClient.postChatCompletionStream(purifiedOAIChatCompletionRequest.getRequest(), Keys.openAiAPI, httpClient, Constants.OPENAI_URI);
         } catch (IOException e) {
             // I think this is called if the chat stream is closed at any point including when it normally finishes, so just do nothing for now... If so, these should be combined and the print should be removed and I think it's just fine lol.. Actually these may not be called unless there is an error establishing a connection.. So maybe just throw UnhandledException unless I see it throwing in the console
             System.out.println("CONNECTION CLOSED (IOException)");

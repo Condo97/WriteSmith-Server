@@ -6,14 +6,12 @@ import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.jsonschema.isobase.SOBase;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
+import com.oaigptconnector.model.request.chat.completion.OpenRouterProvider;
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
-import com.writesmith.core.service.request.FunctionCallRequest;
 import com.writesmith.core.service.request.StructuredOutputRequest;
-import com.writesmith.core.service.response.OAICompletionResponse;
 import com.writesmith.core.service.response.StructuredOutputResponse;
-import com.writesmith.database.dao.factory.ChatFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.database.model.objects.User_AuthToken;
 import com.writesmith.exceptions.DBObjectNotFoundFromQueryException;
@@ -60,7 +58,8 @@ public class StructuredOutputEndpoint {
         OAIGPTChatCompletionResponse response = OAIClient.postChatCompletion(
                 chatCompletionRequest,
                 openAIKey,
-                httpClient
+                httpClient,
+                Constants.OPENAI_URI
         );
 
         // Transform back into requested StructuredOutput class

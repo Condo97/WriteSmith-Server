@@ -35,12 +35,13 @@ public class ClassifyChatTestsLegacyLegacy2 {
         // Get response from FCClient
         OAIGPTChatCompletionResponse response = FCClient.serializedChatCompletion(
                 ClassifyChatSO.class,
-                OpenAIGPTModels.GPT_4.getName(),
+                OpenAIGPTModels.GPT_4_MINI.getName(),
                 800,
                 Constants.DEFAULT_TEMPERATURE,
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 Keys.openAiAPI,
                 httpClient,
+                Constants.OPENAI_URI,
                 message
         );
 

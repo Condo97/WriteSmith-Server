@@ -75,6 +75,17 @@ public final class Constants {
             public static final String GENERATE_TITLE = "/generateTitle";
         }
 
+        class StructuredOutputOpenRouter {
+            public static final String SUBDIRECTORY_PREFIX = "/structuredOutputOpenRouter";
+            public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
+            public static final String CLASSIFY_CHAT = "/classifyChat";
+            public static final String GENERATE_DRAWERS = "/generateDrawers";
+            public static final String GENERATE_FLASH_CARDS = "/generateFlashCards";
+            public static final String GENERATE_GOOGLE_QUERY = "/generateGoogleQuery";
+            public static final String GENERATE_SUGGESTIONS = "/generateSuggestions";
+            public static final String GENERATE_TITLE = "/generateTitle";
+        }
+
         public static final String APPLE_ASSOCIATED_DOMAIN = "/.well-known/apple-app-site-association";
 
         public static final String CHECK_IF_CHAT_REQUESTS_IMAGE_REVISION = "/checkIfChatRequestsImageRevision";
@@ -85,6 +96,7 @@ public final class Constants {
         public static final String GET_CHAT_STREAM_URI = "/streamChatDirect";
         public static final String GET_CHAT_STREAM_URI_LEGACY_1 = "/getChatStream";
         public static final String GET_CHAT_STREAM_URI_LEGACY_2 = "/streamChat";
+        public static final String GET_CHAT_STREAM_URI_OPENROUTER = "/streamChatOpenRouter";
         public static final String GET_CHAT_WITH_PERSISTENT_IMAGE_WEB_SOCKET = "/streamChatWithPersistentImage";
         public static final String GET_IAP_STUFF_URI = "/getIAPStuff";
         public static final String GET_IMPORTANT_CONSTANTS_URI = "/getImportantConstants";
@@ -147,7 +159,8 @@ public final class Constants {
     public static long GOOGLE_TIMEOUT_MINUTES = 1;
 
     /* OpenAI Constants */
-    public static URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
+    public static final URI OPENAI_URI = URI.create("https://api.openai.com/v1/chat/completions");
+    public static final URI OPENAPI_URI = URI.create("https://openrouter.ai/api/v1/chat/completions");
     public static long AI_TIMEOUT_MINUTES = 4;
     public static String DEFAULT_MODEL_NAME = "gpt-3.5-turbo";//"gpt-4";
     public static String PAID_MODEL_NAME = "gpt-4-1106-preview";
