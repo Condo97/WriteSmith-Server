@@ -127,6 +127,7 @@ public class OpenAIGPTChatCompletionRequestFactory {
                 model.getName(),
                 tokenLimit,
                 temperature,
+                "minimal",
                 stream,
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 new OAIChatCompletionRequestStreamOptions(true),

@@ -35,6 +35,7 @@ public class OtherFC_GenerateAssistantWebpageEndpoint {
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 4096,
                 Constants.DEFAULT_TEMPERATURE,
+                "minimal",
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 Keys.openAiAPI,
                 httpClient,

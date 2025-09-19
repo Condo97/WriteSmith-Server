@@ -57,6 +57,7 @@ public class FunctionCallEndpoint {
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 Constants.Additional.functionCallGenerationTokenLimit,
                 Constants.Additional.functionCallDefaultTemperature,
+                "minimal",
                 null, // TODO: Make a function with a signature not including responseFormatType
                 openAIKey,
                 httpClient,

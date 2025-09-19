@@ -51,6 +51,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 @WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
@@ -184,19 +185,31 @@ public class GetChatWebSocket_OpenRouter {
 
         // Enforce max message sizes
         List<OAIChatCompletionRequestMessage> finalMessages = new ArrayList<>();
+        int totalImagesFound = 0;
+        java.util.concurrent.atomic.AtomicInteger totalImagesSent = new java.util.concurrent.atomic.AtomicInteger(0);
+        int totalImagesFiltered = 0;
+        
         for (int i = chatCompletionRequest.getMessages().size() - 1; i >= 0; i--) {
             OAIChatCompletionRequestMessage originalMessage = chatCompletionRequest.getMessages().get(i);
 
             int sumImageLengths = 0;
+            int imagesInMessage = 0;
             for (OAIChatCompletionRequestMessageContent contentPart : originalMessage.getContent()) {
                 if (contentPart instanceof OAIChatCompletionRequestMessageContentImageURL) {
+                    totalImagesFound++;
+                    imagesInMessage++;
                     String url = ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().getUrl();
                     sumImageLengths += url.length();
+                    System.out.println("[IMAGE DEBUG] Found image in message " + i + ": URL length=" + url.length() + ", starts with: " + (url.length() > 50 ? url.substring(0, 50) + "..." : url));
                 }
             }
 
             if (sumImageLengths > MAX_MESSAGE_LENGTH) {
+                System.out.println("[IMAGE DEBUG] FILTERING OUT message " + i + " - " + imagesInMessage + " images, total URL length " + sumImageLengths + " > MAX_MESSAGE_LENGTH " + MAX_MESSAGE_LENGTH);
+                totalImagesFiltered += imagesInMessage;
                 continue;
+            } else if (imagesInMessage > 0) {
+                System.out.println("[IMAGE DEBUG] KEEPING message " + i + " with " + imagesInMessage + " images, total URL length: " + sumImageLengths);
             }
 
             int allowedTextLength = MAX_MESSAGE_LENGTH - sumImageLengths;
@@ -206,6 +219,8 @@ public class GetChatWebSocket_OpenRouter {
             for (OAIChatCompletionRequestMessageContent contentPart : originalMessage.getContent()) {
                 if (contentPart instanceof OAIChatCompletionRequestMessageContentImageURL) {
                     newContentParts.add(contentPart);
+                    int newCount = totalImagesSent.incrementAndGet();
+                    System.out.println("[IMAGE DEBUG] Added image to final request (" + newCount + " total so far)");
                 } else if (contentPart instanceof OAIChatCompletionRequestMessageContentText) {
                     if (currentTextUsed >= allowedTextLength) {
                         continue;
@@ -238,6 +253,12 @@ public class GetChatWebSocket_OpenRouter {
 
         Collections.reverse(finalMessages);
         chatCompletionRequest.setMessages(finalMessages);
+        
+        // Image processing summary
+        System.out.println("[IMAGE DEBUG] SUMMARY - Images found: " + totalImagesFound + ", Images sent: " + totalImagesSent.get() + ", Images filtered: " + totalImagesFiltered);
+        if (totalImagesSent.get() > 0) {
+            System.out.println("[IMAGE DEBUG] ✅ Sending request with " + totalImagesSent.get() + " images to model: " + chatCompletionRequest.getModel());
+        }
 
         // Respect client-provided model; leave default unchanged to mirror behavior
         String requestedModel = chatCompletionRequest.getModel();
@@ -262,6 +283,7 @@ public class GetChatWebSocket_OpenRouter {
         AtomicReference<Integer> completionTokens = new AtomicReference<>(0);
         AtomicReference<Integer> promptTokens = new AtomicReference<>(0);
         StringBuilder sbError = new StringBuilder();
+        AtomicReference<Boolean> hasLoggedFirstResponse = new AtomicReference<>(false);
 
         chatStream.forEach(response -> {
             try {
@@ -274,8 +296,7 @@ public class GetChatWebSocket_OpenRouter {
                     return;
                 }
 
-                // Log raw upstream line for OpenRouter inspection
-                System.out.println("[OpenRouter Stream] " + response);
+                // Removed verbose stream logging - only log errors or image-related info now
 
                 JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
 
@@ -292,6 +313,17 @@ public class GetChatWebSocket_OpenRouter {
                 GetChatStreamResponse gcResponse = new GetChatStreamResponse(streamResponse);
                 BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(gcResponse);
                 session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+                
+                // Log first few responses when images were sent to check if model is responding to images
+                if (totalImagesSent.get() > 0 && !hasLoggedFirstResponse.get() && streamResponse.getChoices() != null && streamResponse.getChoices().length > 0) {
+                    if (streamResponse.getChoices()[0].getDelta() != null && streamResponse.getChoices()[0].getDelta().getContent() != null) {
+                        String content = streamResponse.getChoices()[0].getDelta().getContent();
+                        if (content != null && !content.trim().isEmpty()) {
+                            System.out.println("[IMAGE DEBUG] First response content from model (with images): \"" + content.substring(0, Math.min(100, content.length())) + (content.length() > 100 ? "..." : "") + "\"");
+                            hasLoggedFirstResponse.set(true);
+                        }
+                    }
+                }
 
                 if (completionTokens.get() == 0)
                     if (streamResponse.getUsage() != null)

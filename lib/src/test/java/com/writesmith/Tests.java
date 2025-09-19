@@ -160,6 +160,7 @@ public class Tests {
                 "gpt-3.5-turbo",
                 100,
                 0.7,
+                "minimal",
                 new OAIChatCompletionRequestResponseFormat(ResponseFormatType.TEXT),
                 Arrays.asList(promptMessageRequest));
         Consumer<HttpRequest.Builder> c = requestBuilder -> {

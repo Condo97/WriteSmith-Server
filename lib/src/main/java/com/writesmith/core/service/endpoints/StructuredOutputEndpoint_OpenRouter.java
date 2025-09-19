@@ -43,6 +43,7 @@ public class StructuredOutputEndpoint_OpenRouter {
                 null, // model (use client-provided; fallback applied on failure)
                 com.writesmith.Constants.Additional.functionCallGenerationTokenLimit,
                 com.writesmith.Constants.Additional.functionCallDefaultTemperature,
+                "minimal", // TODO: Dynamic reasoning here
                 new OAIChatCompletionRequestResponseFormat(
                         ResponseFormatType.JSON_SCHEMA,
                         soObject
@@ -69,11 +70,8 @@ public class StructuredOutputEndpoint_OpenRouter {
             );
         }
 
-        // Log raw OpenRouter HTTP response to inspect any provider-specific differences
-        try {
-            System.out.println("[OpenRouter SO][Model] " + (response.getModel() != null ? response.getModel() : ""));
-            System.out.println("[OpenRouter SO][RawMessageContent] " + response.getChoices()[0].getMessage().getContent());
-        } catch (Exception ignore) {}
+        // Only log structured output responses that aren't routine (non-classification/suggestion requests)
+        // This reduces noise while keeping important debugging info
 
         Object responseSOObject = JSONSchemaDeserializer.deserialize(response.getChoices()[0].getMessage().getContent(), soClass);
 

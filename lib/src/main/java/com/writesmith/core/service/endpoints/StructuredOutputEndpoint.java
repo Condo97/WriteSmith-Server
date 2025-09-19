@@ -46,6 +46,7 @@ public class StructuredOutputEndpoint {
                 OpenAIGPTModels.GPT_4_MINI.getName(),
                 Constants.Additional.functionCallGenerationTokenLimit,
                 Constants.Additional.functionCallDefaultTemperature,
+                "minimal",
                 new OAIChatCompletionRequestResponseFormat(
                         ResponseFormatType.JSON_SCHEMA,
                         soObject
