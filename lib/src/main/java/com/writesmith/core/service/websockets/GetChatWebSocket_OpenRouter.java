@@ -19,6 +19,7 @@ import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.ErrorResponse;
 import com.writesmith.core.service.response.GetChatStreamResponse;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
+import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.database.dao.factory.ChatFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
 import com.writesmith.database.model.objects.User_AuthToken;
@@ -28,6 +29,7 @@ import com.writesmith.exceptions.responsestatus.InvalidAuthenticationException;
 import com.writesmith.exceptions.responsestatus.MalformedJSONException;
 import com.writesmith.exceptions.responsestatus.UnhandledException;
 import com.writesmith.keys.Keys;
+import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
@@ -49,16 +51,28 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.Base64;
 
 @WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
 public class GetChatWebSocket_OpenRouter {
 
     private static final int MAX_INPUT_MESSAGES = 25;
-    private static final int MAX_MESSAGE_LENGTH = 5000;
+    private static final int MAX_CONVERSATION_INPUT_LENGTH = 50000; // Total conversation length limit
+    private static final double IMAGE_SIZE_REDUCTION_FACTOR = 0.1; // Images count as 10% of their actual size for filtering (free users)
+    private static final double IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM = 0.05; // Premium users get 5% image token efficiency
+    private static final int MAX_IMAGE_WIDTH = 1024;
+    private static final int MAX_IMAGE_HEIGHT = 1024;
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
 
@@ -153,7 +167,7 @@ public class GetChatWebSocket_OpenRouter {
             String fcName = JSONSchemaSerializer.getFunctionName(gcRequest.getFunction().getJSONSchemaClass());
             OAIChatCompletionRequestToolChoiceFunction.Function requestToolChoiceFunction = new OAIChatCompletionRequestToolChoiceFunction.Function(fcName);
             OAIChatCompletionRequestToolChoiceFunction requestToolChoice = new OAIChatCompletionRequestToolChoiceFunction(requestToolChoiceFunction);
-            chatCompletionRequest.setTools(List.of(new OAIChatCompletionRequestTool(
+            chatCompletionRequest.setTools(java.util.List.of(new OAIChatCompletionRequestTool(
                     OAIChatCompletionRequestToolType.FUNCTION,
                     serializedFCObject
             )));
@@ -183,81 +197,118 @@ public class GetChatWebSocket_OpenRouter {
             );
         }
 
-        // Enforce max message sizes
-        List<OAIChatCompletionRequestMessage> finalMessages = new ArrayList<>();
+        // Filter messages based on total conversation length
+        java.util.List<OAIChatCompletionRequestMessage> finalMessages = new ArrayList<>();
+        int originalMessageCount = chatCompletionRequest.getMessages().size();
         int totalImagesFound = 0;
         java.util.concurrent.atomic.AtomicInteger totalImagesSent = new java.util.concurrent.atomic.AtomicInteger(0);
         int totalImagesFiltered = 0;
+        int totalConversationLength = 0;
         
+        // Check premium status only if user sends images (to be determined later)
+        boolean isPremium = false;
+        boolean premiumStatusChecked = false;
+        
+        // Iterate from latest to earliest, but maintain original order in final array
         for (int i = chatCompletionRequest.getMessages().size() - 1; i >= 0; i--) {
             OAIChatCompletionRequestMessage originalMessage = chatCompletionRequest.getMessages().get(i);
 
-            int sumImageLengths = 0;
+            // Calculate this message's length contribution
+            int messageLength = 0;
+            int effectiveImageSize = 0;
             int imagesInMessage = 0;
+            
             for (OAIChatCompletionRequestMessageContent contentPart : originalMessage.getContent()) {
                 if (contentPart instanceof OAIChatCompletionRequestMessageContentImageURL) {
                     totalImagesFound++;
                     imagesInMessage++;
-                    String url = ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().getUrl();
-                    sumImageLengths += url.length();
-                    System.out.println("[IMAGE DEBUG] Found image in message " + i + ": URL length=" + url.length() + ", starts with: " + (url.length() > 50 ? url.substring(0, 50) + "..." : url));
-                }
-            }
-
-            if (sumImageLengths > MAX_MESSAGE_LENGTH) {
-                System.out.println("[IMAGE DEBUG] FILTERING OUT message " + i + " - " + imagesInMessage + " images, total URL length " + sumImageLengths + " > MAX_MESSAGE_LENGTH " + MAX_MESSAGE_LENGTH);
-                totalImagesFiltered += imagesInMessage;
-                continue;
-            } else if (imagesInMessage > 0) {
-                System.out.println("[IMAGE DEBUG] KEEPING message " + i + " with " + imagesInMessage + " images, total URL length: " + sumImageLengths);
-            }
-
-            int allowedTextLength = MAX_MESSAGE_LENGTH - sumImageLengths;
-            int currentTextUsed = 0;
-            List<OAIChatCompletionRequestMessageContent> newContentParts = new ArrayList<>();
-
-            for (OAIChatCompletionRequestMessageContent contentPart : originalMessage.getContent()) {
-                if (contentPart instanceof OAIChatCompletionRequestMessageContentImageURL) {
-                    newContentParts.add(contentPart);
-                    int newCount = totalImagesSent.incrementAndGet();
-                    System.out.println("[IMAGE DEBUG] Added image to final request (" + newCount + " total so far)");
+                    
+                    // Check premium status once when first image is found
+                    if (!premiumStatusChecked) {
+                        try {
+                            isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());
+                            System.out.println("[PREMIUM DEBUG] User " + u_aT.getUserID() + " has images → Premium status: " + (isPremium ? "✅ PREMIUM (0.05x multiplier)" : "🆓 FREE (0.1x multiplier)"));
+                        } catch (AppStoreErrorResponseException | AppleItunesResponseException e) {
+                            // Default to premium if Apple services are down (following existing pattern)
+                            e.printStackTrace();
+                            isPremium = true;
+                            System.out.println("[PREMIUM DEBUG] ⚠️ Apple services error for user " + u_aT.getUserID() + ", defaulting to PREMIUM");
+                        } catch (Exception e) {
+                            System.out.println("[PREMIUM DEBUG] ⚠️ Failed to check premium status for user " + u_aT.getUserID() + ": " + e.getMessage());
+                            isPremium = false; // Default to free for other errors
+                        }
+                        premiumStatusChecked = true;
+                    }
+                    
+                    String originalUrl = ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().getUrl();
+                    
+                    // Resize the image if needed
+                    String resizedUrl = resizeImageUrl(originalUrl);
+                    
+                    // Update the URL in the content part if it was resized
+                    if (!resizedUrl.equals(originalUrl)) {
+                        ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().setUrl(resizedUrl);
+                    }
+                    
+                    // Use premium or regular reduction factor
+                    double reductionFactor = isPremium ? IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM : IMAGE_SIZE_REDUCTION_FACTOR;
+                    
+                    int thisImageEffectiveSize = (int) (resizedUrl.length() * reductionFactor);
+                    effectiveImageSize += thisImageEffectiveSize;
                 } else if (contentPart instanceof OAIChatCompletionRequestMessageContentText) {
-                    if (currentTextUsed >= allowedTextLength) {
-                        continue;
-                    }
                     String text = ((OAIChatCompletionRequestMessageContentText) contentPart).getText();
-                    int remaining = allowedTextLength - currentTextUsed;
-                    if (text.length() <= remaining) {
-                        newContentParts.add(contentPart);
-                        currentTextUsed += text.length();
-                    } else {
-                        String truncatedText = text.substring(0, remaining);
-                        OAIChatCompletionRequestMessageContentText truncatedContent = new OAIChatCompletionRequestMessageContentText();
-                        truncatedContent.setText(truncatedText);
-                        newContentParts.add(truncatedContent);
-                        currentTextUsed += remaining;
-                    }
+                    messageLength += text.length();
                 }
             }
-
-            OAIChatCompletionRequestMessage modifiedMessage = new OAIChatCompletionRequestMessage();
-            modifiedMessage.setContent(newContentParts);
-            modifiedMessage.setRole(originalMessage.getRole());
-
-            finalMessages.add(modifiedMessage);
-
-            if (finalMessages.size() >= MAX_INPUT_MESSAGES) {
+            
+            // Add weighted image size to message length
+            messageLength += effectiveImageSize;
+            
+            // Check if adding this message would exceed conversation limit
+            if (totalConversationLength + messageLength > MAX_CONVERSATION_INPUT_LENGTH) {
+                System.out.println("[CONVERSATION DEBUG] Reached conversation length limit. Breaking at message " + i + 
+                                 " (would add " + messageLength + " to current " + totalConversationLength + " > " + MAX_CONVERSATION_INPUT_LENGTH + ")");
+                if (imagesInMessage > 0) {
+                    totalImagesFiltered += imagesInMessage;
+                }
                 break;
+            }
+            
+            // Check max messages limit
+            if (finalMessages.size() >= MAX_INPUT_MESSAGES) {
+                System.out.println("[CONVERSATION DEBUG] Reached maximum message count limit (" + MAX_INPUT_MESSAGES + ")");
+                if (imagesInMessage > 0) {
+                    totalImagesFiltered += imagesInMessage;
+                }
+                break;
+            }
+            
+            // Add this message to our final list
+            totalConversationLength += messageLength;
+            finalMessages.add(originalMessage);
+            
+            // Update image counters
+            if (imagesInMessage > 0) {
+                totalImagesSent.addAndGet(imagesInMessage);
             }
         }
 
+        // Reverse to maintain original chronological order
         Collections.reverse(finalMessages);
         chatCompletionRequest.setMessages(finalMessages);
         
-        // Image processing summary
+        // Processing summary
+        System.out.println("[CONVERSATION DEBUG] SUMMARY - Total conversation length: " + totalConversationLength + "/" + MAX_CONVERSATION_INPUT_LENGTH + 
+                         ", Messages included: " + finalMessages.size() + "/" + originalMessageCount);
         System.out.println("[IMAGE DEBUG] SUMMARY - Images found: " + totalImagesFound + ", Images sent: " + totalImagesSent.get() + ", Images filtered: " + totalImagesFiltered);
+        if (totalImagesFound > 0) {
+            double appliedFactor = isPremium ? IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM : IMAGE_SIZE_REDUCTION_FACTOR;
+            System.out.println("[IMAGE DEBUG] Applied reduction factor: " + appliedFactor + " (images count as " + (appliedFactor * 100) + "% of actual size) - " + (isPremium ? "PREMIUM user benefit!" : "Free user"));
+        }
         if (totalImagesSent.get() > 0) {
             System.out.println("[IMAGE DEBUG] ✅ Sending request with " + totalImagesSent.get() + " images to model: " + chatCompletionRequest.getModel());
+        } else if (totalImagesFound > 0) {
+            System.out.println("[IMAGE DEBUG] ⚠️ Found " + totalImagesFound + " images but NONE sent (all filtered)");
         }
 
         // Respect client-provided model; leave default unchanged to mirror behavior
@@ -351,12 +402,29 @@ public class GetChatWebSocket_OpenRouter {
             session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
         }
 
+        // Log token usage
+        int totalTokens = completionTokens.get() + promptTokens.get();
+        System.out.println("[TOKEN USAGE] Prompt tokens: " + promptTokens.get() + ", Completion tokens: " + completionTokens.get() + ", Total tokens: " + totalTokens);
+
         // Persist token usage
         ChatFactoryDAO.create(
                 u_aT.getUserID(),
                 completionTokens.get(),
                 promptTokens.get()
         );
+
+        // Do background Apple premium status update if images were sent (following existing pattern)
+        if (totalImagesFound > 0) {
+            User_AuthToken finalU_aT = u_aT;
+            new Thread(() -> {
+                try {
+                    WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(finalU_aT.getUserID());
+                } catch (Exception e) {
+                    // Background update - just log errors, don't throw
+                    System.out.println("[PREMIUM DEBUG] Background premium update failed for user " + finalU_aT.getUserID() + ": " + e.getMessage());
+                }
+            }).start();
+        }
 
         printStreamedGeneratedChatDoBetterLoggingLol(
                 u_aT.getUserID(),
@@ -382,6 +450,98 @@ public class GetChatWebSocket_OpenRouter {
         sb.append(completionRequest.getModel());
 
         System.out.println(sb.toString());
+    }
+
+    /**
+     * Resizes an image URL (base64 data URL) to fit within MAX_IMAGE_WIDTH x MAX_IMAGE_HEIGHT
+     * while maintaining aspect ratio. Returns the original URL if resizing fails or if not a data URL.
+     */
+    private static String resizeImageUrl(String originalUrl) {
+        try {
+            // Only process data URLs (base64 images)
+            if (!originalUrl.startsWith("data:image/")) {
+                return originalUrl;
+            }
+
+            // Extract the base64 data and format
+            String[] parts = originalUrl.split(",", 2);
+            if (parts.length != 2) {
+                return originalUrl;
+            }
+
+            String header = parts[0]; // e.g., "data:image/jpeg;base64"
+            String base64Data = parts[1];
+
+            // Extract format
+            String format = "jpeg"; // default
+            if (header.contains("image/png")) format = "png";
+            else if (header.contains("image/gif")) format = "gif";
+            else if (header.contains("image/webp")) format = "webp";
+
+            // Decode base64 to image
+            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+            BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            
+            if (originalImage == null) {
+                System.out.println("[IMAGE DEBUG] Failed to decode image, using original");
+                return originalUrl;
+            }
+
+            int originalWidth = originalImage.getWidth();
+            int originalHeight = originalImage.getHeight();
+
+            // Check if resizing is needed
+            if (originalWidth <= MAX_IMAGE_WIDTH && originalHeight <= MAX_IMAGE_HEIGHT) {
+                return originalUrl;
+            }
+
+            // Calculate new dimensions maintaining aspect ratio
+            double aspectRatio = (double) originalWidth / originalHeight;
+            int newWidth, newHeight;
+
+            if (originalWidth > originalHeight) {
+                newWidth = Math.min(originalWidth, MAX_IMAGE_WIDTH);
+                newHeight = (int) (newWidth / aspectRatio);
+                if (newHeight > MAX_IMAGE_HEIGHT) {
+                    newHeight = MAX_IMAGE_HEIGHT;
+                    newWidth = (int) (newHeight * aspectRatio);
+                }
+            } else {
+                newHeight = Math.min(originalHeight, MAX_IMAGE_HEIGHT);
+                newWidth = (int) (newHeight * aspectRatio);
+                if (newWidth > MAX_IMAGE_WIDTH) {
+                    newWidth = MAX_IMAGE_WIDTH;
+                    newHeight = (int) (newWidth / aspectRatio);
+                }
+            }
+
+            // Create resized image
+            BufferedImage resizedImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = resizedImage.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
+            g2d.dispose();
+
+            // Encode back to base64
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ImageIO.write(resizedImage, format, outputStream);
+            byte[] resizedBytes = outputStream.toByteArray();
+            String resizedBase64 = Base64.getEncoder().encodeToString(resizedBytes);
+
+            String resizedUrl = header + "," + resizedBase64;
+            
+            System.out.println("[IMAGE DEBUG] ✂️ Resized image from " + originalWidth + "x" + originalHeight + 
+                             " to " + newWidth + "x" + newHeight + 
+                             " (size: " + originalUrl.length() + " → " + resizedUrl.length() + " chars)");
+            
+            return resizedUrl;
+
+        } catch (Exception e) {
+            System.out.println("[IMAGE DEBUG] ⚠️ Failed to resize image: " + e.getMessage());
+            return originalUrl; // Return original on any error
+        }
     }
 }
 

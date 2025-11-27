@@ -9,7 +9,6 @@ import com.oaigptconnector.model.OAIClient;
 import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequest;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
-import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContent;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentText;
 import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
@@ -442,7 +441,6 @@ public class GetChatWebSocket_Legacy_2 {
                 limitedChats.getLimitedChats(),
                 firstImageData,
                 gcRequest.getPersistentImagesData(),
-                InputImageDetail.fromString(gcRequest.getPersistentImagesDetail()),
                 conversation.getBehavior() + "\n\n" + additionalText + "\n\n" + " You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google.",
                 requestedModel,
                 Constants.DEFAULT_TEMPERATURE,

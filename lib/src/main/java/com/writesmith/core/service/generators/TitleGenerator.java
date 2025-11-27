@@ -6,7 +6,6 @@ import com.oaigptconnector.model.generation.OpenAIGPTModels;
 import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
-import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
 import com.writesmith.openai.structuredoutput.GenerateTitleSO;
@@ -52,7 +51,7 @@ public class TitleGenerator {
 
         if (imageData != null && !imageData.isEmpty()) {
             // Add imageData as image with low detail and set requestedModel to vision if it's not null or empty
-            messageBuilder.addImage("data:image/png;base64,\n" + imageData, InputImageDetail.LOW);
+            messageBuilder.addImage("data:image/png;base64,\n" + imageData);
             requestedModel = OpenAIGPTModels.GPT_4_VISION;
         }
 

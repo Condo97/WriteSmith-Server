@@ -362,7 +362,6 @@ public class GetChatWithPersistentImageWebSocket {
                 limitedChats.getLimitedChats(),
                 firstImageData,
                 null,
-                null,
                 conversation.getBehavior(),
                 requestedModel,
                 Constants.DEFAULT_TEMPERATURE,
@@ -409,7 +408,7 @@ public class GetChatWithPersistentImageWebSocket {
                 String persistentImageData = gcwpiRequest.getPersistentImagesData().get(i);
 
                 OAIChatCompletionRequestMessage additionalImageMessage = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
-                        .addImage(persistentImageData, null)
+                        .addImage(persistentImageData)
                         .addText(persistentImageChatText)
                         .build();
 

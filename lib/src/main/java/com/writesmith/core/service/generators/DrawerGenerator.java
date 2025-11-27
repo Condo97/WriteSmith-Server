@@ -7,7 +7,6 @@ import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestMessage;
 import com.oaigptconnector.model.request.chat.completion.OAIChatCompletionRequestResponseFormat;
 import com.oaigptconnector.model.request.chat.completion.ResponseFormatType;
-import com.oaigptconnector.model.request.chat.completion.content.InputImageDetail;
 import com.oaigptconnector.model.response.chat.completion.http.OAIGPTChatCompletionResponse;
 import com.writesmith.Constants;
 import com.writesmith.openai.structuredoutput.DrawersSO;
@@ -102,7 +101,7 @@ public class DrawerGenerator {
         // Create message for GPT
         OAIChatCompletionRequestMessage message = new OAIChatCompletionRequestMessageBuilder(CompletionRole.USER)
                 .addText(input)
-                .addImage(imageData, InputImageDetail.LOW)
+                .addImage(imageData)
                 .build();
 
         // Create HttpClient

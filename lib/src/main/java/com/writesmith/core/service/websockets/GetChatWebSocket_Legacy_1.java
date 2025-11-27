@@ -183,7 +183,6 @@ public class GetChatWebSocket_Legacy_1 {
                     limitedChats.getLimitedChats(),
                     null,
                     null,
-                    null,
                     conversation.getBehavior(),
                     requestedModel,
                     Constants.DEFAULT_TEMPERATURE,

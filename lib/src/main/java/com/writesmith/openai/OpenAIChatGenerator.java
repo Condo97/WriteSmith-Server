@@ -56,7 +56,6 @@ public class OpenAIChatGenerator {
                 limitedChats.getLimitedChats(),
                 null,
                 null,
-                null,
                 conversation.getBehavior(),
                 model,
                 temperature,
