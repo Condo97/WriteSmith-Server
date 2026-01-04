@@ -35,8 +35,10 @@ import com.writesmith.keys.Keys;
 import com.writesmith.util.OpenRouterRequestLogger;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -60,6 +62,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.awt.Graphics2D;
@@ -75,10 +78,14 @@ public class GetChatWebSocket_OpenRouter {
 
     private static final int MAX_INPUT_MESSAGES = 25;
     private static final int MAX_CONVERSATION_INPUT_LENGTH = 50000; // Total conversation length limit
-    private static final double IMAGE_SIZE_REDUCTION_FACTOR = 0.1; // Images count as 10% of their actual size for filtering (free users)
-    private static final double IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM = 0.05; // Premium users get 5% image token efficiency
+    private static final int IMAGE_TOKEN_DIVISOR = 750; // tokens ≈ (width × height) / 750
+    private static final double IMAGE_TOKEN_WEIGHT_FREE = 1.0; // Free users: full token cost counts toward conversation limit
+    private static final double IMAGE_TOKEN_WEIGHT_PREMIUM = 0.5; // Premium users: half token cost (more generous budget)
+    // Fallback: if dimension extraction fails, use base64 length with conservative multipliers
+    private static final double IMAGE_FALLBACK_FACTOR_FREE = 0.05; // 5% of base64 length (conservative for abuse prevention)
+    private static final double IMAGE_FALLBACK_FACTOR_PREMIUM = 0.025; // 2.5% for premium (still generous)
     private static final int MAX_IMAGE_WIDTH = 1024;
-    private static final int MAX_IMAGE_HEIGHT = 1024;
+    private static final int MAX_IMAGE_HEIGHT = 1400; // Increased for portrait document scanning (client sends up to 1024x1400 for premium)
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
 
@@ -98,6 +105,24 @@ public class GetChatWebSocket_OpenRouter {
 
     @OnWebSocketClose
     public void closed(Session session, int statusCode, String reason) {
+    }
+
+    @OnWebSocketError
+    public void onError(Session session, Throwable error) {
+        // Check if this is the common "Broken pipe" pattern from client disconnect
+        // This happens when Jetty tries to close a connection but the client already disconnected
+        Throwable cause = error.getCause();
+        if (error instanceof IOException || (cause != null && cause instanceof IOException)) {
+            String message = error.getMessage();
+            String causeMessage = cause != null ? cause.getMessage() : null;
+            if ((message != null && message.contains("Broken pipe")) || 
+                (causeMessage != null && causeMessage.contains("Broken pipe"))) {
+                System.out.println("[WebSocket] Client disconnected (broken pipe)");
+                return;
+            }
+        }
+        // For any other error, print the full stack trace so we don't miss real issues
+        error.printStackTrace();
     }
 
     @OnWebSocketMessage
@@ -307,18 +332,31 @@ public class GetChatWebSocket_OpenRouter {
                     
                     String originalUrl = ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().getUrl();
                     
-                    // Resize the image if needed
-                    String resizedUrl = resizeImageUrl(originalUrl);
+                    // Resize the image if needed and get dimensions
+                    ImageResizeResult resizeResult = resizeImageUrlWithDimensions(originalUrl);
                     
                     // Update the URL in the content part if it was resized
-                    if (!resizedUrl.equals(originalUrl)) {
-                        ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().setUrl(resizedUrl);
+                    if (!resizeResult.url.equals(originalUrl)) {
+                        ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().setUrl(resizeResult.url);
                     }
                     
-                    // Use premium or regular reduction factor
-                    double reductionFactor = isPremium ? IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM : IMAGE_SIZE_REDUCTION_FACTOR;
-                    
-                    int thisImageEffectiveSize = (int) (resizedUrl.length() * reductionFactor);
+                    int thisImageEffectiveSize;
+                    if (resizeResult.dimensionsKnown) {
+                        // Primary: Calculate token cost based on actual image dimensions: tokens ≈ (width × height) / 750
+                        int imageTokens = (resizeResult.width * resizeResult.height) / IMAGE_TOKEN_DIVISOR;
+                        double tokenWeight = isPremium ? IMAGE_TOKEN_WEIGHT_PREMIUM : IMAGE_TOKEN_WEIGHT_FREE;
+                        thisImageEffectiveSize = (int) (imageTokens * tokenWeight);
+                        
+                        System.out.println("[IMAGE DEBUG] Image " + resizeResult.width + "x" + resizeResult.height + 
+                                         " → " + imageTokens + " tokens × " + tokenWeight + " weight = " + thisImageEffectiveSize + " effective chars");
+                    } else {
+                        // Fallback: Use base64 length with conservative multiplier (dimensions unknown)
+                        double fallbackFactor = isPremium ? IMAGE_FALLBACK_FACTOR_PREMIUM : IMAGE_FALLBACK_FACTOR_FREE;
+                        thisImageEffectiveSize = (int) (resizeResult.url.length() * fallbackFactor);
+                        
+                        System.out.println("[IMAGE DEBUG] ⚠️ FALLBACK: Dimensions unknown, using base64 length " + 
+                                         resizeResult.url.length() + " × " + fallbackFactor + " = " + thisImageEffectiveSize + " effective chars");
+                    }
                     effectiveImageSize += thisImageEffectiveSize;
                 } else if (contentPart instanceof OAIChatCompletionRequestMessageContentText) {
                     String text = ((OAIChatCompletionRequestMessageContentText) contentPart).getText();
@@ -367,8 +405,8 @@ public class GetChatWebSocket_OpenRouter {
                          ", Messages included: " + finalMessages.size() + "/" + originalMessageCount);
         System.out.println("[IMAGE DEBUG] SUMMARY - Images found: " + totalImagesFound + ", Images sent: " + totalImagesSent.get() + ", Images filtered: " + totalImagesFiltered);
         if (totalImagesFound > 0) {
-            double appliedFactor = isPremium ? IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM : IMAGE_SIZE_REDUCTION_FACTOR;
-            System.out.println("[IMAGE DEBUG] Applied reduction factor: " + appliedFactor + " (images count as " + (appliedFactor * 100) + "% of actual size) - " + (isPremium ? "PREMIUM user benefit!" : "Free user"));
+            double appliedWeight = isPremium ? IMAGE_TOKEN_WEIGHT_PREMIUM : IMAGE_TOKEN_WEIGHT_FREE;
+            System.out.println("[IMAGE DEBUG] Applied token weight: " + appliedWeight + " (tokens count as " + (appliedWeight * 100) + "% toward conversation limit) - " + (isPremium ? "PREMIUM user benefit!" : "Free user"));
         }
         if (totalImagesSent.get() > 0) {
             System.out.println("[IMAGE DEBUG] ✅ Sending request with " + totalImagesSent.get() + " images to model: " + chatCompletionRequest.getModel());
@@ -420,12 +458,18 @@ public class GetChatWebSocket_OpenRouter {
         AtomicReference<Long> thinkingStartTime = new AtomicReference<>(null);
         AtomicReference<Boolean> hasSentThinkingEvent = new AtomicReference<>(false);
         AtomicReference<String> lastProvider = new AtomicReference<>(null);
+        AtomicBoolean clientDisconnected = new AtomicBoolean(false);
         
         // Make logger accessible in lambda (effectively final)
         final OpenRouterRequestLogger streamLogger = logger;
         streamLogger.logStreamStart();
 
         chatStream.forEach(response -> {
+            // Skip processing if client already disconnected
+            if (clientDisconnected.get()) {
+                return;
+            }
+            
             try {
                 final String dataPrefixToRemove = "data: ";
                 if (response.length() >= dataPrefixToRemove.length() && response.substring(0, dataPrefixToRemove.length()).equals(dataPrefixToRemove))
@@ -729,6 +773,12 @@ public class GetChatWebSocket_OpenRouter {
                 streamLogger.logSkippedChunk("Non-JSON line (parse exception)");
             } catch (IOException e) {
                 streamLogger.logError("Stream chunk processing", e);
+            } catch (WebSocketException e) {
+                // Client disconnected mid-stream - this is normal (user closed app, navigated away, etc.)
+                // Only print once and stop processing further chunks
+                if (clientDisconnected.compareAndSet(false, true)) {
+                    System.out.println("Client disconnected mid-stream: " + e.getMessage());
+                }
             }
         });
 
@@ -814,20 +864,46 @@ public class GetChatWebSocket_OpenRouter {
     }
 
     /**
-     * Resizes an image URL (base64 data URL) to fit within MAX_IMAGE_WIDTH x MAX_IMAGE_HEIGHT
-     * while maintaining aspect ratio. Returns the original URL if resizing fails or if not a data URL.
+     * Result of image resize operation containing the URL, final dimensions, and whether dimensions are known.
      */
-    private static String resizeImageUrl(String originalUrl) {
+    private static class ImageResizeResult {
+        final String url;
+        final int width;
+        final int height;
+        final boolean dimensionsKnown; // true if we successfully extracted real dimensions
+        
+        ImageResizeResult(String url, int width, int height, boolean dimensionsKnown) {
+            this.url = url;
+            this.width = width;
+            this.height = height;
+            this.dimensionsKnown = dimensionsKnown;
+        }
+        
+        // Convenience constructor for unknown dimensions (fallback case)
+        static ImageResizeResult unknownDimensions(String url) {
+            return new ImageResizeResult(url, 0, 0, false);
+        }
+    }
+
+    /**
+     * Resizes an image URL (base64 data URL) to fit within MAX_IMAGE_WIDTH x MAX_IMAGE_HEIGHT
+     * while maintaining aspect ratio. Returns the result with URL and final dimensions.
+     * If dimensions cannot be determined, dimensionsKnown will be false and fallback logic should be used.
+     */
+    private static ImageResizeResult resizeImageUrlWithDimensions(String originalUrl) {
         try {
             // Only process data URLs (base64 images)
             if (!originalUrl.startsWith("data:image/")) {
-                return originalUrl;
+                // For non-data URLs (external URLs), we can't determine dimensions - use fallback
+                System.out.println("[IMAGE DEBUG] Non-data URL detected, dimensions unknown");
+                return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
             // Extract the base64 data and format
             String[] parts = originalUrl.split(",", 2);
             if (parts.length != 2) {
-                return originalUrl;
+                System.out.println("[IMAGE DEBUG] Malformed data URL, dimensions unknown");
+                return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
             String header = parts[0]; // e.g., "data:image/jpeg;base64"
@@ -840,12 +916,19 @@ public class GetChatWebSocket_OpenRouter {
             else if (header.contains("image/webp")) format = "webp";
 
             // Decode base64 to image
-            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+            byte[] imageBytes;
+            try {
+                imageBytes = Base64.getDecoder().decode(base64Data);
+            } catch (IllegalArgumentException e) {
+                System.out.println("[IMAGE DEBUG] Invalid base64 data, dimensions unknown: " + e.getMessage());
+                return ImageResizeResult.unknownDimensions(originalUrl);
+            }
+            
             BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
             
             if (originalImage == null) {
-                System.out.println("[IMAGE DEBUG] Failed to decode image, using original");
-                return originalUrl;
+                System.out.println("[IMAGE DEBUG] Failed to decode image, dimensions unknown");
+                return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
             int originalWidth = originalImage.getWidth();
@@ -853,7 +936,8 @@ public class GetChatWebSocket_OpenRouter {
 
             // Check if resizing is needed
             if (originalWidth <= MAX_IMAGE_WIDTH && originalHeight <= MAX_IMAGE_HEIGHT) {
-                return originalUrl;
+                // No resize needed, return with known dimensions
+                return new ImageResizeResult(originalUrl, originalWidth, originalHeight, true);
             }
 
             // Calculate new dimensions maintaining aspect ratio
@@ -897,11 +981,13 @@ public class GetChatWebSocket_OpenRouter {
                              " to " + newWidth + "x" + newHeight + 
                              " (size: " + originalUrl.length() + " → " + resizedUrl.length() + " chars)");
             
-            return resizedUrl;
+            // Return with known dimensions (the resized dimensions)
+            return new ImageResizeResult(resizedUrl, newWidth, newHeight, true);
 
         } catch (Exception e) {
-            System.out.println("[IMAGE DEBUG] ⚠️ Failed to resize image: " + e.getMessage());
-            return originalUrl; // Return original on any error
+            System.out.println("[IMAGE DEBUG] ⚠️ Failed to process image: " + e.getMessage());
+            // Return original URL but mark dimensions as unknown - will use fallback calculation
+            return ImageResizeResult.unknownDimensions(originalUrl);
         }
     }
 }

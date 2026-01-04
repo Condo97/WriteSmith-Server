@@ -64,11 +64,11 @@ public class RealtimeWebSocket {
             try {
                 openAISession.getRemote().sendString(message);
             } catch (IOException e) {
+                System.err.println("Failed to send message to OpenAI Realtime API: " + e.getMessage());
                 e.printStackTrace();
-                sendErrorToClient("Failed to send message to OpenAI Realtime API.");
             }
         } else {
-            sendErrorToClient("Connection to OpenAI Realtime API is not established.");
+            System.err.println("Connection to OpenAI Realtime API is not established.");
         }
     }
 
@@ -80,11 +80,11 @@ public class RealtimeWebSocket {
                 ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
                 openAISession.getRemote().sendBytes(buffer);
             } catch (IOException e) {
+                System.err.println("Failed to send audio to OpenAI Realtime API: " + e.getMessage());
                 e.printStackTrace();
-                sendErrorToClient("Failed to send audio to OpenAI Realtime API.");
             }
         } else {
-            sendErrorToClient("Connection to OpenAI Realtime API is not established.");
+            System.err.println("Connection to OpenAI Realtime API is not established.");
         }
     }
 
@@ -102,8 +102,8 @@ public class RealtimeWebSocket {
 
     @OnWebSocketError
     public void onError(Session session, Throwable error) {
+        System.err.println("RealtimeWebSocket error: " + error.getMessage());
         error.printStackTrace();
-        sendErrorToClient("An error occurred: " + error.getMessage());
     }
 
     private void connectToOpenAIRealtimeAPI() throws Exception {
@@ -181,8 +181,8 @@ public class RealtimeWebSocket {
 
         @Override
         public void onWebSocketError(Throwable cause) {
+            System.err.println("OpenAI Realtime API error: " + cause.getMessage());
             cause.printStackTrace();
-            sendErrorToClient("An error occurred with OpenAI Realtime API: " + cause.getMessage());
         }
     }
 
@@ -215,13 +215,4 @@ public class RealtimeWebSocket {
         return authToken;
     }
 
-    private void sendErrorToClient(String errorMessage) {
-        if (clientSession != null && clientSession.isOpen()) {
-            try {
-                clientSession.getRemote().sendString("{\"error\": \"" + errorMessage + "\"}");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 }
