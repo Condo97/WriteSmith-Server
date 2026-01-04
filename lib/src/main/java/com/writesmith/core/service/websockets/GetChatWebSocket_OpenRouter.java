@@ -58,6 +58,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.awt.Graphics2D;
@@ -80,6 +82,14 @@ public class GetChatWebSocket_OpenRouter {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
 
+    // Dedicated thread pool for stream processing - prevents blocking Jetty's limited thread pool
+    // CachedThreadPool creates threads as needed and reuses them, ideal for variable concurrent streams
+    private static final ExecutorService streamExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "OpenRouterStream-" + System.currentTimeMillis());
+        t.setDaemon(true);  // Don't prevent JVM shutdown
+        return t;
+    });
+
     private static final String persistentSystemText = "You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google. Attempt to improve socialness and get the user to share and promote the app in subtle ways.";
 
     @OnWebSocketConnect
@@ -92,37 +102,41 @@ public class GetChatWebSocket_OpenRouter {
 
     @OnWebSocketMessage
     public void message(Session session, String message) {
-        try {
-            getChat(session, message);
-        } catch (CapReachedException e) {
-            // Ignore for now; client will handle cap states elsewhere
-        } catch (MalformedJSONException | InvalidAuthenticationException e) {
-            e.printStackTrace();
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
+        // Submit to dedicated executor to avoid blocking Jetty's limited thread pool
+        // This allows many concurrent streams without exhausting server threads
+        streamExecutor.submit(() -> {
             try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                eI.printStackTrace();
+                getChat(session, message);
+            } catch (CapReachedException e) {
+                // Ignore for now; client will handle cap states elsewhere
+            } catch (MalformedJSONException | InvalidAuthenticationException e) {
+                e.printStackTrace();
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    eI.printStackTrace();
+                }
+            } catch (UnhandledException e) {
+                e.printStackTrace();
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    eI.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                session.close();
             }
-        } catch (UnhandledException e) {
-            e.printStackTrace();
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
-            try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                eI.printStackTrace();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
+        });
     }
 
     protected void getChat(Session session, String message) throws MalformedJSONException, InvalidAuthenticationException, UnhandledException, CapReachedException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, UnrecoverableKeyException, AppStoreErrorResponseException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, OAISerializerException {

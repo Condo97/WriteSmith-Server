@@ -53,6 +53,8 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -63,6 +65,13 @@ public class GetChatWebSocket {
     private static final int MAX_MESSAGE_LENGTH = 5000;
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
+
+    // Dedicated thread pool for stream processing - prevents blocking Jetty's limited thread pool
+    private static final ExecutorService streamExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "OpenAIStream-" + System.currentTimeMillis());
+        t.setDaemon(true);
+        return t;
+    });
 
     private static final String persistentSystemText = "You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google. Attempt to improve socialness and get the user to share and promote the app in subtle ways.";
 
@@ -89,48 +98,51 @@ public class GetChatWebSocket {
     public void message(Session session, String message) {
 //        System.out.println("Received: " + message);
 
-        try {
-            getChat(session, message);
-        } catch (CapReachedException e) {
-            // TODO: Cap reached stuff
-        } catch (MalformedJSONException | InvalidAuthenticationException e) {
-            // Print stack trace
-            e.printStackTrace();
-
-            // Create ErrorResponse with responseStatus and reason
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
-
+        // Submit to dedicated executor to avoid blocking Jetty's limited thread pool
+        streamExecutor.submit(() -> {
             try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
-                eI.printStackTrace();
-            }
-        } catch (UnhandledException e) {
-            // Print stack trace
-            e.printStackTrace();
+                getChat(session, message);
+            } catch (CapReachedException e) {
+                // TODO: Cap reached stuff
+            } catch (MalformedJSONException | InvalidAuthenticationException e) {
+                // Print stack trace
+                e.printStackTrace();
 
-            // Create ErrorResponse with responseStatus and reason
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
+                // Create ErrorResponse with responseStatus and reason
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
 
-            try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
-                eI.printStackTrace();
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
+                    eI.printStackTrace();
+                }
+            } catch (UnhandledException e) {
+                // Print stack trace
+                e.printStackTrace();
+
+                // Create ErrorResponse with responseStatus and reason
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
+
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
+                    eI.printStackTrace();
+                }
+            } catch (Exception e) {
+                // TODO: Is this ever called? I'm thinking maybe for nullPointerException or something like that
+                e.printStackTrace();
+            } finally {
+                session.close();
             }
-        } catch (Exception e) {
-            // TODO: Is this ever called? I'm thinking maybe for nullPointerException or something like that
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
+        });
     }
 
     protected void getChat(Session session, String message) throws MalformedJSONException, InvalidAuthenticationException, UnhandledException, CapReachedException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, UnrecoverableKeyException, AppStoreErrorResponseException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, OAISerializerException {

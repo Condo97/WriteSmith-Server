@@ -32,6 +32,15 @@ repositories {
     mavenLocal()
 
 //    maven { url 'https://jitpack.io' }
+
+    // GitHub Packages for custom dependencies
+    maven {
+        url = uri("https://maven.pkg.github.com/Condo97/SQLComponentizer")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME")
+            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 dependencies {
@@ -41,9 +50,8 @@ dependencies {
     // Apache HttpClient for new HTTP requests
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
 
-    // SQLComponentizer for SQL handling
-//    implementation 'com.github.Condo97:SQLComponentizer:-SNAPSHOT'
-    implementation 'com.github.condo97:SQLComponentizer:1.0.0'
+    // SQLComponentizer for SQL handling (GitHub Packages)
+    implementation 'io.github.condo97:SQLComponentizer:1.0.0'
 
     // DBClient for more SQL handling
     implementation 'com.github.condo97:MySQLDBClient:1.0.0'
