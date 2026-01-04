@@ -12,6 +12,7 @@ import com.writesmith.exceptions.responsestatus.InvalidFileTypeException;
 import com.writesmith.keys.Keys;
 import com.writesmith.core.service.response.*;
 import com.writesmith.openai.structuredoutput.*;
+import com.writesmith.util.PersistentLogger;
 import spark.resource.ExternalResource;
 
 import javax.security.sasl.AuthenticationException;
@@ -39,6 +40,15 @@ public class Main {
     private static final int DEBUG_PORT = 2000;
 
     public static void main(String... args) throws SQLException {
+        // Initialize persistent logging FIRST - captures all console output to files
+        PersistentLogger.initialize();
+        
+        // Add shutdown hook to gracefully close logger
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            PersistentLogger.info(PersistentLogger.SERVER, "Shutdown hook triggered - closing logger...");
+            PersistentLogger.shutdown();
+        }));
+
         // Get threads from thread arg or MAX_THREADS
         int threads = parseArg(args, threadArgPrefix, MAX_THREADS);
 
@@ -48,10 +58,13 @@ public class Main {
         // Get isDebug from debug arg
         boolean isDebug = argIncluded(args, debugArg);
 
+        PersistentLogger.info(PersistentLogger.SERVER, "Starting WriteSmith Server - threads=" + threads + ", connections=" + connections + ", debug=" + isDebug);
+
         // Set up MySQL Driver
         try {
             DriverManager.registerDriver(new com.mysql.cj.jdbc.Driver());
         } catch (SQLException e) {
+            PersistentLogger.error(PersistentLogger.DATABASE, "Failed to register MySQL driver", e);
             e.printStackTrace();
         }
 
