@@ -20,6 +20,6 @@ build
 /chitchatserver.com.jks
 /keys/SubscriptionKey_PJ323P8QVH.p8
 /lib/keys/
+# Ignore Keys.java but NOT Keys.java.example (template for developers)
 /lib/src/main/java/com/writesmith/keys/Keys.java
-/lib/src/main/java/com/writesmith/keys/
 /lib/out/
