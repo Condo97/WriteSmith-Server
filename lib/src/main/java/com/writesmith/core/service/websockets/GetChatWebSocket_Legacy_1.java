@@ -315,7 +315,11 @@ public class GetChatWebSocket_Legacy_1 {
             BodyResponse br = BodyResponseFactory.createBodyResponse(rs, gcr);
 
             // Send BodyResponse
-            session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+            try {
+                session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+            } catch (IOException eIO) {
+                eIO.printStackTrace();
+            }
 
             // Print stream chat generation cap reached TODO: Move this and make logging better
             System.out.println("Chat Stream Cap Reached " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
