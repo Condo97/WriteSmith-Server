@@ -14,15 +14,20 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-@WebSocket(maxTextMessageSize = 256 * 1024)
+@WebSocket(maxTextMessageSize = 256 * 1024, maxIdleTime = 60000)
 public class RealtimeWebSocket {
 
     private static final String OPENAI_REALTIME_API_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
     private static final String OPENAI_API_KEY = Keys.openAiAPI;
 
     private Session clientSession; // Session with the client
-    private Session openAISession;  // Session with OpenAI Realtime API
+    private volatile Session openAISession;  // Session with OpenAI Realtime API
+    private final CountDownLatch openAIConnectionLatch = new CountDownLatch(1);
+    private final AtomicBoolean openAIConnectionFailed = new AtomicBoolean(false);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -125,37 +130,31 @@ public class RealtimeWebSocket {
     private void connectToOpenAIRealtimeAPI() throws Exception {
         WebSocketClient openAIClient = new WebSocketClient();
         openAIClient.getPolicy().setMaxTextMessageSize(256 * 1024);
+        openAIClient.getPolicy().setIdleTimeout(60000); // 1 minute idle timeout
         openAIClient.start();
 
         ClientUpgradeRequest request = new ClientUpgradeRequest();
         request.setHeader("Authorization", "Bearer " + OPENAI_API_KEY);
         request.setHeader("OpenAI-Beta", "realtime=v1");
 
+        // Start the connection (async)
         openAIClient.connect(new OpenAIWebSocketAdapter(), new URI(OPENAI_REALTIME_API_URL), request);
+        
+        // Wait for connection to be established (with timeout)
+        boolean connected = openAIConnectionLatch.await(30, TimeUnit.SECONDS);
+        if (!connected || openAIConnectionFailed.get()) {
+            throw new IOException("Failed to establish connection to OpenAI Realtime API within timeout");
+        }
+        
+        System.out.println("Successfully connected to OpenAI Realtime API");
     }
 
     private class OpenAIWebSocketAdapter extends WebSocketAdapter {
         @Override
         public void onWebSocketConnect(Session session) {
             openAISession = session;
-
-//            // Send initial configuration or messages if necessary
-//            // For example, initiate a response
-//            try {
-//                Map<String, Object> responseCreateEvent = Map.of(
-//                        "type", "conversation.item.create",
-//                        "response", Map.of(
-//                                "modalities", new String[]{"text", "audio"},
-//                                "instructions", "Please assist the user."
-//                        )
-//                );
-//                String message = objectMapper.writeValueAsString(responseCreateEvent);
-//                openAISession.getRemote().sendString(message);
-//                openAISession.getRemote().sendString("response.create");
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//                sendErrorToClient("Failed to send initial message to OpenAI Realtime API.");
-//            }
+            openAIConnectionLatch.countDown(); // Signal that connection is ready
+            System.out.println("OpenAI Realtime API WebSocket connected");
         }
 
         @Override
@@ -185,6 +184,11 @@ public class RealtimeWebSocket {
 
         @Override
         public void onWebSocketClose(int statusCode, String reason) {
+            System.out.println("OpenAI Realtime API WebSocket closed: " + statusCode + " - " + reason);
+            // Signal in case we're still waiting for connection
+            openAIConnectionFailed.set(true);
+            openAIConnectionLatch.countDown();
+            
             // Handle OpenAI session closure
             if (clientSession != null && clientSession.isOpen()) {
                 try {
@@ -199,6 +203,8 @@ public class RealtimeWebSocket {
         public void onWebSocketError(Throwable cause) {
             System.err.println("OpenAI Realtime API error: " + cause.getMessage());
             cause.printStackTrace();
+            openAIConnectionFailed.set(true);
+            openAIConnectionLatch.countDown(); // Signal to unblock waiting thread
         }
     }
 
