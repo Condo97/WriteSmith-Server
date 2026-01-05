@@ -12,12 +12,13 @@ import org.eclipse.jetty.websocket.client.WebSocketClient;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.Map;
 
 @WebSocket(maxTextMessageSize = 256 * 1024)
 public class RealtimeWebSocket {
 
-    private static final String OPENAI_REALTIME_API_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01";
+    private static final String OPENAI_REALTIME_API_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
     private static final String OPENAI_API_KEY = Keys.openAiAPI;
 
     private Session clientSession; // Session with the client
@@ -74,11 +75,26 @@ public class RealtimeWebSocket {
 
     @OnWebSocketMessage
     public void onBinaryMessage(Session session, byte[] data, int offset, int length) {
-        // Relay binary message (audio) to OpenAI Realtime API
+        // Convert binary audio to Base64 and send as input_audio_buffer.append event
+        // OpenAI Realtime API expects audio as Base64-encoded JSON text messages, not raw binary
         if (openAISession != null && openAISession.isOpen()) {
             try {
-                ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
-                openAISession.getRemote().sendBytes(buffer);
+                // Extract the actual audio bytes from the buffer
+                byte[] audioBytes = new byte[length];
+                System.arraycopy(data, offset, audioBytes, 0, length);
+                
+                // Encode audio as Base64
+                String base64Audio = Base64.getEncoder().encodeToString(audioBytes);
+                
+                // Create the input_audio_buffer.append event as JSON
+                Map<String, Object> appendEvent = Map.of(
+                        "type", "input_audio_buffer.append",
+                        "audio", base64Audio
+                );
+                String jsonMessage = objectMapper.writeValueAsString(appendEvent);
+                
+                // Send as text message (not binary)
+                openAISession.getRemote().sendString(jsonMessage);
             } catch (IOException e) {
                 System.err.println("Failed to send audio to OpenAI Realtime API: " + e.getMessage());
                 e.printStackTrace();
