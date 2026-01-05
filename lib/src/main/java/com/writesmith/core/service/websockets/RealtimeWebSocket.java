@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-@WebSocket(maxTextMessageSize = 256 * 1024, maxIdleTime = 60000)
+@WebSocket(maxTextMessageSize = 256 * 1024, maxIdleTime = 300000)
 public class RealtimeWebSocket {
 
     private static final String OPENAI_REALTIME_API_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
@@ -141,7 +141,7 @@ public class RealtimeWebSocket {
         
         openAIClient = new WebSocketClient();
         openAIClient.getPolicy().setMaxTextMessageSize(256 * 1024);
-        openAIClient.getPolicy().setIdleTimeout(60000); // 1 minute idle timeout
+        openAIClient.getPolicy().setIdleTimeout(300000); // 5 minute idle timeout
         openAIClient.start();
 
         ClientUpgradeRequest request = new ClientUpgradeRequest();
