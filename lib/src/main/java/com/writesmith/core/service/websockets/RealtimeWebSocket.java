@@ -15,6 +15,9 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @WebSocket(maxTextMessageSize = 256 * 1024, maxIdleTime = 300000)
@@ -22,10 +25,15 @@ public class RealtimeWebSocket {
 
     private static final String OPENAI_REALTIME_API_URL = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview";
     private static final String OPENAI_API_KEY = Keys.openAiAPI;
+    private static final int PING_INTERVAL_SECONDS = 30;
 
     private Session clientSession; // Session with the client
     private volatile Session openAISession;  // Session with OpenAI Realtime API
     private WebSocketClient openAIClient;
+    
+    // Ping scheduler to keep connection alive
+    private final ScheduledExecutorService pingScheduler = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> pingTask;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -111,6 +119,9 @@ public class RealtimeWebSocket {
     public void onClose(Session session, int statusCode, String reason) {
         System.out.println("Client WebSocket closed: " + statusCode + " - " + reason);
         
+        // Stop ping keepalive
+        stopPingKeepalive();
+        
         // Close the OpenAI session if the client disconnects
         if (openAISession != null && openAISession.isOpen()) {
             try {
@@ -157,6 +168,9 @@ public class RealtimeWebSocket {
             // Wait for the connection with timeout
             openAISession = sessionFuture.get(30, TimeUnit.SECONDS);
             System.out.println("Successfully connected to OpenAI Realtime API");
+            
+            // Start ping keepalive for client connection
+            startPingKeepalive();
         } catch (java.util.concurrent.TimeoutException e) {
             System.err.println("Timeout waiting for OpenAI Realtime API connection");
             throw new IOException("Connection to OpenAI Realtime API timed out after 30 seconds", e);
@@ -164,6 +178,27 @@ public class RealtimeWebSocket {
             System.err.println("Failed to connect to OpenAI Realtime API: " + e.getCause().getMessage());
             e.getCause().printStackTrace();
             throw new IOException("Failed to connect to OpenAI Realtime API: " + e.getCause().getMessage(), e.getCause());
+        }
+    }
+    
+    private void startPingKeepalive() {
+        pingTask = pingScheduler.scheduleAtFixedRate(() -> {
+            try {
+                if (clientSession != null && clientSession.isOpen()) {
+                    clientSession.getRemote().sendPing(ByteBuffer.wrap("keepalive".getBytes()));
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to send ping: " + e.getMessage());
+            }
+        }, PING_INTERVAL_SECONDS, PING_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        
+        System.out.println("Started ping keepalive every " + PING_INTERVAL_SECONDS + " seconds");
+    }
+    
+    private void stopPingKeepalive() {
+        if (pingTask != null) {
+            pingTask.cancel(false);
+            pingTask = null;
         }
     }
 
@@ -204,6 +239,9 @@ public class RealtimeWebSocket {
         public void onWebSocketClose(int statusCode, String reason) {
             System.out.println("OpenAI Realtime API WebSocket closed: " + statusCode + " - " + reason);
             openAISession = null;
+            
+            // Stop ping keepalive
+            stopPingKeepalive();
             
             // Close client connection when OpenAI disconnects
             if (clientSession != null && clientSession.isOpen()) {
