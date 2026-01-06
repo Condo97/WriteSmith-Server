@@ -29,7 +29,7 @@ import java.util.Comparator;
 public class PersistentLogger {
 
     private static final String LOG_ROOT = "logs";
-    private static final int MAX_SESSIONS_TO_KEEP = 20;
+    private static final int MAX_SESSIONS_TO_KEEP = 1000;
     private static final DateTimeFormatter SESSION_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private static final DateTimeFormatter FULL_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");

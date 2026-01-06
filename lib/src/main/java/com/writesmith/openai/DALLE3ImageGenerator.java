@@ -75,11 +75,22 @@ public class DALLE3ImageGenerator {
         try {
             DALLE3ImageGenerationResponse response = postImageGeneration(request, Keys.openAiAPI);
 
+            // Check for OpenAI error response first
+            if (response.hasError()) {
+                DALLE3ImageGenerationResponse.Error oaiError = response.getError();
+                String errorMsg = "OpenAI DALLE3 error: " + oaiError.toString();
+                PersistentLogger.error(PersistentLogger.IMAGE, errorMsg);
+                PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, response, new Exception(errorMsg));
+                throw new OpenAIGPTException("Image generation failed: " + oaiError.getMessage() + " (code: " + oaiError.getCode() + ")", null);
+            }
+
             // Validate response data is not null
             if (response.getData() == null) {
-                String errorMsg = "DALLE3 response data is null - OpenAI may have returned an error";
-                NullPointerException error = new NullPointerException(errorMsg);
-                PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, response, error);
+                String errorMsg = "DALLE3 response data is null - prompt may be empty or invalid. Prompt length: " + 
+                                  (prompt != null ? prompt.length() : "null") + 
+                                  ", prompt preview: " + truncatePrompt(prompt);
+                PersistentLogger.error(PersistentLogger.IMAGE, errorMsg);
+                PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, response, new NullPointerException(errorMsg));
                 throw new OpenAIGPTException(errorMsg, null);
             }
 

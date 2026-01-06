@@ -153,7 +153,36 @@ public class RealtimeWebSocket {
         openAIClient = new WebSocketClient();
         openAIClient.getPolicy().setMaxTextMessageSize(256 * 1024);
         openAIClient.getPolicy().setIdleTimeout(300000); // 5 minute idle timeout
-        openAIClient.start();
+        
+        // Start the WebSocket client with proper error handling
+        try {
+            openAIClient.start();
+            
+            // Wait briefly to ensure client is fully started
+            int maxWaitMs = 5000;
+            int waitedMs = 0;
+            while (!openAIClient.isStarted() && waitedMs < maxWaitMs) {
+                Thread.sleep(50);
+                waitedMs += 50;
+            }
+            
+            if (!openAIClient.isStarted()) {
+                throw new IOException("WebSocketClient failed to start within " + maxWaitMs + "ms");
+            }
+            
+            System.out.println("WebSocketClient started successfully after " + waitedMs + "ms");
+        } catch (Exception e) {
+            System.err.println("Failed to start WebSocketClient: " + e.getMessage());
+            e.printStackTrace();
+            // Clean up if start fails
+            try {
+                openAIClient.stop();
+            } catch (Exception stopError) {
+                // Ignore stop errors during cleanup
+            }
+            openAIClient = null;
+            throw new IOException("Failed to start WebSocketClient: " + e.getMessage(), e);
+        }
 
         ClientUpgradeRequest request = new ClientUpgradeRequest();
         request.setHeader("Authorization", "Bearer " + OPENAI_API_KEY);
@@ -173,11 +202,24 @@ public class RealtimeWebSocket {
             startPingKeepalive();
         } catch (java.util.concurrent.TimeoutException e) {
             System.err.println("Timeout waiting for OpenAI Realtime API connection");
+            cleanupOpenAIClient();
             throw new IOException("Connection to OpenAI Realtime API timed out after 30 seconds", e);
         } catch (java.util.concurrent.ExecutionException e) {
             System.err.println("Failed to connect to OpenAI Realtime API: " + e.getCause().getMessage());
             e.getCause().printStackTrace();
+            cleanupOpenAIClient();
             throw new IOException("Failed to connect to OpenAI Realtime API: " + e.getCause().getMessage(), e.getCause());
+        }
+    }
+    
+    private void cleanupOpenAIClient() {
+        if (openAIClient != null) {
+            try {
+                openAIClient.stop();
+            } catch (Exception e) {
+                // Ignore stop errors during cleanup
+            }
+            openAIClient = null;
         }
     }
     

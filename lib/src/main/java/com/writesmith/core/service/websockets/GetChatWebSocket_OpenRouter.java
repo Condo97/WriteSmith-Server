@@ -73,7 +73,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 
-@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
+@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 120000)  // 2 minutes for reasoning models
 public class GetChatWebSocket_OpenRouter {
 
     private static final int MAX_INPUT_MESSAGES = 25;

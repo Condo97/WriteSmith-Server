@@ -58,7 +58,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
-@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
+@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 120000)  // 2 minutes for reasoning models
 public class GetChatWebSocket {
 
     private static final int MAX_INPUT_MESSAGES = 25;
