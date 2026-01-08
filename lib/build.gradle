@@ -106,6 +106,9 @@ dependencies {
     // MySQL Connector
     implementation 'mysql:mysql-connector-java:8.0.30'
 
+    // HikariCP for high-performance connection pooling
+    implementation 'com.zaxxer:HikariCP:5.1.0'
+
     // java-jwt for JWT
     implementation 'com.auth0:java-jwt:4.4.0'
 

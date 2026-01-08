@@ -22,6 +22,7 @@ import com.writesmith.core.service.response.factory.BodyResponseFactory;
 import com.writesmith.core.service.response.stream.EnhancedChatCompletionStreamResponse;
 import com.writesmith.core.service.response.stream.EnhancedStreamChoice;
 import com.writesmith.core.service.response.stream.EnhancedStreamDelta;
+import com.writesmith.core.PremiumStatusCache;
 import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.database.dao.factory.ChatFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
@@ -69,9 +70,12 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.Iterator;
 
 @WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 600000)  // 10 minutes for reasoning models (GPT-5-mini, o1, o3)
 public class GetChatWebSocket_OpenRouter {
@@ -375,26 +379,14 @@ public class GetChatWebSocket_OpenRouter {
                     totalImagesFound++;
                     imagesInMessage++;
                     
-                    // Check premium status once when first image is found
+                    // Check premium status once when first image is found (using cache for performance)
                     if (!premiumStatusChecked) {
-                        try {
-                            isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());
-                            String premiumDetails = "User " + u_aT.getUserID() + " has images → Premium status: " + (isPremium ? "PREMIUM (0.05x multiplier)" : "FREE (0.1x multiplier)");
-                            System.out.println("[PREMIUM DEBUG] " + premiumDetails);
-                            logger.logPremiumStatus(isPremium, premiumDetails);
-                        } catch (AppStoreErrorResponseException | AppleItunesResponseException e) {
-                            // Default to premium if Apple services are down (following existing pattern)
-                            e.printStackTrace();
-                            isPremium = true;
-                            String errorDetails = "Apple services error for user " + u_aT.getUserID() + ", defaulting to PREMIUM";
-                            System.out.println("[PREMIUM DEBUG] ⚠️ " + errorDetails);
-                            logger.logPremiumStatus(isPremium, "ERROR: " + errorDetails);
-                        } catch (Exception e) {
-                            String errorDetails = "Failed to check premium status for user " + u_aT.getUserID() + ": " + e.getMessage();
-                            System.out.println("[PREMIUM DEBUG] ⚠️ " + errorDetails);
-                            isPremium = false; // Default to free for other errors
-                            logger.logPremiumStatus(isPremium, "ERROR: " + errorDetails);
-                        }
+                        // Use cached premium status to avoid blocking Apple API calls
+                        // Cache handles errors internally and defaults to premium on failure
+                        isPremium = PremiumStatusCache.getIsPremium(u_aT.getUserID(), streamExecutor);
+                        String premiumDetails = "User " + u_aT.getUserID() + " has images → Premium status: " + (isPremium ? "PREMIUM (0.5x token weight)" : "FREE (1.0x token weight)") + " (cached)";
+                        System.out.println("[PREMIUM DEBUG] " + premiumDetails);
+                        logger.logPremiumStatus(isPremium, premiumDetails);
                         premiumStatusChecked = true;
                     }
                     
@@ -1055,9 +1047,19 @@ public class GetChatWebSocket_OpenRouter {
     }
 
     /**
-     * Resizes an image URL (base64 data URL) to fit within MAX_IMAGE_WIDTH x MAX_IMAGE_HEIGHT
-     * while maintaining aspect ratio. Returns the result with URL and final dimensions.
-     * If dimensions cannot be determined, dimensionsKnown will be false and fallback logic should be used.
+     * Extracts image dimensions WITHOUT full decode or resize.
+     * 
+     * PERFORMANCE OPTIMIZATION: This method uses ImageReader metadata to get dimensions
+     * without loading the entire image into memory. This is much faster and uses far less
+     * memory than the previous approach which decoded, resized, and re-encoded images.
+     * 
+     * We no longer resize images server-side because:
+     * 1. OpenRouter/models accept images up to 20MB
+     * 2. Clients already send reasonably sized images (up to 1024x1400)
+     * 3. Server-side resize was CPU and memory intensive, causing slowdowns under load
+     * 
+     * @param originalUrl The image URL (data URL or external URL)
+     * @return ImageResizeResult with dimensions (URL is never modified)
      */
     private static ImageResizeResult resizeImageUrlWithDimensions(String originalUrl) {
         try {
@@ -1068,23 +1070,16 @@ public class GetChatWebSocket_OpenRouter {
                 return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
-            // Extract the base64 data and format
+            // Extract the base64 data
             String[] parts = originalUrl.split(",", 2);
             if (parts.length != 2) {
                 System.out.println("[IMAGE DEBUG] Malformed data URL, dimensions unknown");
                 return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
-            String header = parts[0]; // e.g., "data:image/jpeg;base64"
             String base64Data = parts[1];
 
-            // Extract format
-            String format = "jpeg"; // default
-            if (header.contains("image/png")) format = "png";
-            else if (header.contains("image/gif")) format = "gif";
-            else if (header.contains("image/webp")) format = "webp";
-
-            // Decode base64 to image
+            // Decode base64 to bytes
             byte[] imageBytes;
             try {
                 imageBytes = Base64.getDecoder().decode(base64Data);
@@ -1092,70 +1087,48 @@ public class GetChatWebSocket_OpenRouter {
                 System.out.println("[IMAGE DEBUG] Invalid base64 data, dimensions unknown: " + e.getMessage());
                 return ImageResizeResult.unknownDimensions(originalUrl);
             }
-            
-            BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
-            
-            if (originalImage == null) {
-                System.out.println("[IMAGE DEBUG] Failed to decode image, dimensions unknown");
-                return ImageResizeResult.unknownDimensions(originalUrl);
-            }
 
-            int originalWidth = originalImage.getWidth();
-            int originalHeight = originalImage.getHeight();
-
-            // Check if resizing is needed
-            if (originalWidth <= MAX_IMAGE_WIDTH && originalHeight <= MAX_IMAGE_HEIGHT) {
-                // No resize needed, return with known dimensions
-                return new ImageResizeResult(originalUrl, originalWidth, originalHeight, true);
-            }
-
-            // Calculate new dimensions maintaining aspect ratio
-            double aspectRatio = (double) originalWidth / originalHeight;
-            int newWidth, newHeight;
-
-            if (originalWidth > originalHeight) {
-                newWidth = Math.min(originalWidth, MAX_IMAGE_WIDTH);
-                newHeight = (int) (newWidth / aspectRatio);
-                if (newHeight > MAX_IMAGE_HEIGHT) {
-                    newHeight = MAX_IMAGE_HEIGHT;
-                    newWidth = (int) (newHeight * aspectRatio);
+            // Use ImageReader to get dimensions WITHOUT full decode (much faster, less memory)
+            try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(imageBytes))) {
+                if (iis == null) {
+                    System.out.println("[IMAGE DEBUG] Could not create ImageInputStream, dimensions unknown");
+                    return ImageResizeResult.unknownDimensions(originalUrl);
                 }
-            } else {
-                newHeight = Math.min(originalHeight, MAX_IMAGE_HEIGHT);
-                newWidth = (int) (newHeight * aspectRatio);
-                if (newWidth > MAX_IMAGE_WIDTH) {
-                    newWidth = MAX_IMAGE_WIDTH;
-                    newHeight = (int) (newWidth / aspectRatio);
+                
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+                if (readers.hasNext()) {
+                    ImageReader reader = readers.next();
+                    try {
+                        reader.setInput(iis);
+                        int width = reader.getWidth(0);   // Gets dimension from metadata, no full decode!
+                        int height = reader.getHeight(0);
+                        
+                        System.out.println("[IMAGE DEBUG] Extracted dimensions " + width + "x" + height + 
+                                         " (lightweight, no resize)");
+                        
+                        // Return original URL with known dimensions - no resize performed
+                        return new ImageResizeResult(originalUrl, width, height, true);
+                    } finally {
+                        reader.dispose();
+                    }
                 }
             }
-
-            // Create resized image
-            BufferedImage resizedImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g2d = resizedImage.createGraphics();
-            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
-            g2d.dispose();
-
-            // Encode back to base64
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            ImageIO.write(resizedImage, format, outputStream);
-            byte[] resizedBytes = outputStream.toByteArray();
-            String resizedBase64 = Base64.getEncoder().encodeToString(resizedBytes);
-
-            String resizedUrl = header + "," + resizedBase64;
             
-            System.out.println("[IMAGE DEBUG] ✂️ Resized image from " + originalWidth + "x" + originalHeight + 
-                             " to " + newWidth + "x" + newHeight + 
-                             " (size: " + originalUrl.length() + " → " + resizedUrl.length() + " chars)");
+            // Fallback: If ImageReader approach fails, try BufferedImage (slower but more compatible)
+            System.out.println("[IMAGE DEBUG] ImageReader failed, falling back to BufferedImage");
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (image != null) {
+                int width = image.getWidth();
+                int height = image.getHeight();
+                System.out.println("[IMAGE DEBUG] Extracted dimensions " + width + "x" + height + " (fallback method)");
+                return new ImageResizeResult(originalUrl, width, height, true);
+            }
             
-            // Return with known dimensions (the resized dimensions)
-            return new ImageResizeResult(resizedUrl, newWidth, newHeight, true);
+            System.out.println("[IMAGE DEBUG] Failed to extract dimensions");
+            return ImageResizeResult.unknownDimensions(originalUrl);
 
         } catch (Exception e) {
             System.out.println("[IMAGE DEBUG] ⚠️ Failed to process image: " + e.getMessage());
-            // Return original URL but mark dimensions as unknown - will use fallback calculation
             return ImageResizeResult.unknownDimensions(originalUrl);
         }
     }
