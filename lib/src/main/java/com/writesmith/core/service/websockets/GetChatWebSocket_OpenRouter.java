@@ -182,8 +182,10 @@ public class GetChatWebSocket_OpenRouter {
             JsonNode rawResponseFormat = null;
             JsonNode rawTools = null;
             JsonNode rawToolChoice = null;
-            JsonNode rawReasoning = null;      // For reasoning models (o1, o3, gpt-5-mini)
-            JsonNode rawVerbosity = null;       // For controlling response detail
+            JsonNode rawReasoning = null;           // Object: { effort, max_tokens, exclude }
+            JsonNode rawReasoningEffort = null;     // String shorthand: "low"|"medium"|"high"
+            JsonNode rawVerbosity = null;           // String: "low"|"medium"|"high"
+            JsonNode rawMaxCompletionTokens = null; // Integer: max tokens for completion
             try {
                 JsonNode rootNode = new ObjectMapper().readTree(message);
                 if (rootNode.has("chatCompletionRequest")) {
@@ -197,13 +199,21 @@ public class GetChatWebSocket_OpenRouter {
                     if (ccr.has("tool_choice") && !ccr.get("tool_choice").isNull()) {
                         rawToolChoice = ccr.get("tool_choice");
                     }
-                    // Reasoning parameter for o1/o3/gpt-5-mini models
+                    // Reasoning object parameter for o1/o3/gpt-5-mini models
                     if (ccr.has("reasoning") && !ccr.get("reasoning").isNull()) {
                         rawReasoning = ccr.get("reasoning");
+                    }
+                    // Reasoning effort string shorthand (alternative to reasoning.effort)
+                    if (ccr.has("reasoning_effort") && !ccr.get("reasoning_effort").isNull()) {
+                        rawReasoningEffort = ccr.get("reasoning_effort");
                     }
                     // Verbosity parameter for controlling response detail
                     if (ccr.has("verbosity") && !ccr.get("verbosity").isNull()) {
                         rawVerbosity = ccr.get("verbosity");
+                    }
+                    // Max completion tokens (for reasoning models)
+                    if (ccr.has("max_completion_tokens") && !ccr.get("max_completion_tokens").isNull()) {
+                        rawMaxCompletionTokens = ccr.get("max_completion_tokens");
                     }
                 }
             } catch (Exception e) {
@@ -213,7 +223,11 @@ public class GetChatWebSocket_OpenRouter {
 
             GetChatRequest gcRequest;
             try {
-                gcRequest = new ObjectMapper().readValue(message, GetChatRequest.class);
+                // Configure ObjectMapper to ignore unknown properties (verbosity, reasoning_effort, 
+                // max_completion_tokens, etc.) that the library doesn't support but we pass through
+                ObjectMapper requestMapper = new ObjectMapper();
+                requestMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                gcRequest = requestMapper.readValue(message, GetChatRequest.class);
             } catch (IOException e) {
                 System.out.println("The message: " + message);
                 e.printStackTrace();
@@ -498,16 +512,28 @@ public class GetChatWebSocket_OpenRouter {
                     logger.log("[PASSTHROUGH] Injecting raw tool_choice: " + rawToolChoice.toString());
                 }
                 
-                // Inject raw reasoning (for o1, o3, gpt-5-mini models)
+                // Inject raw reasoning object (for o1, o3, gpt-5-mini models)
                 if (rawReasoning != null) {
                     requestObjectNode.put("reasoning", rawReasoning);
                     logger.log("[PASSTHROUGH] Injecting raw reasoning: " + rawReasoning.toString());
+                }
+                
+                // Inject raw reasoning_effort string (shorthand for reasoning.effort)
+                if (rawReasoningEffort != null) {
+                    requestObjectNode.put("reasoning_effort", rawReasoningEffort);
+                    logger.log("[PASSTHROUGH] Injecting raw reasoning_effort: " + rawReasoningEffort.toString());
                 }
                 
                 // Inject raw verbosity
                 if (rawVerbosity != null) {
                     requestObjectNode.put("verbosity", rawVerbosity);
                     logger.log("[PASSTHROUGH] Injecting raw verbosity: " + rawVerbosity.toString());
+                }
+                
+                // Inject raw max_completion_tokens
+                if (rawMaxCompletionTokens != null) {
+                    requestObjectNode.put("max_completion_tokens", rawMaxCompletionTokens);
+                    logger.log("[PASSTHROUGH] Injecting raw max_completion_tokens: " + rawMaxCompletionTokens.toString());
                 }
             }
         }
