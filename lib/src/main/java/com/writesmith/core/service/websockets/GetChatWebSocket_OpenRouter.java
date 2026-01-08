@@ -175,13 +175,15 @@ public class GetChatWebSocket_OpenRouter {
             AtomicReference<LocalDateTime> firstChatTime = new AtomicReference<>();
 
             // ═══════════════════════════════════════════════════════════════════════════
-            // PRESERVE RAW response_format FROM CLIENT JSON
+            // PRESERVE RAW FIELDS FROM CLIENT JSON
             // ═══════════════════════════════════════════════════════════════════════════
-            // The library's OAIChatCompletionRequestResponseFormat doesn't properly handle
-            // the nested json_schema object. We extract it from raw JSON and re-inject later.
+            // The library doesn't support all OpenRouter fields. We extract them from raw 
+            // JSON and re-inject later to ensure proper passthrough.
             JsonNode rawResponseFormat = null;
             JsonNode rawTools = null;
             JsonNode rawToolChoice = null;
+            JsonNode rawReasoning = null;      // For reasoning models (o1, o3, gpt-5-mini)
+            JsonNode rawVerbosity = null;       // For controlling response detail
             try {
                 JsonNode rootNode = new ObjectMapper().readTree(message);
                 if (rootNode.has("chatCompletionRequest")) {
@@ -195,10 +197,18 @@ public class GetChatWebSocket_OpenRouter {
                     if (ccr.has("tool_choice") && !ccr.get("tool_choice").isNull()) {
                         rawToolChoice = ccr.get("tool_choice");
                     }
+                    // Reasoning parameter for o1/o3/gpt-5-mini models
+                    if (ccr.has("reasoning") && !ccr.get("reasoning").isNull()) {
+                        rawReasoning = ccr.get("reasoning");
+                    }
+                    // Verbosity parameter for controlling response detail
+                    if (ccr.has("verbosity") && !ccr.get("verbosity").isNull()) {
+                        rawVerbosity = ccr.get("verbosity");
+                    }
                 }
             } catch (Exception e) {
                 // If extraction fails, proceed without raw preservation
-                System.out.println("[PASSTHROUGH] Warning: Could not extract raw response_format: " + e.getMessage());
+                System.out.println("[PASSTHROUGH] Warning: Could not extract raw fields: " + e.getMessage());
             }
 
             GetChatRequest gcRequest;
@@ -486,6 +496,18 @@ public class GetChatWebSocket_OpenRouter {
                 if (rawToolChoice != null) {
                     requestObjectNode.put("tool_choice", rawToolChoice);
                     logger.log("[PASSTHROUGH] Injecting raw tool_choice: " + rawToolChoice.toString());
+                }
+                
+                // Inject raw reasoning (for o1, o3, gpt-5-mini models)
+                if (rawReasoning != null) {
+                    requestObjectNode.put("reasoning", rawReasoning);
+                    logger.log("[PASSTHROUGH] Injecting raw reasoning: " + rawReasoning.toString());
+                }
+                
+                // Inject raw verbosity
+                if (rawVerbosity != null) {
+                    requestObjectNode.put("verbosity", rawVerbosity);
+                    logger.log("[PASSTHROUGH] Injecting raw verbosity: " + rawVerbosity.toString());
                 }
             }
         }

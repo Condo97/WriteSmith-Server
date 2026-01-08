@@ -291,6 +291,58 @@ Models like DeepSeek-R1, GPT-5, o1, o3, Qwen3, and Claude with extended thinking
 | `thinking_content` | Plain text reasoning (DeepSeek, Qwen, Claude) |
 | `reasoning_content` | Alias for thinking_content |
 
+### 7. Reasoning Control Parameters
+
+Control reasoning behavior for thinking models (o1, o3, gpt-5-mini).
+
+**`reasoning` Parameter:**
+```json
+{
+  "chatCompletionRequest": {
+    "model": "openai/o1",
+    "messages": [...],
+    "reasoning": {
+      "effort": "high",
+      "max_tokens": 2000,
+      "exclude": false
+    }
+  }
+}
+```
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `effort` | `"low"`, `"medium"`, `"high"` | Depth of reasoning |
+| `max_tokens` | Integer | Max tokens for reasoning |
+| `exclude` | Boolean | If `true`, reason but hide from response |
+
+**`verbosity` Parameter:**
+```json
+{
+  "chatCompletionRequest": {
+    "model": "openai/gpt-5-mini",
+    "messages": [...],
+    "verbosity": "high"
+  }
+}
+```
+
+| Value | Description |
+|-------|-------------|
+| `"low"` | Concise responses |
+| `"medium"` | Balanced (default) |
+| `"high"` | Comprehensive responses |
+
+**Model Support for Reasoning Parameters:**
+| Model | `reasoning` | `verbosity` |
+|-------|-------------|-------------|
+| `openai/o1` | ✅ | ✅ |
+| `openai/o1-mini` | ✅ | ✅ |
+| `openai/o3-mini` | ✅ | ✅ |
+| `openai/gpt-5-mini` | ✅ | ✅ |
+| `deepseek/deepseek-r1` | ✅ | ❌ |
+| Standard models | ❌ | ❌ |
+
 ---
 
 ## Model Capabilities Matrix
