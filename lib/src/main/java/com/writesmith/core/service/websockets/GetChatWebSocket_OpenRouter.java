@@ -76,6 +76,25 @@ import java.util.Base64;
 @WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 600000)  // 10 minutes for reasoning models (GPT-5-mini, o1, o3)
 public class GetChatWebSocket_OpenRouter {
 
+    // Shared ObjectMapper for JSON serialization/deserialization - thread-safe and reusable
+    // Creating ObjectMapper is expensive, so we reuse a single instance
+    private static final ObjectMapper SHARED_MAPPER = new ObjectMapper();
+    
+    // Lenient mapper that ignores unknown properties (for deserializing client requests with
+    // parameters like verbosity, reasoning_effort, max_completion_tokens that the library doesn't support)
+    private static final ObjectMapper LENIENT_MAPPER;
+    
+    // Non-null mapper for serializing requests (excludes null fields)
+    private static final ObjectMapper NON_NULL_MAPPER;
+    
+    static {
+        LENIENT_MAPPER = new ObjectMapper();
+        LENIENT_MAPPER.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        
+        NON_NULL_MAPPER = new ObjectMapper();
+        NON_NULL_MAPPER.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
+    }
+    
     private static final int MAX_INPUT_MESSAGES = 25;
     private static final int MAX_CONVERSATION_INPUT_LENGTH = 50000; // Total conversation length limit
     private static final int IMAGE_TOKEN_DIVISOR = 750; // tokens ≈ (width × height) / 750
@@ -141,7 +160,7 @@ public class GetChatWebSocket_OpenRouter {
                         e.getMessage()
                 );
                 try {
-                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                    session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(errorResponse));
                 } catch (IOException eI) {
                     eI.printStackTrace();
                 }
@@ -152,7 +171,7 @@ public class GetChatWebSocket_OpenRouter {
                         e.getMessage()
                 );
                 try {
-                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                    session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(errorResponse));
                 } catch (IOException eI) {
                     eI.printStackTrace();
                 }
@@ -187,7 +206,7 @@ public class GetChatWebSocket_OpenRouter {
             JsonNode rawVerbosity = null;           // String: "low"|"medium"|"high"
             JsonNode rawMaxCompletionTokens = null; // Integer: max tokens for completion
             try {
-                JsonNode rootNode = new ObjectMapper().readTree(message);
+                JsonNode rootNode = SHARED_MAPPER.readTree(message);
                 if (rootNode.has("chatCompletionRequest")) {
                     JsonNode ccr = rootNode.get("chatCompletionRequest");
                     if (ccr.has("response_format") && !ccr.get("response_format").isNull()) {
@@ -223,11 +242,9 @@ public class GetChatWebSocket_OpenRouter {
 
             GetChatRequest gcRequest;
             try {
-                // Configure ObjectMapper to ignore unknown properties (verbosity, reasoning_effort, 
+                // Use lenient mapper that ignores unknown properties (verbosity, reasoning_effort, 
                 // max_completion_tokens, etc.) that the library doesn't support but we pass through
-                ObjectMapper requestMapper = new ObjectMapper();
-                requestMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-                gcRequest = requestMapper.readValue(message, GetChatRequest.class);
+                gcRequest = LENIENT_MAPPER.readValue(message, GetChatRequest.class);
             } catch (IOException e) {
                 System.out.println("The message: " + message);
                 e.printStackTrace();
@@ -481,11 +498,8 @@ public class GetChatWebSocket_OpenRouter {
         // The library's serialization doesn't properly handle nested json_schema.
         // We serialize to JSON, then inject the raw client-provided fields.
         
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
-        
-        // Serialize the request to a mutable JSON tree
-        JsonNode requestNode = mapper.valueToTree(chatCompletionRequest);
+        // Serialize the request to a mutable JSON tree (using non-null mapper to exclude nulls)
+        JsonNode requestNode = NON_NULL_MAPPER.valueToTree(chatCompletionRequest);
         
         // If we have raw client-provided fields and no server-side function override, inject them
         boolean serverFunctionOverride = gcRequest.getFunction() != null && gcRequest.getFunction().getJSONSchemaClass() != null;
@@ -538,7 +552,7 @@ public class GetChatWebSocket_OpenRouter {
             }
         }
         
-        String requestJson = mapper.writeValueAsString(requestNode);
+        String requestJson = NON_NULL_MAPPER.writeValueAsString(requestNode);
         
         // Log outgoing request to OpenRouter
         logger.log("OUTGOING REQUEST JSON:");
@@ -638,7 +652,7 @@ public class GetChatWebSocket_OpenRouter {
                         
                         BodyResponse thinkingBr = BodyResponseFactory.createSuccessBodyResponse(thinkingGcResponse);
                         try {
-                            session.getRemote().sendString(new ObjectMapper().writeValueAsString(thinkingBr));
+                            session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(thinkingBr));
                             streamLogger.log("SENT THINKING EVENT to client (model is processing)");
                         } catch (IOException e) {
                             streamLogger.logError("Failed to send thinking event", e);
@@ -648,7 +662,7 @@ public class GetChatWebSocket_OpenRouter {
                     return;
                 }
 
-                JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
+                JsonNode responseJSON = SHARED_MAPPER.readValue(response, JsonNode.class);
 
                 // ═══════════════════════════════════════════════════════════════════════════
                 // EXTRACT ADDITIONAL FIELDS FROM RAW JSON (before standard parsing loses them)
@@ -893,7 +907,7 @@ public class GetChatWebSocket_OpenRouter {
                         .build();
                 
                 BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(gcResponse);
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+                session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(br));
                 
                 // Log the parsed chunk and that it was sent
                 streamLogger.logParsedChunk(enhancedStreamResponse, contentDelta);
@@ -954,7 +968,7 @@ public class GetChatWebSocket_OpenRouter {
         // If any non-JSON payloads were encountered, forward as error body once (mirrors existing behavior)
         if (!sbError.isEmpty()) {
             BodyResponse br = BodyResponseFactory.createBodyResponse(ResponseStatus.OAIGPT_ERROR, sbError.toString());
-            session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+            session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(br));
             logger.logFinalErrorResponse(sbError.toString());
         }
 

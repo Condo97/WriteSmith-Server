@@ -530,6 +530,153 @@ public class OpenRouterParameterPassthroughTests {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // BACKWARDS COMPATIBILITY TESTS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("BACKWARDS COMPAT: Old-style request without any new parameters works")
+    public void testBackwardsCompatOldStyleRequest() throws Exception {
+        // This is what OLD clients send - no verbosity, reasoning_effort, max_completion_tokens, reasoning
+        String oldStyleRequest = """
+            {
+              "authToken": "test-auth-token",
+              "chatCompletionRequest": {
+                "model": "openai/gpt-4o-mini",
+                "messages": [{"role": "user", "content": [{"type": "text", "text": "Hello"}]}],
+                "temperature": 0.7,
+                "max_tokens": 1000
+              }
+            }
+            """;
+        
+        // Deserialize with lenient mapper (same as server)
+        ObjectMapper lenientMapper = new ObjectMapper();
+        lenientMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        GetChatRequest gcRequest = lenientMapper.readValue(oldStyleRequest, GetChatRequest.class);
+        
+        assertNotNull(gcRequest);
+        assertNotNull(gcRequest.getChatCompletionRequest());
+        assertEquals("openai/gpt-4o-mini", gcRequest.getChatCompletionRequest().getModel());
+        
+        // Extract raw fields (all should be null for old-style requests)
+        JsonNode rootNode = mapper.readTree(oldStyleRequest);
+        JsonNode ccr = rootNode.get("chatCompletionRequest");
+        
+        JsonNode rawVerbosity = ccr.has("verbosity") && !ccr.get("verbosity").isNull() 
+            ? ccr.get("verbosity") : null;
+        JsonNode rawReasoningEffort = ccr.has("reasoning_effort") && !ccr.get("reasoning_effort").isNull() 
+            ? ccr.get("reasoning_effort") : null;
+        JsonNode rawMaxCompletionTokens = ccr.has("max_completion_tokens") && !ccr.get("max_completion_tokens").isNull() 
+            ? ccr.get("max_completion_tokens") : null;
+        JsonNode rawReasoning = ccr.has("reasoning") && !ccr.get("reasoning").isNull() 
+            ? ccr.get("reasoning") : null;
+        
+        // All new parameters should be null
+        assertNull(rawVerbosity, "Old request should not have verbosity");
+        assertNull(rawReasoningEffort, "Old request should not have reasoning_effort");
+        assertNull(rawMaxCompletionTokens, "Old request should not have max_completion_tokens");
+        assertNull(rawReasoning, "Old request should not have reasoning");
+        
+        // Serialize to final request
+        ObjectMapper serializeMapper = new ObjectMapper();
+        serializeMapper.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
+        JsonNode requestNode = serializeMapper.valueToTree(gcRequest.getChatCompletionRequest());
+        
+        // Final request should NOT have any of the new parameters
+        assertFalse(requestNode.has("verbosity"));
+        assertFalse(requestNode.has("reasoning_effort"));
+        assertFalse(requestNode.has("max_completion_tokens"));
+        // Note: reasoning might be present if library has it, but should be null
+        
+        String finalJson = serializeMapper.writeValueAsString(requestNode);
+        System.out.println("Old-style request (backwards compatible):");
+        System.out.println(finalJson);
+        
+        // Verify essential fields are present
+        assertTrue(requestNode.has("model"));
+        assertTrue(requestNode.has("messages"));
+        assertTrue(requestNode.has("temperature"));
+        assertTrue(requestNode.has("max_tokens"));
+    }
+
+    @Test
+    @DisplayName("BACKWARDS COMPAT: Request with only response_format (no reasoning params)")
+    public void testBackwardsCompatWithResponseFormat() throws Exception {
+        // Old client using structured output but no reasoning parameters
+        String oldStyleWithResponseFormat = """
+            {
+              "authToken": "test-auth-token",
+              "chatCompletionRequest": {
+                "model": "openai/gpt-4o",
+                "messages": [{"role": "user", "content": [{"type": "text", "text": "Classify this"}]}],
+                "temperature": 0.0,
+                "max_tokens": 500,
+                "response_format": {
+                  "type": "json_schema",
+                  "json_schema": {
+                    "name": "classification",
+                    "strict": true,
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "category": {"type": "string"}
+                      },
+                      "required": ["category"]
+                    }
+                  }
+                }
+              }
+            }
+            """;
+        
+        ObjectMapper lenientMapper = new ObjectMapper();
+        lenientMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        GetChatRequest gcRequest = lenientMapper.readValue(oldStyleWithResponseFormat, GetChatRequest.class);
+        
+        assertNotNull(gcRequest);
+        assertEquals("openai/gpt-4o", gcRequest.getChatCompletionRequest().getModel());
+        
+        // Extract response_format (should exist)
+        JsonNode rootNode = mapper.readTree(oldStyleWithResponseFormat);
+        JsonNode ccr = rootNode.get("chatCompletionRequest");
+        JsonNode rawResponseFormat = ccr.has("response_format") ? ccr.get("response_format") : null;
+        
+        assertNotNull(rawResponseFormat, "response_format should be extracted");
+        assertEquals("json_schema", rawResponseFormat.get("type").asText());
+        
+        // New parameters should be null
+        assertNull(ccr.has("verbosity") && !ccr.get("verbosity").isNull() ? ccr.get("verbosity") : null);
+        assertNull(ccr.has("reasoning_effort") && !ccr.get("reasoning_effort").isNull() ? ccr.get("reasoning_effort") : null);
+        
+        System.out.println("Old-style request with response_format (backwards compatible): OK");
+    }
+
+    @Test
+    @DisplayName("BACKWARDS COMPAT: Minimal request with just model and messages")
+    public void testBackwardsCompatMinimalRequest() throws Exception {
+        // Absolute minimal request
+        String minimalRequest = """
+            {
+              "authToken": "test-token",
+              "chatCompletionRequest": {
+                "model": "openai/gpt-4o-mini",
+                "messages": [{"role": "user", "content": [{"type": "text", "text": "Hi"}]}]
+              }
+            }
+            """;
+        
+        ObjectMapper lenientMapper = new ObjectMapper();
+        lenientMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        GetChatRequest gcRequest = lenientMapper.readValue(minimalRequest, GetChatRequest.class);
+        
+        assertNotNull(gcRequest);
+        assertNotNull(gcRequest.getChatCompletionRequest());
+        assertEquals("openai/gpt-4o-mini", gcRequest.getChatCompletionRequest().getModel());
+        
+        System.out.println("Minimal request (backwards compatible): OK");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // DESERIALIZATION TESTS - Verify unknown properties don't cause failures
     // ═══════════════════════════════════════════════════════════════════════════
 
