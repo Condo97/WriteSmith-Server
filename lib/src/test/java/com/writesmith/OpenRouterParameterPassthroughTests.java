@@ -199,8 +199,8 @@ public class OpenRouterParameterPassthroughTests {
     public void testParameterNamesMatchOpenRouterAPI() throws Exception {
         // These are the exact parameter names OpenRouter expects
         String[] expectedParameters = {
-            "reasoning",           // Object: { effort: "low"|"medium"|"high", max_tokens: int, exclude: bool }
-            "reasoning_effort",    // String shorthand: "low"|"medium"|"high" (alternative to reasoning.effort)
+            "reasoning",           // Object: { effort: "minimal"|"low"|"medium"|"high", max_tokens: int, exclude: bool }
+            "reasoning_effort",    // String shorthand: "minimal"|"low"|"medium"|"high" (alternative to reasoning.effort)
             "verbosity",           // String: "low"|"medium"|"high"
             "max_completion_tokens", // Integer: max tokens for completion
             "max_tokens",          // Integer: legacy parameter (still supported)

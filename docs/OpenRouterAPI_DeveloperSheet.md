@@ -295,6 +295,8 @@ Models like DeepSeek-R1, GPT-5, o1, o3, Qwen3, and Claude with extended thinking
 
 Control reasoning behavior for thinking models (o1, o3, gpt-5-mini).
 
+⚠️ **Important:** There is **no way to completely disable reasoning** for models that support it. Reasoning is a core feature of these models. The lowest setting is `"minimal"`, which still performs basic reasoning.
+
 **`reasoning` Parameter:**
 ```json
 {
@@ -312,9 +314,24 @@ Control reasoning behavior for thinking models (o1, o3, gpt-5-mini).
 
 | Field | Values | Description |
 |-------|--------|-------------|
-| `effort` | `"low"`, `"medium"`, `"high"` | Depth of reasoning |
+| `effort` | `"minimal"`, `"low"`, `"medium"`, `"high"` | Depth of reasoning. `"minimal"` = basic reasoning with minimal computational effort (closest to disabling, but still performs reasoning) |
 | `max_tokens` | Integer | Max tokens for reasoning |
-| `exclude` | Boolean | If `true`, reason but hide from response |
+| `exclude` | Boolean | If `true`, reason internally but hide reasoning from response. **Does not disable reasoning** - model still thinks, you just don't see it |
+
+**To Minimize Reasoning:**
+- Use `"effort": "minimal"` for the least reasoning
+- Or **omit the `reasoning` parameter entirely** to use the model's default behavior (may vary by model)
+
+**`reasoning_effort` Shorthand:**
+```json
+{
+  "chatCompletionRequest": {
+    "model": "openai/gpt-5-mini",
+    "messages": [...],
+    "reasoning_effort": "minimal"  // "minimal", "low", "medium", "high"
+  }
+}
+```
 
 **`verbosity` Parameter:**
 ```json

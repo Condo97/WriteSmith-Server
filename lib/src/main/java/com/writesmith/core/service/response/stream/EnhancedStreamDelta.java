@@ -94,6 +94,7 @@ public class EnhancedStreamDelta {
     // Getters
     public String getRole() { return role; }
     public String getContent() { return content; }
+    @JsonProperty("tool_calls")  // Ensure snake_case in JSON output
     public Object getToolCalls() { return toolCalls; }
     public String getThinkingContent() { return thinkingContent; }
     public String getReasoningContent() { return reasoningContent; }

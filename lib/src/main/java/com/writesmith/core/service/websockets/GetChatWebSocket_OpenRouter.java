@@ -206,7 +206,7 @@ public class GetChatWebSocket_OpenRouter {
             JsonNode rawTools = null;
             JsonNode rawToolChoice = null;
             JsonNode rawReasoning = null;           // Object: { effort, max_tokens, exclude }
-            JsonNode rawReasoningEffort = null;     // String shorthand: "low"|"medium"|"high"
+            JsonNode rawReasoningEffort = null;     // String shorthand: "minimal"|"low"|"medium"|"high"
             JsonNode rawVerbosity = null;           // String: "low"|"medium"|"high"
             JsonNode rawMaxCompletionTokens = null; // Integer: max tokens for completion
             try {
@@ -227,6 +227,8 @@ public class GetChatWebSocket_OpenRouter {
                         rawReasoning = ccr.get("reasoning");
                     }
                     // Reasoning effort string shorthand (alternative to reasoning.effort)
+                    // Values: "minimal" (least reasoning), "low", "medium", "high"
+                    // Note: There is no way to completely disable reasoning - "minimal" is the lowest
                     if (ccr.has("reasoning_effort") && !ccr.get("reasoning_effort").isNull()) {
                         rawReasoningEffort = ccr.get("reasoning_effort");
                     }
@@ -502,43 +504,47 @@ public class GetChatWebSocket_OpenRouter {
                 
                 // Inject raw response_format (preserves nested json_schema structure)
                 if (rawResponseFormat != null) {
-                    requestObjectNode.put("response_format", rawResponseFormat);
+                    requestObjectNode.putPOJO("response_format", rawResponseFormat);  // Use putPOJO() for JsonNode to preserve structure
                     logger.log("[PASSTHROUGH] Injecting raw response_format: " + rawResponseFormat.toString().substring(0, Math.min(200, rawResponseFormat.toString().length())));
                 }
                 
                 // Inject raw tools (preserves full function definitions)
                 if (rawTools != null) {
-                    requestObjectNode.put("tools", rawTools);
+                    requestObjectNode.putPOJO("tools", rawTools);  // Use putPOJO() for JsonNode to preserve structure
                     logger.log("[PASSTHROUGH] Injecting raw tools: " + rawTools.size() + " tools");
+                    // Log first tool for debugging
+                    if (rawTools.isArray() && rawTools.size() > 0) {
+                        logger.log("[PASSTHROUGH] First tool: " + rawTools.get(0).toString().substring(0, Math.min(500, rawTools.get(0).toString().length())));
+                    }
                 }
                 
                 // Inject raw tool_choice
                 if (rawToolChoice != null) {
-                    requestObjectNode.put("tool_choice", rawToolChoice);
+                    requestObjectNode.putPOJO("tool_choice", rawToolChoice);  // Use putPOJO() for JsonNode to preserve structure
                     logger.log("[PASSTHROUGH] Injecting raw tool_choice: " + rawToolChoice.toString());
                 }
                 
                 // Inject raw reasoning object (for o1, o3, gpt-5-mini models)
                 if (rawReasoning != null) {
-                    requestObjectNode.put("reasoning", rawReasoning);
+                    requestObjectNode.putPOJO("reasoning", rawReasoning);  // Use putPOJO() for JsonNode
                     logger.log("[PASSTHROUGH] Injecting raw reasoning: " + rawReasoning.toString());
                 }
                 
                 // Inject raw reasoning_effort string (shorthand for reasoning.effort)
                 if (rawReasoningEffort != null) {
-                    requestObjectNode.put("reasoning_effort", rawReasoningEffort);
+                    requestObjectNode.putPOJO("reasoning_effort", rawReasoningEffort);  // Use putPOJO() for JsonNode
                     logger.log("[PASSTHROUGH] Injecting raw reasoning_effort: " + rawReasoningEffort.toString());
                 }
                 
                 // Inject raw verbosity
                 if (rawVerbosity != null) {
-                    requestObjectNode.put("verbosity", rawVerbosity);
+                    requestObjectNode.putPOJO("verbosity", rawVerbosity);  // Use putPOJO() for JsonNode
                     logger.log("[PASSTHROUGH] Injecting raw verbosity: " + rawVerbosity.toString());
                 }
                 
                 // Inject raw max_completion_tokens
                 if (rawMaxCompletionTokens != null) {
-                    requestObjectNode.put("max_completion_tokens", rawMaxCompletionTokens);
+                    requestObjectNode.putPOJO("max_completion_tokens", rawMaxCompletionTokens);  // Use putPOJO() for JsonNode
                     logger.log("[PASSTHROUGH] Injecting raw max_completion_tokens: " + rawMaxCompletionTokens.toString());
                 }
             }
@@ -789,6 +795,8 @@ public class GetChatWebSocket_OpenRouter {
                         // Extract tool_calls (preserve as raw JSON for passthrough)
                         if (delta.has("tool_calls") && !delta.get("tool_calls").isNull()) {
                             toolCalls = delta.get("tool_calls");
+                            // Log tool_calls for debugging - this is critical for function calling
+                            streamLogger.log("[TOOL_CALLS] Extracted from upstream: " + toolCalls.toString());
                         }
                     }
                 }
@@ -831,6 +839,11 @@ public class GetChatWebSocket_OpenRouter {
                 deltaBuilder.role(deltaRole)
                            .content(contentDelta)
                            .toolCalls(toolCalls);
+                
+                // Log when tool_calls are being included in the client response
+                if (toolCalls != null) {
+                    streamLogger.log("[TOOL_CALLS] Including in client response delta. Type: " + toolCalls.getClass().getSimpleName());
+                }
                 
                 // Add thinking content if present
                 if (thinkingContentToSend != null) {
@@ -899,7 +912,15 @@ public class GetChatWebSocket_OpenRouter {
                         .build();
                 
                 BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(gcResponse);
-                session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(br));
+                String serializedResponse = SHARED_MAPPER.writeValueAsString(br);
+                
+                // Log the serialized response when tool_calls are present for debugging
+                if (toolCalls != null) {
+                    streamLogger.log("[TOOL_CALLS] Serialized response (first 1000 chars): " + 
+                                    serializedResponse.substring(0, Math.min(1000, serializedResponse.length())));
+                }
+                
+                session.getRemote().sendString(serializedResponse);
                 
                 // Log the parsed chunk and that it was sent
                 streamLogger.logParsedChunk(enhancedStreamResponse, contentDelta);
