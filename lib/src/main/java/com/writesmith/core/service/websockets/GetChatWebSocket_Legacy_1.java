@@ -70,6 +70,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -77,6 +79,13 @@ import java.util.stream.Stream;
 public class GetChatWebSocket_Legacy_1 {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
+
+    // Dedicated thread pool for stream processing - prevents blocking Jetty's limited thread pool
+    private static final ExecutorService streamExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "LegacyStream1-" + System.currentTimeMillis());
+        t.setDaemon(true);
+        return t;
+    });
 
 //    private static final Queue<Session> sessions = new ConcurrentLinkedQueue<>();
 
@@ -88,20 +97,22 @@ public class GetChatWebSocket_Legacy_1 {
      * @param session Session for Spark WebSocket
      */
     @OnWebSocketConnect
-    public void connected(Session session) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, DBSerializerPrimaryKeyMissingException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, CapReachedException {
+    public void connected(Session session) {
 //        System.out.println(session.getUpgradeRequest().getQueryString());
 
-        // Get start time
-        LocalDateTime startTime = LocalDateTime.now();
-        LocalDateTime getAuthTokenTime;
-        LocalDateTime getIsPremiumTime;
-        LocalDateTime beforeStartStreamTime;
-        AtomicReference<LocalDateTime> firstChatTime = new AtomicReference<>();
+        // Submit to dedicated executor to avoid blocking Jetty's limited thread pool
+        streamExecutor.submit(() -> {
+            // Get start time
+            LocalDateTime startTime = LocalDateTime.now();
+            LocalDateTime getAuthTokenTime;
+            LocalDateTime getIsPremiumTime;
+            LocalDateTime beforeStartStreamTime;
+            AtomicReference<LocalDateTime> firstChatTime = new AtomicReference<>();
 
-        // Create stream set to null
-        Stream<String> stream = null;
+            // Create stream set to null
+            Stream<String> stream = null;
 
-        try {
+            try {
             // Parse to GetChatStreamRequest TODO: Image and ImageURL will not be parsed, so I put them as null in create input chat
             GetChatLegacyRequest gcr = parseHeaders(session.getUpgradeRequest().getHeaders());
 
@@ -304,22 +315,29 @@ public class GetChatWebSocket_Legacy_1 {
             BodyResponse br = BodyResponseFactory.createBodyResponse(rs, gcr);
 
             // Send BodyResponse
-            session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+            try {
+                session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+            } catch (IOException eIO) {
+                eIO.printStackTrace();
+            }
 
             // Print stream chat generation cap reached TODO: Move this and make logging better
             System.out.println("Chat Stream Cap Reached " + new SimpleDateFormat("HH:mm:ss").format(new Date()));
         } catch (Exception e) {
             e.printStackTrace();
-            throw e;
+            // Don't rethrow - we're in an executor, just log it
         } finally {
             // Close stream
-            stream.close();
+            if (stream != null) {
+                stream.close();
+            }
 
             // Close session if not null
             if (session != null) {
                 session.close();
             }
         }
+        }); // End of streamExecutor.submit()
     }
 
     @OnWebSocketClose

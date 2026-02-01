@@ -12,13 +12,17 @@ import com.oaigptconnector.model.request.chat.completion.*;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContent;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentImageURL;
 import com.oaigptconnector.model.request.chat.completion.content.OAIChatCompletionRequestMessageContentText;
-import com.oaigptconnector.model.response.chat.completion.stream.OpenAIGPTChatCompletionStreamResponse;
+// OpenAIGPTChatCompletionStreamResponse import removed - we now parse responses directly from JSON
 import com.writesmith.core.service.ResponseStatus;
 import com.writesmith.core.service.request.GetChatRequest;
 import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.ErrorResponse;
 import com.writesmith.core.service.response.GetChatStreamResponse;
 import com.writesmith.core.service.response.factory.BodyResponseFactory;
+import com.writesmith.core.service.response.stream.EnhancedChatCompletionStreamResponse;
+import com.writesmith.core.service.response.stream.EnhancedStreamChoice;
+import com.writesmith.core.service.response.stream.EnhancedStreamDelta;
+import com.writesmith.core.PremiumStatusCache;
 import com.writesmith.core.WSPremiumValidator;
 import com.writesmith.database.dao.factory.ChatFactoryDAO;
 import com.writesmith.database.dao.pooled.User_AuthTokenDAOPooled;
@@ -29,10 +33,13 @@ import com.writesmith.exceptions.responsestatus.InvalidAuthenticationException;
 import com.writesmith.exceptions.responsestatus.MalformedJSONException;
 import com.writesmith.exceptions.responsestatus.UnhandledException;
 import com.writesmith.keys.Keys;
+import com.writesmith.util.OpenRouterRequestLogger;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketException;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
+import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import sqlcomponentizer.dbserializer.DBSerializerException;
@@ -54,27 +61,64 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.Iterator;
 
-@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 30000)
+@WebSocket(maxTextMessageSize = 1073741824, maxIdleTime = 600000)  // 10 minutes for reasoning models (GPT-5-mini, o1, o3)
 public class GetChatWebSocket_OpenRouter {
 
+    // Shared ObjectMapper for JSON serialization/deserialization - thread-safe and reusable
+    // Creating ObjectMapper is expensive, so we reuse a single instance
+    private static final ObjectMapper SHARED_MAPPER = new ObjectMapper();
+    
+    // Lenient mapper that ignores unknown properties (for deserializing client requests with
+    // parameters like verbosity, reasoning_effort, max_completion_tokens that the library doesn't support)
+    private static final ObjectMapper LENIENT_MAPPER;
+    
+    // Non-null mapper for serializing requests (excludes null fields)
+    private static final ObjectMapper NON_NULL_MAPPER;
+    
+    static {
+        LENIENT_MAPPER = new ObjectMapper();
+        LENIENT_MAPPER.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        
+        NON_NULL_MAPPER = new ObjectMapper();
+        NON_NULL_MAPPER.setSerializationInclusion(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL);
+    }
+    
     private static final int MAX_INPUT_MESSAGES = 25;
     private static final int MAX_CONVERSATION_INPUT_LENGTH = 50000; // Total conversation length limit
-    private static final double IMAGE_SIZE_REDUCTION_FACTOR = 0.1; // Images count as 10% of their actual size for filtering (free users)
-    private static final double IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM = 0.05; // Premium users get 5% image token efficiency
+    private static final int IMAGE_TOKEN_DIVISOR = 750; // tokens ≈ (width × height) / 750
+    private static final double IMAGE_TOKEN_WEIGHT_FREE = 1.0; // Free users: full token cost counts toward conversation limit
+    private static final double IMAGE_TOKEN_WEIGHT_PREMIUM = 0.5; // Premium users: half token cost (more generous budget)
+    // Fallback: if dimension extraction fails, use base64 length with conservative multipliers
+    private static final double IMAGE_FALLBACK_FACTOR_FREE = 0.05; // 5% of base64 length (conservative for abuse prevention)
+    private static final double IMAGE_FALLBACK_FACTOR_PREMIUM = 0.025; // 2.5% for premium (still generous)
     private static final int MAX_IMAGE_WIDTH = 1024;
-    private static final int MAX_IMAGE_HEIGHT = 1024;
+    private static final int MAX_IMAGE_HEIGHT = 1400; // Increased for portrait document scanning (client sends up to 1024x1400 for premium)
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(Constants.AI_TIMEOUT_MINUTES)).build();
+
+    // Dedicated thread pool for stream processing - prevents blocking Jetty's limited thread pool
+    // CachedThreadPool creates threads as needed and reuses them, ideal for variable concurrent streams
+    private static final ExecutorService streamExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "OpenRouterStream-" + System.currentTimeMillis());
+        t.setDaemon(true);  // Don't prevent JVM shutdown
+        return t;
+    });
 
     private static final String persistentSystemText = "You have a personality that mirrors and fits the user and you learn over time. You have the capability to see images when a user sends one. Ensure that the user knows that they can send a picture to get visual help and that GPT can see. You have the capability to read websites and PDFs and their text will be supplied if included. If relevant inform the user they can ask to search the web in chat, and as relevant let them know it uses Google. Attempt to improve socialness and get the user to share and promote the app in subtle ways.";
 
@@ -86,74 +130,167 @@ public class GetChatWebSocket_OpenRouter {
     public void closed(Session session, int statusCode, String reason) {
     }
 
+    @OnWebSocketError
+    public void onError(Session session, Throwable error) {
+        // Check if this is the common "Broken pipe" pattern from client disconnect
+        // This happens when Jetty tries to close a connection but the client already disconnected
+        Throwable cause = error.getCause();
+        if (error instanceof IOException || (cause != null && cause instanceof IOException)) {
+            String message = error.getMessage();
+            String causeMessage = cause != null ? cause.getMessage() : null;
+            if ((message != null && message.contains("Broken pipe")) || 
+                (causeMessage != null && causeMessage.contains("Broken pipe"))) {
+                System.out.println("[WebSocket] Client disconnected (broken pipe)");
+                return;
+            }
+        }
+        // For any other error, print the full stack trace so we don't miss real issues
+        error.printStackTrace();
+    }
+
     @OnWebSocketMessage
     public void message(Session session, String message) {
-        try {
-            getChat(session, message);
-        } catch (CapReachedException e) {
-            // Ignore for now; client will handle cap states elsewhere
-        } catch (MalformedJSONException | InvalidAuthenticationException e) {
-            e.printStackTrace();
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
+        // Submit to dedicated executor to avoid blocking Jetty's limited thread pool
+        // This allows many concurrent streams without exhausting server threads
+        streamExecutor.submit(() -> {
             try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                eI.printStackTrace();
+                getChat(session, message);
+            } catch (CapReachedException e) {
+                // Ignore for now; client will handle cap states elsewhere
+            } catch (MalformedJSONException | InvalidAuthenticationException e) {
+                e.printStackTrace();
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
+                try {
+                    session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    eI.printStackTrace();
+                }
+            } catch (UnhandledException e) {
+                e.printStackTrace();
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
+                try {
+                    session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    eI.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                session.close();
             }
-        } catch (UnhandledException e) {
-            e.printStackTrace();
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
-            try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                eI.printStackTrace();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
+        });
     }
 
     protected void getChat(Session session, String message) throws MalformedJSONException, InvalidAuthenticationException, UnhandledException, CapReachedException, DBSerializerPrimaryKeyMissingException, DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, UnrecoverableKeyException, AppStoreErrorResponseException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchMethodException, InstantiationException, OAISerializerException {
-        // Parse request
-        LocalDateTime startTime = LocalDateTime.now();
-        LocalDateTime getAuthTokenTime;
-        AtomicReference<LocalDateTime> firstChatTime = new AtomicReference<>();
-
-        GetChatRequest gcRequest;
+        // Initialize logger (will be set after we know the user ID)
+        OpenRouterRequestLogger logger = null;
+        
         try {
-            gcRequest = new ObjectMapper().readValue(message, GetChatRequest.class);
-        } catch (IOException e) {
-            System.out.println("The message: " + message);
-            e.printStackTrace();
-            throw new MalformedJSONException(e, "Error parsing message: " + message);
-        }
+            // Parse request
+            LocalDateTime startTime = LocalDateTime.now();
+            LocalDateTime getAuthTokenTime;
+            AtomicReference<LocalDateTime> firstChatTime = new AtomicReference<>();
 
-        // Authenticate
-        User_AuthToken u_aT;
-        try {
-            u_aT = User_AuthTokenDAOPooled.get(gcRequest.getAuthToken());
-        } catch (DBObjectNotFoundFromQueryException e) {
-            throw new InvalidAuthenticationException(e, "Error authenticating user. Please try closing and reopening the app, or report the issue if it continues giving you trouble.");
-        } catch (DBSerializerException | SQLException | InterruptedException | InvocationTargetException |
-                 IllegalAccessException | NoSuchMethodException | InstantiationException e) {
-            throw new UnhandledException(e, "Error getting User_AuthToken for authToken. Please report this and try again later.");
-        }
+            // ═══════════════════════════════════════════════════════════════════════════
+            // PRESERVE RAW FIELDS FROM CLIENT JSON
+            // ═══════════════════════════════════════════════════════════════════════════
+            // The library doesn't support all OpenRouter fields. We extract them from raw 
+            // JSON and re-inject later to ensure proper passthrough.
+            JsonNode rawResponseFormat = null;
+            JsonNode rawTools = null;
+            JsonNode rawToolChoice = null;
+            JsonNode rawReasoning = null;           // Object: { effort, max_tokens, exclude }
+            JsonNode rawReasoningEffort = null;     // String shorthand: "minimal"|"low"|"medium"|"high"
+            JsonNode rawVerbosity = null;           // String: "low"|"medium"|"high"
+            JsonNode rawMaxCompletionTokens = null; // Integer: max tokens for completion
+            try {
+                JsonNode rootNode = SHARED_MAPPER.readTree(message);
+                if (rootNode.has("chatCompletionRequest")) {
+                    JsonNode ccr = rootNode.get("chatCompletionRequest");
+                    if (ccr.has("response_format") && !ccr.get("response_format").isNull()) {
+                        rawResponseFormat = ccr.get("response_format");
+                    }
+                    if (ccr.has("tools") && !ccr.get("tools").isNull()) {
+                        rawTools = ccr.get("tools");
+                    }
+                    if (ccr.has("tool_choice") && !ccr.get("tool_choice").isNull()) {
+                        rawToolChoice = ccr.get("tool_choice");
+                    }
+                    // Reasoning object parameter for o1/o3/gpt-5-mini models
+                    if (ccr.has("reasoning") && !ccr.get("reasoning").isNull()) {
+                        rawReasoning = ccr.get("reasoning");
+                    }
+                    // Reasoning effort string shorthand (alternative to reasoning.effort)
+                    // Values: "minimal" (least reasoning), "low", "medium", "high"
+                    // Note: There is no way to completely disable reasoning - "minimal" is the lowest
+                    if (ccr.has("reasoning_effort") && !ccr.get("reasoning_effort").isNull()) {
+                        rawReasoningEffort = ccr.get("reasoning_effort");
+                    }
+                    // Verbosity parameter for controlling response detail
+                    if (ccr.has("verbosity") && !ccr.get("verbosity").isNull()) {
+                        rawVerbosity = ccr.get("verbosity");
+                    }
+                    // Max completion tokens (for reasoning models)
+                    if (ccr.has("max_completion_tokens") && !ccr.get("max_completion_tokens").isNull()) {
+                        rawMaxCompletionTokens = ccr.get("max_completion_tokens");
+                    }
+                }
+            } catch (Exception e) {
+                // If extraction fails, proceed without raw preservation
+                System.out.println("[PASSTHROUGH] Warning: Could not extract raw fields: " + e.getMessage());
+            }
 
-        getAuthTokenTime = LocalDateTime.now();
+            GetChatRequest gcRequest;
+            try {
+                // Use lenient mapper that ignores unknown properties (verbosity, reasoning_effort, 
+                // max_completion_tokens, etc.) that the library doesn't support but we pass through
+                gcRequest = LENIENT_MAPPER.readValue(message, GetChatRequest.class);
+            } catch (IOException e) {
+                System.out.println("The message: " + message);
+                e.printStackTrace();
+                throw new MalformedJSONException(e, "Error parsing message: " + message);
+            }
+
+            // Authenticate
+            User_AuthToken u_aT;
+            try {
+                u_aT = User_AuthTokenDAOPooled.get(gcRequest.getAuthToken());
+            } catch (DBObjectNotFoundFromQueryException e) {
+                throw new InvalidAuthenticationException(e, "Error authenticating user. Please try closing and reopening the app, or report the issue if it continues giving you trouble.");
+            } catch (DBSerializerException | SQLException | InterruptedException | InvocationTargetException |
+                     IllegalAccessException | NoSuchMethodException | InstantiationException e) {
+                throw new UnhandledException(e, "Error getting User_AuthToken for authToken. Please report this and try again later.");
+            }
+
+            getAuthTokenTime = LocalDateTime.now();
+            
+            // Initialize logger now that we have user ID
+            logger = new OpenRouterRequestLogger(u_aT.getUserID());
+            logger.logClientRequest(message);
+            logger.logAuthentication(true, "User ID: " + u_aT.getUserID() + ", Auth time: " + java.time.Duration.between(startTime, getAuthTokenTime).toMillis() + "ms");
 
         // Use OpenRouter API key
         String openRouterKey = Keys.openRouterAPI;
 
         // Prepare request; ensure stream usage info is included
         OAIChatCompletionRequest chatCompletionRequest = gcRequest.getChatCompletionRequest();
+        
+        // Log parsed request details
+        boolean hasImages = chatCompletionRequest.getMessages().stream()
+                .flatMap(m -> m.getContent().stream())
+                .anyMatch(c -> c instanceof OAIChatCompletionRequestMessageContentImageURL);
+        logger.logParsedRequest(
+                chatCompletionRequest.getModel(),
+                chatCompletionRequest.getMessages().size(),
+                hasImages,
+                gcRequest.getFunction() != null
+        );
         OAIChatCompletionRequestStreamOptions streamOptions = gcRequest.getChatCompletionRequest().getStream_options();
         if (streamOptions == null)
             streamOptions = new OAIChatCompletionRequestStreamOptions(true);
@@ -161,8 +298,27 @@ public class GetChatWebSocket_OpenRouter {
             streamOptions.setInclude_usage(true);
         chatCompletionRequest.setStream_options(new OAIChatCompletionRequestStreamOptions(true));
 
-        // Tools/function calling passthrough
+        // ═══════════════════════════════════════════════════════════════════════════
+        // TOOLS/FUNCTION CALLING & RESPONSE FORMAT PASSTHROUGH
+        // ═══════════════════════════════════════════════════════════════════════════
+        // 
+        // Priority order:
+        // 1. If server-side function is set, use that (overwrites client tools)
+        // 2. Otherwise, pass through any client-provided tools/response_format
+        
+        // Check if client provided tools or response_format directly (for passthrough)
+        boolean hasClientTools = chatCompletionRequest.getTools() != null && !chatCompletionRequest.getTools().isEmpty();
+        boolean hasClientResponseFormat = chatCompletionRequest.getResponse_format() != null;
+        
+        if (hasClientTools || hasClientResponseFormat) {
+            logger.log("[PASSTHROUGH] Client provided: " + 
+                       (hasClientTools ? "tools=" + chatCompletionRequest.getTools().size() + " " : "") +
+                       (hasClientResponseFormat ? "response_format=yes" : ""));
+        }
+        
+        // Server-side function calling (from predefined schemas) - overwrites client tools
         if (gcRequest.getFunction() != null && gcRequest.getFunction().getJSONSchemaClass() != null) {
+            logger.log("[FUNCTION] Using server-side function: " + gcRequest.getFunction().getName());
             Object serializedFCObject = FCJSONSchemaSerializer.objectify(gcRequest.getFunction().getJSONSchemaClass());
             String fcName = JSONSchemaSerializer.getFunctionName(gcRequest.getFunction().getJSONSchemaClass());
             OAIChatCompletionRequestToolChoiceFunction.Function requestToolChoiceFunction = new OAIChatCompletionRequestToolChoiceFunction.Function(fcName);
@@ -173,6 +329,8 @@ public class GetChatWebSocket_OpenRouter {
             )));
             chatCompletionRequest.setTool_choice(requestToolChoice);
         }
+        // If no server-side function, client-provided tools/response_format are automatically passed through
+        // (they remain in chatCompletionRequest as deserialized from client JSON)
 
         // Append persistent system text
         boolean systemMessageFound = false;
@@ -223,37 +381,44 @@ public class GetChatWebSocket_OpenRouter {
                     totalImagesFound++;
                     imagesInMessage++;
                     
-                    // Check premium status once when first image is found
+                    // Check premium status once when first image is found (using cache for performance)
                     if (!premiumStatusChecked) {
-                        try {
-                            isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(u_aT.getUserID());
-                            System.out.println("[PREMIUM DEBUG] User " + u_aT.getUserID() + " has images → Premium status: " + (isPremium ? "✅ PREMIUM (0.05x multiplier)" : "🆓 FREE (0.1x multiplier)"));
-                        } catch (AppStoreErrorResponseException | AppleItunesResponseException e) {
-                            // Default to premium if Apple services are down (following existing pattern)
-                            e.printStackTrace();
-                            isPremium = true;
-                            System.out.println("[PREMIUM DEBUG] ⚠️ Apple services error for user " + u_aT.getUserID() + ", defaulting to PREMIUM");
-                        } catch (Exception e) {
-                            System.out.println("[PREMIUM DEBUG] ⚠️ Failed to check premium status for user " + u_aT.getUserID() + ": " + e.getMessage());
-                            isPremium = false; // Default to free for other errors
-                        }
+                        // Use cached premium status to avoid blocking Apple API calls
+                        // Cache handles errors internally and defaults to premium on failure
+                        isPremium = PremiumStatusCache.getIsPremium(u_aT.getUserID(), streamExecutor);
+                        String premiumDetails = "User " + u_aT.getUserID() + " has images → Premium status: " + (isPremium ? "PREMIUM (0.5x token weight)" : "FREE (1.0x token weight)") + " (cached)";
+                        System.out.println("[PREMIUM DEBUG] " + premiumDetails);
+                        logger.logPremiumStatus(isPremium, premiumDetails);
                         premiumStatusChecked = true;
                     }
                     
                     String originalUrl = ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().getUrl();
                     
-                    // Resize the image if needed
-                    String resizedUrl = resizeImageUrl(originalUrl);
+                    // Resize the image if needed and get dimensions
+                    ImageResizeResult resizeResult = resizeImageUrlWithDimensions(originalUrl);
                     
                     // Update the URL in the content part if it was resized
-                    if (!resizedUrl.equals(originalUrl)) {
-                        ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().setUrl(resizedUrl);
+                    if (!resizeResult.url.equals(originalUrl)) {
+                        ((OAIChatCompletionRequestMessageContentImageURL) contentPart).getImage_url().setUrl(resizeResult.url);
                     }
                     
-                    // Use premium or regular reduction factor
-                    double reductionFactor = isPremium ? IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM : IMAGE_SIZE_REDUCTION_FACTOR;
-                    
-                    int thisImageEffectiveSize = (int) (resizedUrl.length() * reductionFactor);
+                    int thisImageEffectiveSize;
+                    if (resizeResult.dimensionsKnown) {
+                        // Primary: Calculate token cost based on actual image dimensions: tokens ≈ (width × height) / 750
+                        int imageTokens = (resizeResult.width * resizeResult.height) / IMAGE_TOKEN_DIVISOR;
+                        double tokenWeight = isPremium ? IMAGE_TOKEN_WEIGHT_PREMIUM : IMAGE_TOKEN_WEIGHT_FREE;
+                        thisImageEffectiveSize = (int) (imageTokens * tokenWeight);
+                        
+                        System.out.println("[IMAGE DEBUG] Image " + resizeResult.width + "x" + resizeResult.height + 
+                                         " → " + imageTokens + " tokens × " + tokenWeight + " weight = " + thisImageEffectiveSize + " effective chars");
+                    } else {
+                        // Fallback: Use base64 length with conservative multiplier (dimensions unknown)
+                        double fallbackFactor = isPremium ? IMAGE_FALLBACK_FACTOR_PREMIUM : IMAGE_FALLBACK_FACTOR_FREE;
+                        thisImageEffectiveSize = (int) (resizeResult.url.length() * fallbackFactor);
+                        
+                        System.out.println("[IMAGE DEBUG] ⚠️ FALLBACK: Dimensions unknown, using base64 length " + 
+                                         resizeResult.url.length() + " × " + fallbackFactor + " = " + thisImageEffectiveSize + " effective chars");
+                    }
                     effectiveImageSize += thisImageEffectiveSize;
                 } else if (contentPart instanceof OAIChatCompletionRequestMessageContentText) {
                     String text = ((OAIChatCompletionRequestMessageContentText) contentPart).getText();
@@ -302,8 +467,8 @@ public class GetChatWebSocket_OpenRouter {
                          ", Messages included: " + finalMessages.size() + "/" + originalMessageCount);
         System.out.println("[IMAGE DEBUG] SUMMARY - Images found: " + totalImagesFound + ", Images sent: " + totalImagesSent.get() + ", Images filtered: " + totalImagesFiltered);
         if (totalImagesFound > 0) {
-            double appliedFactor = isPremium ? IMAGE_SIZE_REDUCTION_FACTOR_PREMIUM : IMAGE_SIZE_REDUCTION_FACTOR;
-            System.out.println("[IMAGE DEBUG] Applied reduction factor: " + appliedFactor + " (images count as " + (appliedFactor * 100) + "% of actual size) - " + (isPremium ? "PREMIUM user benefit!" : "Free user"));
+            double appliedWeight = isPremium ? IMAGE_TOKEN_WEIGHT_PREMIUM : IMAGE_TOKEN_WEIGHT_FREE;
+            System.out.println("[IMAGE DEBUG] Applied token weight: " + appliedWeight + " (tokens count as " + (appliedWeight * 100) + "% toward conversation limit) - " + (isPremium ? "PREMIUM user benefit!" : "Free user"));
         }
         if (totalImagesSent.get() > 0) {
             System.out.println("[IMAGE DEBUG] ✅ Sending request with " + totalImagesSent.get() + " images to model: " + chatCompletionRequest.getModel());
@@ -318,93 +483,514 @@ public class GetChatWebSocket_OpenRouter {
             chatCompletionRequest.setModel("openai/gpt-5-mini");
         }
 
-        // Stream from OpenRouter
+        // Log message filtering results
+        logger.logMessageFiltering(originalMessageCount, finalMessages.size(), totalConversationLength, totalImagesFound, totalImagesSent.get());
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // BUILD REQUEST JSON WITH PRESERVED response_format/tools/tool_choice
+        // ═══════════════════════════════════════════════════════════════════════════
+        // The library's serialization doesn't properly handle nested json_schema.
+        // We serialize to JSON, then inject the raw client-provided fields.
+        
+        // Serialize the request to a mutable JSON tree (using non-null mapper to exclude nulls)
+        JsonNode requestNode = NON_NULL_MAPPER.valueToTree(chatCompletionRequest);
+        
+        // If we have raw client-provided fields and no server-side function override, inject them
+        boolean serverFunctionOverride = gcRequest.getFunction() != null && gcRequest.getFunction().getJSONSchemaClass() != null;
+        
+        if (!serverFunctionOverride) {
+            if (requestNode instanceof com.fasterxml.jackson.databind.node.ObjectNode) {
+                com.fasterxml.jackson.databind.node.ObjectNode requestObjectNode = (com.fasterxml.jackson.databind.node.ObjectNode) requestNode;
+                
+                // Inject raw response_format (preserves nested json_schema structure)
+                if (rawResponseFormat != null) {
+                    requestObjectNode.putPOJO("response_format", rawResponseFormat);  // Use putPOJO() for JsonNode to preserve structure
+                    logger.log("[PASSTHROUGH] Injecting raw response_format: " + rawResponseFormat.toString().substring(0, Math.min(200, rawResponseFormat.toString().length())));
+                }
+                
+                // Inject raw tools (preserves full function definitions)
+                if (rawTools != null) {
+                    requestObjectNode.putPOJO("tools", rawTools);  // Use putPOJO() for JsonNode to preserve structure
+                    logger.log("[PASSTHROUGH] Injecting raw tools: " + rawTools.size() + " tools");
+                    // Log first tool for debugging
+                    if (rawTools.isArray() && rawTools.size() > 0) {
+                        logger.log("[PASSTHROUGH] First tool: " + rawTools.get(0).toString().substring(0, Math.min(500, rawTools.get(0).toString().length())));
+                    }
+                }
+                
+                // Inject raw tool_choice
+                if (rawToolChoice != null) {
+                    requestObjectNode.putPOJO("tool_choice", rawToolChoice);  // Use putPOJO() for JsonNode to preserve structure
+                    logger.log("[PASSTHROUGH] Injecting raw tool_choice: " + rawToolChoice.toString());
+                }
+                
+                // Inject raw reasoning object (for o1, o3, gpt-5-mini models)
+                if (rawReasoning != null) {
+                    requestObjectNode.putPOJO("reasoning", rawReasoning);  // Use putPOJO() for JsonNode
+                    logger.log("[PASSTHROUGH] Injecting raw reasoning: " + rawReasoning.toString());
+                }
+                
+                // Inject raw reasoning_effort string (shorthand for reasoning.effort)
+                if (rawReasoningEffort != null) {
+                    requestObjectNode.putPOJO("reasoning_effort", rawReasoningEffort);  // Use putPOJO() for JsonNode
+                    logger.log("[PASSTHROUGH] Injecting raw reasoning_effort: " + rawReasoningEffort.toString());
+                }
+                
+                // Inject raw verbosity
+                if (rawVerbosity != null) {
+                    requestObjectNode.putPOJO("verbosity", rawVerbosity);  // Use putPOJO() for JsonNode
+                    logger.log("[PASSTHROUGH] Injecting raw verbosity: " + rawVerbosity.toString());
+                }
+                
+                // Inject raw max_completion_tokens
+                if (rawMaxCompletionTokens != null) {
+                    requestObjectNode.putPOJO("max_completion_tokens", rawMaxCompletionTokens);  // Use putPOJO() for JsonNode
+                    logger.log("[PASSTHROUGH] Injecting raw max_completion_tokens: " + rawMaxCompletionTokens.toString());
+                }
+            }
+        }
+        
+        String requestJson = NON_NULL_MAPPER.writeValueAsString(requestNode);
+        
+        // Log outgoing request to OpenRouter
+        logger.log("OUTGOING REQUEST JSON:");
+        logger.log(requestJson.substring(0, Math.min(2000, requestJson.length())) + (requestJson.length() > 2000 ? "... (truncated)" : ""));
+        logger.log("Model: " + chatCompletionRequest.getModel());
+        logger.log("Initiating stream request to OpenRouter...");
+
+        // Stream from OpenRouter using custom method that sends raw JSON
         Stream<String> chatStream;
         try {
-            chatStream = OAIClient.postChatCompletionStream(chatCompletionRequest, openRouterKey, httpClient, com.writesmith.Constants.OPENAPI_URI);
+            chatStream = postChatCompletionStreamRaw(requestJson, openRouterKey, httpClient, com.writesmith.Constants.OPENAPI_URI);
         } catch (IOException e) {
             System.out.println("CONNECTION CLOSED (IOException)");
+            logger.logError("OpenRouter stream connection", e);
             throw new UnhandledException(e, "Connection closed during chat stream. Please report this and try again later.");
         } catch (InterruptedException e) {
             System.out.println("CONNECTION CLOSED (InterruptedException)");
+            logger.logError("OpenRouter stream connection", e);
             throw new UnhandledException(e, "Connection closed during chat stream. Please report this and try again later.");
         }
 
         // Collect usage
         AtomicReference<Integer> completionTokens = new AtomicReference<>(0);
         AtomicReference<Integer> promptTokens = new AtomicReference<>(0);
+        AtomicReference<Integer> reasoningTokens = new AtomicReference<>(0);
+        AtomicReference<Integer> cachedTokens = new AtomicReference<>(0);
+        AtomicReference<JsonNode> finalUsageNode = new AtomicReference<>(null);
         StringBuilder sbError = new StringBuilder();
         AtomicReference<Boolean> hasLoggedFirstResponse = new AtomicReference<>(false);
+        AtomicReference<Boolean> hasLoggedFirstContent = new AtomicReference<>(false);
+        
+        // Thinking state tracking for client events
+        AtomicReference<Boolean> isCurrentlyThinking = new AtomicReference<>(false);
+        AtomicReference<Long> thinkingStartTime = new AtomicReference<>(null);
+        AtomicReference<Boolean> hasSentThinkingEvent = new AtomicReference<>(false);
+        AtomicReference<String> lastProvider = new AtomicReference<>(null);
+        AtomicBoolean clientDisconnected = new AtomicBoolean(false);
+        
+        // Make logger accessible in lambda (effectively final)
+        final OpenRouterRequestLogger streamLogger = logger;
+        streamLogger.logStreamStart();
 
         chatStream.forEach(response -> {
+            // Skip processing if client already disconnected
+            if (clientDisconnected.get()) {
+                return;
+            }
+            
             try {
                 final String dataPrefixToRemove = "data: ";
                 if (response.length() >= dataPrefixToRemove.length() && response.substring(0, dataPrefixToRemove.length()).equals(dataPrefixToRemove))
                     response = response.substring(dataPrefixToRemove.length());
 
-                // Ignore OpenRouter keep-alive comments or [DONE]
-                if (response.startsWith(":") || response.equals("[DONE]")) {
+                // Skip empty lines (SSE event separators) - don't log these as full chunks
+                if (response.trim().isEmpty()) {
+                    // Don't log empty lines - they're just SSE separators
                     return;
                 }
-
-                // Removed verbose stream logging - only log errors or image-related info now
-
-                JsonNode responseJSON = new ObjectMapper().readValue(response, JsonNode.class);
-
-                OpenAIGPTChatCompletionStreamResponse streamResponse;
-                try {
-                    streamResponse = new ObjectMapper().treeToValue(responseJSON, OpenAIGPTChatCompletionStreamResponse.class);
-                } catch (JsonProcessingException e) {
-                    System.out.println("Error writing as OpenAIGPTChatCompletionStreamResponse!");
-                    System.out.println("[OpenRouter Stream][Unparsed] " + response);
-                    sbError.append(response);
-                    return;
-                }
-
-                GetChatStreamResponse gcResponse = new GetChatStreamResponse(streamResponse);
-                BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(gcResponse);
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
                 
-                // Log first few responses when images were sent to check if model is responding to images
-                if (totalImagesSent.get() > 0 && !hasLoggedFirstResponse.get() && streamResponse.getChoices() != null && streamResponse.getChoices().length > 0) {
-                    if (streamResponse.getChoices()[0].getDelta() != null && streamResponse.getChoices()[0].getDelta().getContent() != null) {
-                        String content = streamResponse.getChoices()[0].getDelta().getContent();
-                        if (content != null && !content.trim().isEmpty()) {
-                            System.out.println("[IMAGE DEBUG] First response content from model (with images): \"" + content.substring(0, Math.min(100, content.length())) + (content.length() > 100 ? "..." : "") + "\"");
-                            hasLoggedFirstResponse.set(true);
+                // Log raw chunk AFTER stripping prefix and confirming it's not empty
+                streamLogger.logRawChunk(response);
+                
+                // Handle OpenRouter keep-alive comments or [DONE]
+                if (response.equals("[DONE]")) {
+                    System.out.println("[STREAM] Received [DONE] marker - stream complete");
+                    streamLogger.logSkippedChunk("[DONE] marker - stream complete");
+                    return;
+                }
+                if (response.startsWith(":")) {
+                    // Track thinking phase start on first keep-alive (SSE comment)
+                    streamLogger.logThinkingStarted();
+                    
+                    // Send thinking event to client (if not already sent)
+                    if (hasSentThinkingEvent.compareAndSet(false, true)) {
+                        isCurrentlyThinking.set(true);
+                        thinkingStartTime.set(System.currentTimeMillis());
+                        System.out.println("[STREAM] Thinking phase started (first keep-alive received)");
+                        
+                        // Build a "thinking" event for the client
+                        // This creates an empty delta with thinking_status indicator
+                        EnhancedStreamDelta thinkingDelta = EnhancedStreamDelta.builder()
+                                .role("assistant")
+                                .content(null)  // No content yet - model is thinking
+                                .build();
+                        
+                        EnhancedStreamChoice thinkingChoice = new EnhancedStreamChoice(0, thinkingDelta, null, null);
+                        
+                        EnhancedChatCompletionStreamResponse thinkingResponse = new EnhancedChatCompletionStreamResponse();
+                        thinkingResponse.setObject("chat.completion.chunk");
+                        thinkingResponse.setChoices(new EnhancedStreamChoice[]{thinkingChoice});
+                        
+                        GetChatStreamResponse thinkingGcResponse = GetChatStreamResponse.builder()
+                                .oaiResponse(thinkingResponse)
+                                .thinkingStatus("processing")
+                                .isThinking(true)
+                                .build();
+                        
+                        BodyResponse thinkingBr = BodyResponseFactory.createSuccessBodyResponse(thinkingGcResponse);
+                        try {
+                            session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(thinkingBr));
+                            streamLogger.log("SENT THINKING EVENT to client (model is processing)");
+                        } catch (IOException e) {
+                            streamLogger.logError("Failed to send thinking event", e);
+                        }
+                    }
+                    streamLogger.logSkippedChunk("Keep-alive comment: " + response);
+                    return;
+                }
+
+                JsonNode responseJSON = SHARED_MAPPER.readValue(response, JsonNode.class);
+
+                // ═══════════════════════════════════════════════════════════════════════════
+                // EXTRACT ADDITIONAL FIELDS FROM RAW JSON (before standard parsing loses them)
+                // ═══════════════════════════════════════════════════════════════════════════
+                
+                // Extract provider info
+                String provider = responseJSON.has("provider") && !responseJSON.get("provider").isNull() ? responseJSON.get("provider").asText() : null;
+                
+                // Extract from choices[0] if present
+                String nativeFinishReason = null;
+                String reasoningContent = null;  // Plain text reasoning (DeepSeek, Qwen)
+                JsonNode reasoningDetails = null; // Encrypted reasoning details (OpenAI)
+                JsonNode reasoning = null;        // Generic reasoning field
+                String thinking = null;           // Claude-style thinking
+                
+                if (responseJSON.has("choices") && responseJSON.get("choices").isArray() && responseJSON.get("choices").size() > 0) {
+                    JsonNode choice = responseJSON.get("choices").get(0);
+                    
+                    // Extract native_finish_reason
+                    if (choice.has("native_finish_reason") && !choice.get("native_finish_reason").isNull()) {
+                        nativeFinishReason = choice.get("native_finish_reason").asText();
+                    }
+                    
+                    // Extract from delta
+                    if (choice.has("delta")) {
+                        JsonNode delta = choice.get("delta");
+                        
+                        // reasoning_content - plain text reasoning (DeepSeek-R1, Qwen3)
+                        if (delta.has("reasoning_content") && !delta.get("reasoning_content").isNull()) {
+                            reasoningContent = delta.get("reasoning_content").asText();
+                            if (reasoningContent != null && !reasoningContent.isEmpty()) {
+                                streamLogger.logReasoningContent(reasoningContent);
+                            }
+                        }
+                        
+                        // reasoning_details - encrypted reasoning (OpenAI o1/o3/GPT-5)
+                        if (delta.has("reasoning_details") && delta.get("reasoning_details").isArray()) {
+                            reasoningDetails = delta.get("reasoning_details");
+                            if (reasoningDetails.size() > 0) {
+                                streamLogger.logReasoningDetails(reasoningDetails);
+                            }
+                        }
+                        
+                        // reasoning - generic reasoning field
+                        if (delta.has("reasoning")) {
+                            reasoning = delta.get("reasoning");
+                            if (reasoning != null && !reasoning.isNull()) {
+                                streamLogger.logReasoningField(reasoning);
+                            }
+                        }
+                        
+                        // thinking - Claude-style thinking content
+                        if (delta.has("thinking") && !delta.get("thinking").isNull()) {
+                            thinking = delta.get("thinking").asText();
+                            if (thinking != null && !thinking.isEmpty()) {
+                                streamLogger.logThinkingContent(thinking);
+                            }
                         }
                     }
                 }
+                
+                // Extract full usage details from final chunk
+                if (responseJSON.has("usage") && !responseJSON.get("usage").isNull()) {
+                    JsonNode usageNode = responseJSON.get("usage");
+                    finalUsageNode.set(usageNode);
+                    
+                    // Extract reasoning tokens
+                    if (usageNode.has("completion_tokens_details")) {
+                        JsonNode completionDetails = usageNode.get("completion_tokens_details");
+                        if (completionDetails.has("reasoning_tokens")) {
+                            reasoningTokens.set(completionDetails.get("reasoning_tokens").asInt(0));
+                        }
+                    }
+                    
+                    // Extract cached tokens
+                    if (usageNode.has("prompt_tokens_details")) {
+                        JsonNode promptDetails = usageNode.get("prompt_tokens_details");
+                        if (promptDetails.has("cached_tokens")) {
+                            cachedTokens.set(promptDetails.get("cached_tokens").asInt(0));
+                        }
+                    }
+                }
+                
+                // Log additional fields if any are present
+                streamLogger.logAdditionalChunkFields(provider, nativeFinishReason, reasoning, 
+                                                      reasoningContent, reasoningDetails, thinking);
+                
+                // Track provider
+                if (provider != null) {
+                    lastProvider.set(provider);
+                }
 
-                if (completionTokens.get() == 0)
-                    if (streamResponse.getUsage() != null)
-                        if (streamResponse.getUsage().getCompletion_tokens() != null)
-                            if (streamResponse.getUsage().getCompletion_tokens() > 0)
-                                completionTokens.compareAndSet(0, streamResponse.getUsage().getCompletion_tokens());
-                if (promptTokens.get() == 0)
-                    if (streamResponse.getUsage() != null)
-                        if (streamResponse.getUsage().getPrompt_tokens() != null)
-                            if (streamResponse.getUsage().getPrompt_tokens() > 0)
-                                promptTokens.compareAndSet(0, streamResponse.getUsage().getPrompt_tokens());
+                // ═══════════════════════════════════════════════════════════════════════════
+                // PARSE RESPONSE DIRECTLY FROM JSON (no library dependency)
+                // ═══════════════════════════════════════════════════════════════════════════
+                // This replaces the old OpenAIGPTChatCompletionStreamResponse parsing
+                // to avoid library limitations with nested fields.
+                
+                // Extract standard OAI fields from JSON
+                String responseId = (responseJSON.has("id") && !responseJSON.get("id").isNull()) ? responseJSON.get("id").asText() : null;
+                String responseObject = (responseJSON.has("object") && !responseJSON.get("object").isNull()) ? responseJSON.get("object").asText() : null;
+                String responseModel = (responseJSON.has("model") && !responseJSON.get("model").isNull()) ? responseJSON.get("model").asText() : null;
+                Long responseCreated = (responseJSON.has("created") && !responseJSON.get("created").isNull()) ? responseJSON.get("created").asLong() : null;
+                
+                // Extract delta content from choices[0].delta
+                String contentDelta = null;
+                String deltaRole = null;
+                String finishReason = null;
+                Object toolCalls = null;
+                
+                if (responseJSON.has("choices") && responseJSON.get("choices").isArray() && responseJSON.get("choices").size() > 0) {
+                    JsonNode choice = responseJSON.get("choices").get(0);
+                    
+                    // Extract finish_reason
+                    if (choice.has("finish_reason") && !choice.get("finish_reason").isNull()) {
+                        finishReason = choice.get("finish_reason").asText();
+                    }
+                    
+                    if (choice.has("delta")) {
+                        JsonNode delta = choice.get("delta");
+                        
+                        // Extract role
+                        if (delta.has("role") && !delta.get("role").isNull()) {
+                            deltaRole = delta.get("role").asText();
+                        }
+                        
+                        // Extract content
+                        if (delta.has("content") && !delta.get("content").isNull()) {
+                            contentDelta = delta.get("content").asText();
+                        }
+                        
+                        // Extract tool_calls (preserve as raw JSON for passthrough)
+                        if (delta.has("tool_calls") && !delta.get("tool_calls").isNull()) {
+                            toolCalls = delta.get("tool_calls");
+                            // Log tool_calls for debugging - this is critical for function calling
+                            streamLogger.log("[TOOL_CALLS] Extracted from upstream: " + toolCalls.toString());
+                        }
+                    }
+                }
+                
+                // Extract usage info
+                Integer usagePromptTokens = null;
+                Integer usageCompletionTokens = null;
+                Integer usageTotalTokens = null;
+                
+                if (responseJSON.has("usage") && !responseJSON.get("usage").isNull()) {
+                    JsonNode usage = responseJSON.get("usage");
+                    if (usage.has("prompt_tokens")) usagePromptTokens = usage.get("prompt_tokens").asInt();
+                    if (usage.has("completion_tokens")) usageCompletionTokens = usage.get("completion_tokens").asInt();
+                    if (usage.has("total_tokens")) usageTotalTokens = usage.get("total_tokens").asInt();
+                }
+                
+                // Track first actual content token received (end of thinking phase)
+                boolean justReceivedFirstContent = false;
+                if (contentDelta != null && !contentDelta.isEmpty() && hasLoggedFirstContent.compareAndSet(false, true)) {
+                    System.out.println("[STREAM] First content received! Content starts with: \"" + contentDelta.substring(0, Math.min(50, contentDelta.length())) + "\"");
+                    streamLogger.logFirstContentReceived();
+                    justReceivedFirstContent = true;
+                    isCurrentlyThinking.set(false);
+                }
+                
+                // Determine the thinking content to include (use reasoning_content, thinking, or reasoning)
+                String thinkingContentToSend = null;
+                if (reasoningContent != null && !reasoningContent.isEmpty()) {
+                    thinkingContentToSend = reasoningContent;
+                } else if (thinking != null && !thinking.isEmpty()) {
+                    thinkingContentToSend = thinking;
+                }
+                
+                // ═══════════════════════════════════════════════════════════════════════════
+                // BUILD ENHANCED OAI RESPONSE (with thinking fields in delta)
+                // ═══════════════════════════════════════════════════════════════════════════
+                
+                // Build enhanced delta with thinking/reasoning content
+                EnhancedStreamDelta.Builder deltaBuilder = EnhancedStreamDelta.builder();
+                deltaBuilder.role(deltaRole)
+                           .content(contentDelta)
+                           .toolCalls(toolCalls);
+                
+                // Log when tool_calls are being included in the client response
+                if (toolCalls != null) {
+                    streamLogger.log("[TOOL_CALLS] Including in client response delta. Type: " + toolCalls.getClass().getSimpleName());
+                }
+                
+                // Add thinking content if present
+                if (thinkingContentToSend != null) {
+                    deltaBuilder.thinkingContent(thinkingContentToSend)
+                               .reasoningContent(thinkingContentToSend);  // Send both for compatibility
+                }
+                
+                EnhancedStreamDelta enhancedDelta = deltaBuilder.build();
+                
+                // Build enhanced choice
+                EnhancedStreamChoice enhancedChoice = new EnhancedStreamChoice(
+                        0,
+                        enhancedDelta,
+                        finishReason,
+                        nativeFinishReason
+                );
+                
+                // Build enhanced stream response
+                EnhancedChatCompletionStreamResponse enhancedStreamResponse = new EnhancedChatCompletionStreamResponse();
+                enhancedStreamResponse.setId(responseId);
+                enhancedStreamResponse.setObject(responseObject);
+                enhancedStreamResponse.setModel(responseModel);
+                enhancedStreamResponse.setCreated(responseCreated);
+                enhancedStreamResponse.setChoices(new EnhancedStreamChoice[]{enhancedChoice});
+                enhancedStreamResponse.setProvider(provider);
+                
+                // Copy usage if present
+                if (usagePromptTokens != null || usageCompletionTokens != null) {
+                    EnhancedChatCompletionStreamResponse.EnhancedUsage enhancedUsage = 
+                            new EnhancedChatCompletionStreamResponse.EnhancedUsage();
+                    enhancedUsage.setPromptTokens(usagePromptTokens);
+                    enhancedUsage.setCompletionTokens(usageCompletionTokens);
+                    enhancedUsage.setTotalTokens(usageTotalTokens);
+                    enhancedStreamResponse.setUsage(enhancedUsage);
+                }
+                
+                // ═══════════════════════════════════════════════════════════════════════════
+                // BUILD WRAPPER WITH THINKING METADATA
+                // ═══════════════════════════════════════════════════════════════════════════
+                
+                // Calculate thinking duration
+                Long thinkingDuration = null;
+                if (thinkingStartTime.get() != null) {
+                    thinkingDuration = System.currentTimeMillis() - thinkingStartTime.get();
+                }
+                
+                // Determine thinking status
+                String thinkingStatus = null;
+                Boolean stillThinking = null;
+                if (isCurrentlyThinking.get()) {
+                    thinkingStatus = "processing";
+                    stillThinking = true;
+                } else if (justReceivedFirstContent && thinkingStartTime.get() != null) {
+                    thinkingStatus = "complete";
+                    stillThinking = false;
+                }
+                
+                // Build the wrapper response with enhanced metadata
+                GetChatStreamResponse gcResponse = GetChatStreamResponse.builder()
+                        .oaiResponse(enhancedStreamResponse)
+                        .thinkingStatus(thinkingStatus)
+                        .thinkingDurationMs(thinkingDuration)
+                        .provider(lastProvider.get())
+                        .reasoningTokens(reasoningTokens.get() > 0 ? reasoningTokens.get() : null)
+                        .isThinking(stillThinking)
+                        .build();
+                
+                BodyResponse br = BodyResponseFactory.createSuccessBodyResponse(gcResponse);
+                String serializedResponse = SHARED_MAPPER.writeValueAsString(br);
+                
+                // Log the serialized response when tool_calls are present for debugging
+                if (toolCalls != null) {
+                    streamLogger.log("[TOOL_CALLS] Serialized response (first 1000 chars): " + 
+                                    serializedResponse.substring(0, Math.min(1000, serializedResponse.length())));
+                }
+                
+                session.getRemote().sendString(serializedResponse);
+                
+                // Log the parsed chunk and that it was sent
+                streamLogger.logParsedChunk(enhancedStreamResponse, contentDelta);
+                
+                // Log first few responses when images were sent to check if model is responding to images
+                if (totalImagesSent.get() > 0 && !hasLoggedFirstResponse.get() && contentDelta != null && !contentDelta.trim().isEmpty()) {
+                    System.out.println("[IMAGE DEBUG] First response content from model (with images): \"" + contentDelta.substring(0, Math.min(100, contentDelta.length())) + (contentDelta.length() > 100 ? "..." : "") + "\"");
+                    hasLoggedFirstResponse.set(true);
+                }
+
+                // Track token usage from final chunk
+                if (completionTokens.get() == 0 && usageCompletionTokens != null && usageCompletionTokens > 0) {
+                    completionTokens.compareAndSet(0, usageCompletionTokens);
+                }
+                if (promptTokens.get() == 0 && usagePromptTokens != null && usagePromptTokens > 0) {
+                    promptTokens.compareAndSet(0, usagePromptTokens);
+                }
 
             } catch (JsonMappingException | JsonParseException e) {
-                // Skip non-JSON lines
+                // Skip non-JSON lines but log them
+                streamLogger.logSkippedChunk("Non-JSON line (parse exception)");
             } catch (IOException e) {
-                // Ignore for now
+                // Log but continue - may be a transient issue
+                streamLogger.logError("Stream chunk processing (IOException)", e);
+                System.out.println("[STREAM ERROR] IOException during chunk processing: " + e.getMessage());
+            } catch (WebSocketException e) {
+                // Client disconnected mid-stream - this is normal (user closed app, navigated away, etc.)
+                // Only print once and stop processing further chunks
+                if (clientDisconnected.compareAndSet(false, true)) {
+                    System.out.println("[STREAM] Client disconnected mid-stream: " + e.getMessage());
+                }
+            } catch (RuntimeException e) {
+                // CRITICAL: Catch RuntimeExceptions to prevent stream from terminating prematurely!
+                // Without this, any NPE or other runtime error would kill the entire stream
+                System.out.println("[STREAM ERROR] RuntimeException during chunk processing (stream continues): " + e.getClass().getName() + ": " + e.getMessage());
+                e.printStackTrace();
+                streamLogger.logError("RuntimeException in stream processing", e);
+                // Continue processing - don't let one bad chunk kill the entire stream
             }
         });
 
+        System.out.println("[STREAM] forEach completed - closing stream");
         chatStream.close();
+        System.out.println("[STREAM] Stream closed successfully");
+
+        // Log thinking/reasoning metrics
+        logger.logThinkingMetrics(reasoningTokens.get() > 0 ? reasoningTokens.get() : null, 
+                                   cachedTokens.get() > 0 ? cachedTokens.get() : null);
+        
+        // Log full usage details if available
+        if (finalUsageNode.get() != null) {
+            logger.logUsageDetails(finalUsageNode.get());
+        }
+
+        // Log stream completion
+        logger.logStreamEnd(logger.getChunkCount(), promptTokens.get(), completionTokens.get());
 
         // If any non-JSON payloads were encountered, forward as error body once (mirrors existing behavior)
         if (!sbError.isEmpty()) {
             BodyResponse br = BodyResponseFactory.createBodyResponse(ResponseStatus.OAIGPT_ERROR, sbError.toString());
-            session.getRemote().sendString(new ObjectMapper().writeValueAsString(br));
+            session.getRemote().sendString(SHARED_MAPPER.writeValueAsString(br));
+            logger.logFinalErrorResponse(sbError.toString());
         }
 
         // Log token usage
         int totalTokens = completionTokens.get() + promptTokens.get();
         System.out.println("[TOKEN USAGE] Prompt tokens: " + promptTokens.get() + ", Completion tokens: " + completionTokens.get() + ", Total tokens: " + totalTokens);
+        if (reasoningTokens.get() > 0) {
+            System.out.println("[TOKEN USAGE] Reasoning tokens: " + reasoningTokens.get());
+        }
 
         // Persist token usage
         ChatFactoryDAO.create(
@@ -430,6 +1016,13 @@ public class GetChatWebSocket_OpenRouter {
                 u_aT.getUserID(),
                 chatCompletionRequest
         );
+        
+        } finally {
+            // Always close the logger
+            if (logger != null) {
+                logger.close();
+            }
+        }
     }
 
     private void printStreamedGeneratedChatDoBetterLoggingLol(Integer userID, OAIChatCompletionRequest completionRequest) {
@@ -453,95 +1046,159 @@ public class GetChatWebSocket_OpenRouter {
     }
 
     /**
-     * Resizes an image URL (base64 data URL) to fit within MAX_IMAGE_WIDTH x MAX_IMAGE_HEIGHT
-     * while maintaining aspect ratio. Returns the original URL if resizing fails or if not a data URL.
+     * Result of image resize operation containing the URL, final dimensions, and whether dimensions are known.
      */
-    private static String resizeImageUrl(String originalUrl) {
+    private static class ImageResizeResult {
+        final String url;
+        final int width;
+        final int height;
+        final boolean dimensionsKnown; // true if we successfully extracted real dimensions
+        
+        ImageResizeResult(String url, int width, int height, boolean dimensionsKnown) {
+            this.url = url;
+            this.width = width;
+            this.height = height;
+            this.dimensionsKnown = dimensionsKnown;
+        }
+        
+        // Convenience constructor for unknown dimensions (fallback case)
+        static ImageResizeResult unknownDimensions(String url) {
+            return new ImageResizeResult(url, 0, 0, false);
+        }
+    }
+
+    /**
+     * Extracts image dimensions WITHOUT full decode or resize.
+     * 
+     * PERFORMANCE OPTIMIZATION: This method uses ImageReader metadata to get dimensions
+     * without loading the entire image into memory. This is much faster and uses far less
+     * memory than the previous approach which decoded, resized, and re-encoded images.
+     * 
+     * We no longer resize images server-side because:
+     * 1. OpenRouter/models accept images up to 20MB
+     * 2. Clients already send reasonably sized images (up to 1024x1400)
+     * 3. Server-side resize was CPU and memory intensive, causing slowdowns under load
+     * 
+     * @param originalUrl The image URL (data URL or external URL)
+     * @return ImageResizeResult with dimensions (URL is never modified)
+     */
+    private static ImageResizeResult resizeImageUrlWithDimensions(String originalUrl) {
         try {
             // Only process data URLs (base64 images)
             if (!originalUrl.startsWith("data:image/")) {
-                return originalUrl;
+                // For non-data URLs (external URLs), we can't determine dimensions - use fallback
+                System.out.println("[IMAGE DEBUG] Non-data URL detected, dimensions unknown");
+                return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
-            // Extract the base64 data and format
+            // Extract the base64 data
             String[] parts = originalUrl.split(",", 2);
             if (parts.length != 2) {
-                return originalUrl;
+                System.out.println("[IMAGE DEBUG] Malformed data URL, dimensions unknown");
+                return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
-            String header = parts[0]; // e.g., "data:image/jpeg;base64"
             String base64Data = parts[1];
 
-            // Extract format
-            String format = "jpeg"; // default
-            if (header.contains("image/png")) format = "png";
-            else if (header.contains("image/gif")) format = "gif";
-            else if (header.contains("image/webp")) format = "webp";
-
-            // Decode base64 to image
-            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
-            BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(imageBytes));
-            
-            if (originalImage == null) {
-                System.out.println("[IMAGE DEBUG] Failed to decode image, using original");
-                return originalUrl;
+            // Decode base64 to bytes
+            byte[] imageBytes;
+            try {
+                imageBytes = Base64.getDecoder().decode(base64Data);
+            } catch (IllegalArgumentException e) {
+                System.out.println("[IMAGE DEBUG] Invalid base64 data, dimensions unknown: " + e.getMessage());
+                return ImageResizeResult.unknownDimensions(originalUrl);
             }
 
-            int originalWidth = originalImage.getWidth();
-            int originalHeight = originalImage.getHeight();
-
-            // Check if resizing is needed
-            if (originalWidth <= MAX_IMAGE_WIDTH && originalHeight <= MAX_IMAGE_HEIGHT) {
-                return originalUrl;
-            }
-
-            // Calculate new dimensions maintaining aspect ratio
-            double aspectRatio = (double) originalWidth / originalHeight;
-            int newWidth, newHeight;
-
-            if (originalWidth > originalHeight) {
-                newWidth = Math.min(originalWidth, MAX_IMAGE_WIDTH);
-                newHeight = (int) (newWidth / aspectRatio);
-                if (newHeight > MAX_IMAGE_HEIGHT) {
-                    newHeight = MAX_IMAGE_HEIGHT;
-                    newWidth = (int) (newHeight * aspectRatio);
+            // Use ImageReader to get dimensions WITHOUT full decode (much faster, less memory)
+            try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(imageBytes))) {
+                if (iis == null) {
+                    System.out.println("[IMAGE DEBUG] Could not create ImageInputStream, dimensions unknown");
+                    return ImageResizeResult.unknownDimensions(originalUrl);
                 }
-            } else {
-                newHeight = Math.min(originalHeight, MAX_IMAGE_HEIGHT);
-                newWidth = (int) (newHeight * aspectRatio);
-                if (newWidth > MAX_IMAGE_WIDTH) {
-                    newWidth = MAX_IMAGE_WIDTH;
-                    newHeight = (int) (newWidth / aspectRatio);
+                
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+                if (readers.hasNext()) {
+                    ImageReader reader = readers.next();
+                    try {
+                        reader.setInput(iis);
+                        int width = reader.getWidth(0);   // Gets dimension from metadata, no full decode!
+                        int height = reader.getHeight(0);
+                        
+                        System.out.println("[IMAGE DEBUG] Extracted dimensions " + width + "x" + height + 
+                                         " (lightweight, no resize)");
+                        
+                        // Return original URL with known dimensions - no resize performed
+                        return new ImageResizeResult(originalUrl, width, height, true);
+                    } finally {
+                        reader.dispose();
+                    }
                 }
             }
-
-            // Create resized image
-            BufferedImage resizedImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g2d = resizedImage.createGraphics();
-            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
-            g2d.dispose();
-
-            // Encode back to base64
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            ImageIO.write(resizedImage, format, outputStream);
-            byte[] resizedBytes = outputStream.toByteArray();
-            String resizedBase64 = Base64.getEncoder().encodeToString(resizedBytes);
-
-            String resizedUrl = header + "," + resizedBase64;
             
-            System.out.println("[IMAGE DEBUG] ✂️ Resized image from " + originalWidth + "x" + originalHeight + 
-                             " to " + newWidth + "x" + newHeight + 
-                             " (size: " + originalUrl.length() + " → " + resizedUrl.length() + " chars)");
+            // Fallback: If ImageReader approach fails, try BufferedImage (slower but more compatible)
+            System.out.println("[IMAGE DEBUG] ImageReader failed, falling back to BufferedImage");
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageBytes));
+            if (image != null) {
+                int width = image.getWidth();
+                int height = image.getHeight();
+                System.out.println("[IMAGE DEBUG] Extracted dimensions " + width + "x" + height + " (fallback method)");
+                return new ImageResizeResult(originalUrl, width, height, true);
+            }
             
-            return resizedUrl;
+            System.out.println("[IMAGE DEBUG] Failed to extract dimensions");
+            return ImageResizeResult.unknownDimensions(originalUrl);
 
         } catch (Exception e) {
-            System.out.println("[IMAGE DEBUG] ⚠️ Failed to resize image: " + e.getMessage());
-            return originalUrl; // Return original on any error
+            System.out.println("[IMAGE DEBUG] ⚠️ Failed to process image: " + e.getMessage());
+            return ImageResizeResult.unknownDimensions(originalUrl);
         }
+    }
+
+    /**
+     * Posts a chat completion request as raw JSON and returns a stream of SSE responses.
+     * This method preserves the exact JSON structure including nested objects like json_schema.
+     * 
+     * IMPORTANT: This method has a long timeout (10 minutes) to support reasoning models
+     * like GPT-5-mini, o1, o3, and DeepSeek-R1 which can have extended thinking phases.
+     * 
+     * @param requestJson The raw JSON string to send
+     * @param apiKey The API key for authentication
+     * @param httpClient The HTTP client to use
+     * @param endpoint The API endpoint URI
+     * @return A Stream of SSE response lines
+     */
+    private static Stream<String> postChatCompletionStreamRaw(String requestJson, String apiKey, HttpClient httpClient, java.net.URI endpoint) throws IOException, InterruptedException {
+        // Extended timeout for reasoning models (GPT-5-mini, o1, o3, DeepSeek-R1)
+        // These models can have long thinking phases before producing content
+        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(endpoint)
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Accept", "text/event-stream")
+                .timeout(Duration.ofMinutes(10))  // 10 minute timeout for reasoning models
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestJson))
+                .build();
+
+        System.out.println("[OpenRouter] Sending request to: " + endpoint);
+        
+        java.net.http.HttpResponse<java.io.InputStream> response = httpClient.send(
+                request,
+                java.net.http.HttpResponse.BodyHandlers.ofInputStream()
+        );
+
+        System.out.println("[OpenRouter] Response status: " + response.statusCode());
+
+        if (response.statusCode() != 200) {
+            String errorBody = new String(response.body().readAllBytes());
+            System.out.println("[OpenRouter] Error response (" + response.statusCode() + "): " + errorBody);
+            throw new IOException("OpenRouter returned status " + response.statusCode() + ": " + errorBody);
+        }
+
+        java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(response.body())
+        );
+
+        return reader.lines();
     }
 }
 

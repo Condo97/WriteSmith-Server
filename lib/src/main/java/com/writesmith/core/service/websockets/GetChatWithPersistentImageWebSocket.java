@@ -70,6 +70,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -80,6 +82,12 @@ public class GetChatWithPersistentImageWebSocket {
 
     private static final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).connectTimeout(Duration.ofMinutes(com.oaigptconnector.Constants.AI_TIMEOUT_MINUTES)).build(); // TODO: Is this fine to create here?
 
+    // Dedicated thread pool for stream processing - prevents blocking Jetty's limited thread pool
+    private static final ExecutorService streamExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "PersistentImageStream-" + System.currentTimeMillis());
+        t.setDaemon(true);
+        return t;
+    });
 
     /***
      * Connected
@@ -101,49 +109,52 @@ public class GetChatWithPersistentImageWebSocket {
 
     @OnWebSocketMessage
     public void message(Session session, String message) {
-        try {
-            // Stream chat
-            streamChat(session, message);
-        } catch (CapReachedException e) {
-            // TODO: Cap reached stuff
-        } catch (MalformedJSONException | InvalidAuthenticationException e) {
-            // Print stack trace
-            e.printStackTrace();
-
-            // Create ErrorResponse with responseStatus and reason
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
-
+        // Submit to dedicated executor to avoid blocking Jetty's limited thread pool
+        streamExecutor.submit(() -> {
             try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
-                eI.printStackTrace();
-            }
-        } catch (UnhandledException e) {
-            // Print stack trace
-            e.printStackTrace();
+                // Stream chat
+                streamChat(session, message);
+            } catch (CapReachedException e) {
+                // TODO: Cap reached stuff
+            } catch (MalformedJSONException | InvalidAuthenticationException e) {
+                // Print stack trace
+                e.printStackTrace();
 
-            // Create ErrorResponse with responseStatus and reason
-            ErrorResponse errorResponse = new ErrorResponse(
-                    e.getResponseStatus(),
-                    e.getMessage()
-            );
+                // Create ErrorResponse with responseStatus and reason
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
 
-            try {
-                session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
-            } catch (IOException eI) {
-                // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
-                eI.printStackTrace();
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
+                    eI.printStackTrace();
+                }
+            } catch (UnhandledException e) {
+                // Print stack trace
+                e.printStackTrace();
+
+                // Create ErrorResponse with responseStatus and reason
+                ErrorResponse errorResponse = new ErrorResponse(
+                        e.getResponseStatus(),
+                        e.getMessage()
+                );
+
+                try {
+                    session.getRemote().sendString(new ObjectMapper().writeValueAsString(errorResponse));
+                } catch (IOException eI) {
+                    // This is just called if there was an issue writing errorResponse as a String, so I think just print the stack trace
+                    eI.printStackTrace();
+                }
+            } catch (Exception e) {
+                // TODO: Is this ever called? I'm thinking maybe for nullPointerException or something like that
+                e.printStackTrace();
+            } finally {
+                session.close();
             }
-        } catch (Exception e) {
-            // TODO: Is this ever called? I'm thinking maybe for nullPointerException or something like that
-            e.printStackTrace();
-        } finally {
-            session.close();
-        }
+        });
     }
 
     protected void streamChat(Session session, String message) throws MalformedJSONException, InvalidAuthenticationException, UnhandledException, CapReachedException {

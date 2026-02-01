@@ -7,6 +7,7 @@ import com.oaigptconnector.Constants;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
 import com.oaigptconnector.model.response.error.OpenAIGPTErrorResponse;
 import com.writesmith.keys.Keys;
+import com.writesmith.util.PersistentLogger;
 import httpson.Httpson;
 
 import java.io.IOException;
@@ -68,13 +69,37 @@ public class DALLE3ImageGenerator {
                 DEFAULT_RESPONSE_FORMAT
         );
 
+        PersistentLogger.info(PersistentLogger.IMAGE, "Generating image - model: " + MODEL_NAME + ", size: " + size + ", prompt: " + truncatePrompt(prompt));
+
         // Get response from OpenAIGPTHttpHelper
         try {
             DALLE3ImageGenerationResponse response = postImageGeneration(request, Keys.openAiAPI);
 
-            // Ensure there is at least one image in the response, otherwise throw open AI exception TODO: Is this acceptable to throw here? Maybe I should throw something else
+            // Check for OpenAI error response first
+            if (response.hasError()) {
+                DALLE3ImageGenerationResponse.Error oaiError = response.getError();
+                String errorMsg = "OpenAI DALLE3 error: " + oaiError.toString();
+                PersistentLogger.error(PersistentLogger.IMAGE, errorMsg);
+                PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, response, new Exception(errorMsg));
+                throw new OpenAIGPTException("Image generation failed: " + oaiError.getMessage() + " (code: " + oaiError.getCode() + ")", null);
+            }
+
+            // Validate response data is not null
+            if (response.getData() == null) {
+                String errorMsg = "DALLE3 response data is null - prompt may be empty or invalid. Prompt length: " + 
+                                  (prompt != null ? prompt.length() : "null") + 
+                                  ", prompt preview: " + truncatePrompt(prompt);
+                PersistentLogger.error(PersistentLogger.IMAGE, errorMsg);
+                PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, response, new NullPointerException(errorMsg));
+                throw new OpenAIGPTException(errorMsg, null);
+            }
+
+            // Ensure there is at least one image in the response
             if (response.getData().size() == 0) {
-                throw new OpenAIGPTException("No images received when generating in DALLE3ImageGenerator!", null);
+                String errorMsg = "No images received when generating in DALLE3ImageGenerator!";
+                OpenAIGPTException error = new OpenAIGPTException(errorMsg, null);
+                PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, response, error);
+                throw error;
             }
 
             // Get first data from response
@@ -87,15 +112,17 @@ public class DALLE3ImageGenerator {
                     responseFirstData.getRevised_prompt()
             );
 
+            PersistentLogger.info(PersistentLogger.IMAGE, "Image generated successfully - revised prompt: " + truncatePrompt(completedGeneration.getRevised_prompt()));
+
             return completedGeneration;
         } catch (OpenAIGPTException e) {
-            // TODO: - Proces AI Error Response
-            System.out.println("Error generating image in DALLE3ImageGenerator!");
-            e.printStackTrace();
+            PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, null, e);
             throw e;
+        } catch (Exception e) {
+            // Catch ALL exceptions to ensure they're logged
+            PersistentLogger.logDetailedError(PersistentLogger.IMAGE, "generate", request, null, e);
+            throw new IOException("Unexpected error during image generation: " + e.getMessage(), e);
         }
-
-
     }
 
     public static DALLE3ImageGenerationResponse postImageGeneration(Object requestObject, String apiKey) throws IOException, InterruptedException, OpenAIGPTException {
@@ -108,17 +135,23 @@ public class DALLE3ImageGenerator {
             DALLE3ImageGenerationResponse dalle3ImageGenerationResponse = new ObjectMapper().treeToValue(response, DALLE3ImageGenerationResponse.class);
 
             if (dalle3ImageGenerationResponse == null) {
-                // TODO: Handle Errors
-                System.out.println("Got null response from server when requesting image generation in DALLE3ImageGenerator!");
+                PersistentLogger.error(PersistentLogger.IMAGE, "Got null response from server. Raw response: " + response);
                 throw new IOException("Got null response from server when requesting image generation.");
             }
 
             return dalle3ImageGenerationResponse;
         } catch (JsonProcessingException e) {
-            System.out.println("Issue Mapping DALLE3ImageGenerationResponse " + response);
-
+            PersistentLogger.error(PersistentLogger.IMAGE, "Issue mapping DALLE3ImageGenerationResponse. Raw response: " + response, e);
             throw new OpenAIGPTException(e, new ObjectMapper().treeToValue(response, OpenAIGPTErrorResponse.class));
         }
     }
 
+    /**
+     * Truncates a prompt for logging purposes.
+     */
+    private static String truncatePrompt(String prompt) {
+        if (prompt == null) return "null";
+        if (prompt.length() <= 100) return prompt;
+        return prompt.substring(0, 100) + "...";
+    }
 }

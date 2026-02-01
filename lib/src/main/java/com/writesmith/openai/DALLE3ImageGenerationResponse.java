@@ -37,8 +37,31 @@ public class DALLE3ImageGenerationResponse {
 
     }
 
+    /**
+     * Captures OpenAI error responses (when generation fails)
+     */
+    public static class Error {
+        private String message;
+        private String type;
+        private String param;
+        private String code;
+
+        public Error() {}
+
+        public String getMessage() { return message; }
+        public String getType() { return type; }
+        public String getParam() { return param; }
+        public String getCode() { return code; }
+
+        @Override
+        public String toString() {
+            return "Error{type='" + type + "', code='" + code + "', message='" + message + "', param='" + param + "'}";
+        }
+    }
+
     private Long created;
     private List<Data> data;
+    private Error error;  // Captures OpenAI error responses
 
     public DALLE3ImageGenerationResponse() {
 
@@ -55,6 +78,17 @@ public class DALLE3ImageGenerationResponse {
 
     public List<Data> getData() {
         return data;
+    }
+
+    public Error getError() {
+        return error;
+    }
+
+    /**
+     * Returns true if this response contains an error from OpenAI
+     */
+    public boolean hasError() {
+        return error != null;
     }
 
 }

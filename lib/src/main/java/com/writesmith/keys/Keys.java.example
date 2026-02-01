@@ -1,0 +1,36 @@
+package com.writesmith.keys;
+
+/**
+ * Keys configuration - all sensitive values are compiled into the JAR.
+ * 
+ * SETUP INSTRUCTIONS:
+ * 1. Copy this file to Keys.java (in the same directory)
+ * 2. Replace all placeholder values with your actual credentials
+ * 3. Build the project - values will be compiled into the JAR
+ * 
+ * NOTE: Keys.java is gitignored - never commit your actual keys!
+ */
+public class Keys {
+
+    // Apple Configuration
+    public static final String apnsIssuerIDWhichIsTheTeamID = "YOUR_TEAM_ID";
+    public static final String appStoreConnectIssuerID = "YOUR_APP_STORE_CONNECT_ISSUER_ID";
+    public static final String apnsAuthKeyID = "YOUR_APNS_AUTH_KEY_ID";
+    public static final String appStoreConnectPrivateKeyID = "YOUR_PRIVATE_KEY_ID";
+
+    // API Keys
+    public static final String googleSearchAPIKey = "YOUR_GOOGLE_SEARCH_API_KEY";
+    public static final String openAiAPI = "YOUR_OPENAI_API_KEY";
+    public static final String openRouterAPI = "YOUR_OPENROUTER_API_KEY";
+
+    // App Secrets
+    public static final String sharedAppSecret = "YOUR_SHARED_APP_SECRET";
+    public static final String sslPassword = "YOUR_SSL_PASSWORD";
+
+    // MySQL Configuration
+    public static final String mysqlTestPassword = "YOUR_TEST_PASSWORD";
+    public static final String MYSQL_USER = "YOUR_MYSQL_USER";
+    public static final String MYSQL_PASS = "YOUR_MYSQL_PASSWORD";
+}
+
+
