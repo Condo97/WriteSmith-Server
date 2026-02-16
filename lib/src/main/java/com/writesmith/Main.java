@@ -36,7 +36,7 @@ public class Main {
     private static final int MIN_THREADS = 1;
     private static final int TIMEOUT_MS = 8000;
 
-    private static final int DEFAULT_PORT = 443;
+    private static final int DEFAULT_PORT = 9051;
     private static final int DEBUG_PORT = 2000;
 
     public static void main(String... args) throws SQLException {
@@ -88,8 +88,8 @@ public class Main {
         threadPool(threads, MIN_THREADS, TIMEOUT_MS);
         port(isDebug ? DEBUG_PORT : DEFAULT_PORT);
 
-        // Set up SSL
-        secure("chitchatserver.com.jks", Keys.sslPassword, null, null);
+        // SSL disabled - Cloudflare Tunnel handles SSL termination
+        // secure("chitchatserver.com.jks", Keys.sslPassword, null, null);
 
         // Set up https v1 path
         path("/v1", () -> configureHttpEndpoints());
