@@ -4,6 +4,7 @@ import appletransactionclient.exception.AppStoreErrorResponseException;
 import com.writesmith.Constants;
 import com.writesmith.database.dao.pooled.TransactionDAOPooled;
 import com.writesmith.database.model.objects.Transaction;
+import com.writesmith.util.PersistentLogger;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -73,10 +74,10 @@ public class TransactionPersistentAppleUpdater {
         if (mostRecentTransaction == null)
             return null;
 
-//        // If most recent transaction check date + Transaction_Status_Apple_Update_Cooldown is before current local date time
-//        if (mostRecentTransaction.getCheckDate().plus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)).isBefore(LocalDateTime.now())) {
-        // If current timestamp is after most recent transaction check date plus cooldown
-        if (LocalDateTime.now().isAfter(mostRecentTransaction.getCheckDate().plus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)))) {
+        // If checkDate is null (e.g. Apple check failed before setting it), force an update
+        // Otherwise, check if current timestamp is after check date plus cooldown
+        if (mostRecentTransaction.getCheckDate() == null ||
+                LocalDateTime.now().isAfter(mostRecentTransaction.getCheckDate().plus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)))) {
             // Update and save the Apple transaction status
             updateAndSaveAppleTransactionStatus(mostRecentTransaction);
         }
@@ -89,6 +90,10 @@ public class TransactionPersistentAppleUpdater {
         // Get most recent transaction from database
         Transaction mostRecentTransaction = TransactionDAOPooled.getMostRecent(userID);
 
+        // If no transaction exists for this user, return null (same pattern as getCooldownControlled variant)
+        if (mostRecentTransaction == null)
+            return null;
+
         // Update and save Apple transaction status
         updateAndSaveAppleTransactionStatus(mostRecentTransaction);
 
@@ -99,7 +104,8 @@ public class TransactionPersistentAppleUpdater {
         // Update transaction status from Apple
         AppleTransactionUpdater.updateTransactionStatusFromApple(transaction);
 
-        System.out.println("Updated transaction status with apple: " + transaction.getStatus().getValue());
+        PersistentLogger.info(PersistentLogger.APPLE, "Updated transaction status with Apple: " +
+                (transaction.getStatus() != null ? transaction.getStatus().getValue() : "NULL"));
 
         // Insert or update transaction in database
         TransactionDAOPooled.insertOrUpdateByMostRecentTransactionID(transaction);

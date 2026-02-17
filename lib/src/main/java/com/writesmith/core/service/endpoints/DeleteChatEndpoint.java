@@ -27,6 +27,9 @@ public class DeleteChatEndpoint {
         /* Get Chat */
         ChatLegacy chatLegacy = ChatLegacyDAOPooled.getFirstByPrimaryKey(request.getChatID());
 
+        if (chatLegacy == null)
+            throw new DBObjectNotFoundFromQueryException("Chat not found for chatID: " + request.getChatID());
+
         /* Get Conversation */
         Conversation conversation = ConversationDAOPooled.getFirstByPrimaryKey(chatLegacy.getConversationID());
 

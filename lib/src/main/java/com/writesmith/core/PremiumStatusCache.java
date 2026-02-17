@@ -1,7 +1,10 @@
 package com.writesmith.core;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import com.writesmith.util.PersistentLogger;
+
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -12,6 +15,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * - Background refresh when cache is getting stale (at 75% of TTL)
  * - Thread-safe with ConcurrentHashMap
  * - Optimistic return: if cache exists but is stale, returns cached value while refreshing
+ * - Periodic eviction of expired entries to prevent memory leaks
+ * - Maximum cache size to bound memory usage
  * 
  * This dramatically improves WebSocket throughput by avoiding synchronous Apple API calls
  * for every request with images.
@@ -23,7 +28,27 @@ public class PremiumStatusCache {
     // Cache configuration
     private static final long CACHE_TTL_MS = 60_000; // 1 minute cache lifetime
     private static final long REFRESH_THRESHOLD_MS = 45_000; // Start background refresh at 75% of TTL
-    
+    private static final int MAX_CACHE_SIZE = 10_000; // Maximum entries to prevent unbounded growth
+    private static final long EVICTION_INTERVAL_MS = 120_000; // Run eviction every 2 minutes
+
+    // Scheduled eviction
+    private static final ScheduledExecutorService evictionScheduler =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "PremiumCache-Eviction");
+                t.setDaemon(true);
+                return t;
+            });
+
+    static {
+        // Start periodic eviction of expired entries
+        evictionScheduler.scheduleAtFixedRate(
+                PremiumStatusCache::evictExpiredEntries,
+                EVICTION_INTERVAL_MS,
+                EVICTION_INTERVAL_MS,
+                TimeUnit.MILLISECONDS
+        );
+    }
+
     /**
      * Cache entry holding premium status and timing information.
      */
@@ -48,6 +73,10 @@ public class PremiumStatusCache {
         
         boolean startRefreshing() {
             return isRefreshing.compareAndSet(false, true);
+        }
+
+        long age() {
+            return System.currentTimeMillis() - createdAt;
         }
     }
     
@@ -89,26 +118,34 @@ public class PremiumStatusCache {
     /**
      * Fetches premium status synchronously and caches the result.
      * Used for first-time lookups or when cache has fully expired.
+     *
+     * Fail-open policy:
+     * - If a stale cached value exists, use it (protect paying users)
+     * - If no cached value exists (first-time check), default to true (fail-open)
+     *   to protect paying users during Apple outages. The risk of a free user
+     *   getting temporary premium is far lower than a paying user losing access.
      */
     private static boolean fetchAndCache(Integer userId) {
         try {
             boolean isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(userId);
-            cache.put(userId, new CacheEntry(isPremium));
-            System.out.println("[PremiumCache] Cached premium status for user " + userId + ": " + isPremium);
+            putWithSizeCheck(userId, new CacheEntry(isPremium));
+            PersistentLogger.info(PersistentLogger.APPLE, "[PremiumCache] Cached premium status for user " + userId + ": " + isPremium);
             return isPremium;
         } catch (Exception e) {
             // On error, check if we have a stale cached value we can use
             CacheEntry staleEntry = cache.get(userId);
             if (staleEntry != null) {
-                System.out.println("[PremiumCache] Error fetching premium for user " + userId + 
+                PersistentLogger.warn(PersistentLogger.APPLE, "[PremiumCache] Error fetching premium for user " + userId + 
                                  ", using stale cached value: " + staleEntry.isPremium + 
                                  " (error: " + e.getMessage() + ")");
                 return staleEntry.isPremium;
             }
             
-            // No cached value and error - default to premium (fail-open to not block paying users)
-            System.out.println("[PremiumCache] Error fetching premium for user " + userId + 
-                             ", defaulting to premium (error: " + e.getMessage() + ")");
+            // No cached value and error - fail-open: default to premium
+            // The risk of a free user getting temporary premium during an Apple outage
+            // is far lower than the risk of a paying user losing access.
+            PersistentLogger.warn(PersistentLogger.APPLE, "[PremiumCache] Error fetching premium for user " + userId + 
+                             ", no cached value available, defaulting to PREMIUM to protect paying users (error: " + e.getMessage() + ")");
             return true;
         }
     }
@@ -120,11 +157,11 @@ public class PremiumStatusCache {
         executor.submit(() -> {
             try {
                 boolean isPremium = WSPremiumValidator.cooldownControlledAppleUpdatedGetIsPremium(userId);
-                cache.put(userId, new CacheEntry(isPremium));
-                System.out.println("[PremiumCache] Background refresh completed for user " + userId + ": " + isPremium);
+                putWithSizeCheck(userId, new CacheEntry(isPremium));
+                PersistentLogger.info(PersistentLogger.APPLE, "[PremiumCache] Background refresh completed for user " + userId + ": " + isPremium);
             } catch (Exception e) {
                 // Background refresh failed - log but don't worry, cached value still valid
-                System.out.println("[PremiumCache] Background refresh failed for user " + userId + 
+                PersistentLogger.warn(PersistentLogger.APPLE, "[PremiumCache] Background refresh failed for user " + userId + 
                                  ": " + e.getMessage());
                 // Reset the refreshing flag so next request can try again
                 CacheEntry entry = cache.get(userId);
@@ -134,7 +171,49 @@ public class PremiumStatusCache {
             }
         });
     }
-    
+
+    /**
+     * Puts an entry in the cache with size checking.
+     * If cache exceeds MAX_CACHE_SIZE, evicts expired entries first,
+     * then oldest entries if still over limit.
+     */
+    private static void putWithSizeCheck(Integer userId, CacheEntry entry) {
+        cache.put(userId, entry);
+
+        if (cache.size() > MAX_CACHE_SIZE) {
+            evictExpiredEntries();
+
+            // If still over limit after evicting expired, remove oldest entries
+            if (cache.size() > MAX_CACHE_SIZE) {
+                int toRemove = cache.size() - MAX_CACHE_SIZE + (MAX_CACHE_SIZE / 10); // Remove 10% extra
+                cache.entrySet().stream()
+                        .sorted((a, b) -> Long.compare(a.getValue().createdAt, b.getValue().createdAt))
+                        .limit(toRemove)
+                        .forEach(e -> cache.remove(e.getKey()));
+                PersistentLogger.info(PersistentLogger.APPLE, "[PremiumCache] Evicted " + toRemove + " oldest entries (cache size exceeded " + MAX_CACHE_SIZE + ")");
+            }
+        }
+    }
+
+    /**
+     * Removes all expired entries from the cache.
+     * Called periodically by the eviction scheduler and on size overflow.
+     */
+    private static void evictExpiredEntries() {
+        int evicted = 0;
+        Iterator<Map.Entry<Integer, CacheEntry>> it = cache.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, CacheEntry> entry = it.next();
+            if (entry.getValue().isExpired()) {
+                it.remove();
+                evicted++;
+            }
+        }
+        if (evicted > 0) {
+            PersistentLogger.debug(PersistentLogger.APPLE, "[PremiumCache] Evicted " + evicted + " expired entries. Cache size: " + cache.size());
+        }
+    }
+
     /**
      * Pre-warms the cache for a user. Useful to call after successful auth
      * to have premium status ready before it's needed.
@@ -154,7 +233,7 @@ public class PremiumStatusCache {
      */
     public static void invalidate(Integer userId) {
         cache.remove(userId);
-        System.out.println("[PremiumCache] Invalidated cache for user " + userId);
+        PersistentLogger.info(PersistentLogger.APPLE, "[PremiumCache] Invalidated cache for user " + userId);
     }
     
     /**
@@ -163,7 +242,7 @@ public class PremiumStatusCache {
      */
     public static void clear() {
         cache.clear();
-        System.out.println("[PremiumCache] Cache cleared");
+        PersistentLogger.info(PersistentLogger.APPLE, "[PremiumCache] Cache cleared");
     }
     
     /**
@@ -181,5 +260,3 @@ public class PremiumStatusCache {
         return entry != null && !entry.isExpired();
     }
 }
-
-

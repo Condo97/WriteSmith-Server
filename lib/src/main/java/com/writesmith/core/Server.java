@@ -576,6 +576,20 @@ public class Server {
         return new ObjectMapper().writeValueAsString(bodyResponse);
     }
 
+    public static Object registerTransactionV2(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException {
+        RegisterTransactionV2Request rtr = new ObjectMapper().readValue(request.body(), RegisterTransactionV2Request.class);
+
+        BodyResponse bodyResponse = RegisterTransactionV2Endpoint.registerTransaction(rtr);
+
+        return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
+    public static Object handleAppStoreNotification(Request request, Response response) throws IOException {
+        BodyResponse bodyResponse = AppStoreNotificationV2Endpoint.handleNotification(request.body());
+
+        return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
     /***
      * Send Push Notification
      *
@@ -762,8 +776,6 @@ public class Server {
     public static Object validateAndUpdateReceipt(Request request, Response response) throws MalformedJSONException, IOException, SQLException, PreparedStatementMissingArgumentException, InterruptedException, SQLColumnNotFoundException, AppleItunesResponseException, DBSerializerException, IllegalAccessException, DBSerializerPrimaryKeyMissingException, AutoIncrementingDBObjectExistsException, DBObjectNotFoundFromQueryException, InvocationTargetException, NoSuchMethodException, InstantiationException {
         // Get registerTransactionRequest
         RegisterTransactionRequest registerTransactionRequest = new ObjectMapper().readValue(request.body(), RegisterTransactionRequest.class);
-
-        ValidateAndUpdateReceiptEndpoint.validateAndUpdateReceipt(registerTransactionRequest);
 
         BodyResponse bodyResponse = ValidateAndUpdateReceiptEndpoint.validateAndUpdateReceipt(registerTransactionRequest);
 

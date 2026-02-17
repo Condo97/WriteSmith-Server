@@ -3,11 +3,15 @@ package com.writesmith;
 import com.oaigptconnector.model.request.chat.completion.CompletionRole;
 
 import java.net.URI;
+import java.util.Set;
 
 public final class Constants {
 
     private Constants() {
     }
+
+    /* Server Mode - set at startup, used for environment validation */
+    public static boolean isProduction = true; // Default to production for safety; set to false when -debug flag is used
 
     public static final class Additional {
 
@@ -30,6 +34,15 @@ public final class Constants {
 
     public static final String YEARLY_PRICE = "49.99";
     public static final String YEARLY_NAME = "chitchatultrayearly";
+
+    /* Valid Product IDs - used for server-side validation of Apple transactions */
+    public static final Set<String> VALID_PRODUCT_IDS = Set.of(
+            WEEKLY_NAME_VAR1,
+            MONTHLY_NAME_VAR1,
+            WEEKLY_NAME_VAR2,
+            MONTHLY_NAME_VAR2,
+            YEARLY_NAME
+    );
 
     /* Tiered Limits */
     public static final int Character_Limit_Additional_Text_Free = 8000;
@@ -119,6 +132,10 @@ public final class Constants {
         public static final String TRANSCRIBE_SPEECH = "/transcribeSpeech";
         public static final String SUBMIT_FEEDBACK = "/submitFeedback";
         public static final String VALIDATE_AUTHTOKEN = "/validateAuthToken";
+
+        /* V2 URIs */
+        public static final String REGISTER_TRANSACTION_V2_URI = "/registerTransaction";
+        public static final String APP_STORE_NOTIFICATION_URI = "/appStoreNotification";
     }
 
     /* Legacy URIs for HTTPServer */

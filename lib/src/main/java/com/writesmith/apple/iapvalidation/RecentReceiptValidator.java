@@ -31,12 +31,11 @@ public class RecentReceiptValidator extends ReceiptValidator {
         }
 
 
-//        // If current timestamp - receipt timestamp is greater than Delay_Seconds_Premium_Check
-//        if (LocalDateTime.now().minus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)).isBefore(receipt.getCheckDate())) {
-        // If current timestamp is after receipt check date plus cooldown
-        if (LocalDateTime.now().isAfter(receipt.getCheckDate().plus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)))) {
-            // Checks with Apple and updates receipt in database accordingly!
-//            System.out.println("Validated receipt!!");
+        // If checkDate is null (e.g. Apple check failed before setting it), force a validation
+        // Otherwise, check if current timestamp is after check date plus cooldown
+        if (receipt.getCheckDate() == null ||
+                LocalDateTime.now().isAfter(receipt.getCheckDate().plus(Duration.ofSeconds(Constants.Transaction_Status_Apple_Update_Cooldown)))) {
+            // Checks with Apple and updates receipt in database accordingly
             validateReceipt(receipt);
         }
 

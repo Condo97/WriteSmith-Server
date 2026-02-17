@@ -11,6 +11,7 @@ import com.writesmith.Constants;
 import com.writesmith.keys.Keys;
 import com.writesmith.database.model.AppStoreSubscriptionStatus;
 import com.writesmith.database.model.objects.Transaction;
+import com.writesmith.util.PersistentLogger;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -24,7 +25,13 @@ import java.time.LocalDateTime;
 public class AppleTransactionUpdater {
 
     /***
-     * Takes given Transaction and updates its status and check date
+     * Takes given Transaction and updates its status and check date.
+     *
+     * NOTE: Product ID validation is not possible in the v1 flow because the product ID
+     * is embedded in signedTransactionInfo JWS which this method does not decode.
+     * The v2 registration endpoint (RegisterTransactionV2Endpoint) performs full JWS
+     * verification including product ID validation. The v1 flow is partially protected
+     * because Apple's subscription status API is scoped to this app's bundle ID via the JWT.
      */
     public static void updateTransactionStatusFromApple(Transaction transaction) throws AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, InterruptedException {
         // Create SubscriptionAppleHttpClient instance and JWTSigner instance
@@ -37,7 +44,15 @@ public class AppleTransactionUpdater {
         // Get the status response from apple
         AppStoreStatusResponse statusResponse = subscriptionAppleHttpClient.getStatusResponseV1(transaction.getAppstoreTransactionID(), jwt);
 
-        //.. is probably how it should be sorta.. however, because we're using one transactionID in the query it should only return one, but if it returns multiple, if there is one where status == SubscriptionStatus.ACTIVE, then it needs to be "dominant", otherwise the first status is used I guess? Should also print out if there are multiple transactions just in case there is more investigation I need to do on this
+        // Environment logging: log sandbox transactions in production for visibility
+        // NOTE: Sandbox transactions are NOT rejected because TestFlight users and
+        // Apple App Review testers legitimately use the sandbox environment.
+        String environment = statusResponse.getEnvironment();
+        if (Constants.isProduction && "Sandbox".equalsIgnoreCase(environment)) {
+            PersistentLogger.warn(PersistentLogger.APPLE, "Sandbox transaction " + transaction.getAppstoreTransactionID() + " detected in production mode (TestFlight/App Review user).");
+        }
+
+        //.. however, because we're using one transactionID in the query it should only return one, but if it returns multiple, if there is one where status == SubscriptionStatus.ACTIVE, then it needs to be "dominant", otherwise the first status is used I guess? Should also print out if there are multiple transactions just in case there is more investigation I need to do on this
         AppStoreSubscriptionStatus subscriptionStatus = null;
         for (AppStoreStatusResponseSubscriptionGroupIdentifierItem data: statusResponse.getData()) {
             for (AppStoreStatusResponseLastTransactionItem lastTransaction: data.getLastTransactions()) {
@@ -53,7 +68,13 @@ public class AppleTransactionUpdater {
 
         // For logging purposes to see if there are any times there are more than one data or lastTransaction in the statusResponse
         if (statusResponse.getData().length != 1 || statusResponse.getData()[0].getLastTransactions().length != 1)
-            System.out.println("Found more than one data or lastTransaction object in statusResponse in AppleTransactionUpdater updateTransactionStatusFromApple!\t" + statusResponse.getData().length + "-data[] length");
+            PersistentLogger.warn(PersistentLogger.APPLE, "Multiple data/lastTransaction in statusResponse: " + statusResponse.getData().length + " data items");
+
+        // Default to INVALID if Apple returned empty data (e.g. revoked/invalid transaction)
+        if (subscriptionStatus == null) {
+            PersistentLogger.warn(PersistentLogger.APPLE, "Apple returned no subscription status for transaction " + transaction.getAppstoreTransactionID() + ", defaulting to INVALID");
+            subscriptionStatus = AppStoreSubscriptionStatus.INVALID;
+        }
 
         // Set subscription status and check date
         transaction.setStatus(subscriptionStatus);

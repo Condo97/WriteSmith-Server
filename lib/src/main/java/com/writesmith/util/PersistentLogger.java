@@ -47,6 +47,7 @@ public class PersistentLogger {
     public static final String SPEECH = "SPEECH";
     public static final String TRANSACTION = "TRANSACTION";
     public static final String API = "API";
+    public static final String REALTIME = "REALTIME";
 
     // Session state
     private static String sessionFolder;

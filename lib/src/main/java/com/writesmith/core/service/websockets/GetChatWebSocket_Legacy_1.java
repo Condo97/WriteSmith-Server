@@ -129,7 +129,14 @@ public class GetChatWebSocket_Legacy_1 {
                 requestedModel = OpenAIGPTModels.GPT_4_MINI;
 
             // Get isPremium Apple update if requested model is not permitted from WSPremiumValidator
-            boolean isPremium = WSPremiumValidator.getIsPremiumAppleUpdateIfRequestedModelIsNotPermitted(u_aT.getUserID(), requestedModel);
+            boolean isPremium = false;
+            try {
+                isPremium = WSPremiumValidator.getIsPremiumAppleUpdateIfRequestedModelIsNotPermitted(u_aT.getUserID(), requestedModel);
+            } catch (AppStoreErrorResponseException | AppleItunesResponseException e) {
+                // Fail-open: Apple validation may be down, let the user through as premium
+                e.printStackTrace();
+                isPremium = true;
+            }
 
             // Do cooldown controlled Apple update isPremium on a Thread
             new Thread(() -> {

@@ -12,6 +12,7 @@ import com.writesmith.database.model.objects.Receipt;
 import com.writesmith.database.model.objects.Transaction;
 import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItunesResponseException;
 import com.writesmith.openai.OpenAIGPTModelTierSpecification;
+import com.writesmith.util.PersistentLogger;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -44,7 +45,7 @@ public class WSPremiumValidator {
 
         // If not isPremium and requestedModel is a paid model, do Apple update.. I'm pretty sure this is the only case where this will happen
         if (!isPremium && OpenAIGPTModelTierSpecification.paidModels.contains(requestedModel)) {
-            System.out.println("Requested premium model but getIsPremium returned false... Validating with Apple!");
+            PersistentLogger.info(PersistentLogger.APPLE, "User " + userID + " requested premium model but isPremium=false, validating with Apple");
 
             return appleUpdatedGetIsPremium(userID);
         }
@@ -70,36 +71,36 @@ public class WSPremiumValidator {
         // Get most recent Apple updated and saved transaction with cooldown control
         Transaction transaction = TransactionPersistentAppleUpdater.getCooldownControlledAppleUpdatedMostRecentTransaction(userID);
 
-        // If the transaction is null, the user may be using Receipt instead, so try that too
-        if (transaction == null) {
-            // Get receipt and return isPremium
+        // If the transaction is null or has a null status (from old data or a failed Apple update),
+        // fall back to receipt validation — the user may be using Receipt instead
+        if (transaction == null || transaction.getStatus() == null) {
             Receipt receipt = RecentReceiptValidator.getAndValidateMostRecentReceipt(userID);
 
             return receipt != null && !receipt.isExpired();
         }
 
         // Return isPremium using transaction
-        return transaction != null && AppStoreSubscriptionStatusToIsPremiumAdapter.getIsPremium(transaction.getStatus());
+        return AppStoreSubscriptionStatusToIsPremiumAdapter.getIsPremium(transaction.getStatus());
     }
 
     private static boolean getIsPremium(Integer userID) throws DBSerializerException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, DBObjectNotFoundFromQueryException {
         // Get most recent Transaction from DB
         Transaction transaction = TransactionDAOPooled.getMostRecent(userID);
 
-        // If the Transaction is null, get the most recent receipt and return if not isExpired
-        if (transaction == null) {
-            // Get Receipt and return isPremium
+        // If the Transaction is null or has a null status (from old data or a failed Apple update),
+        // fall back to receipt validation
+        if (transaction == null || transaction.getStatus() == null) {
             Receipt receipt = null;
             try {
                 receipt = ReceiptDAOPooled.getMostRecent(userID);
             } catch (DBObjectNotFoundFromQueryException e) {
-//                System.out.println("No Receipt found when getting isPremium...");
+                // No receipt found
             }
 
             return receipt != null && !receipt.isExpired();
         }
 
-        return transaction != null && AppStoreSubscriptionStatusToIsPremiumAdapter.getIsPremium(transaction.getStatus());
+        return AppStoreSubscriptionStatusToIsPremiumAdapter.getIsPremium(transaction.getStatus());
     }
 
 }

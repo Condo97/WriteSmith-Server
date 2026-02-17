@@ -14,7 +14,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 public class GoogleSearchEndpoint {
 
@@ -35,6 +37,10 @@ public class GoogleSearchEndpoint {
         printLog(u_aT.getUserID());
 
         // Return transposed response to GoogleSearchResponse
+        List<?> items = response.getItems();
+        if (items == null) {
+            return new GoogleSearchResponse(Collections.emptyList());
+        }
         return new GoogleSearchResponse(
                 response.getItems().stream().map(i -> {
                     return new GoogleSearchResponse.Result(

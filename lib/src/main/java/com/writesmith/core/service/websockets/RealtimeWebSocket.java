@@ -2,6 +2,7 @@ package com.writesmith.core.service.websockets;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.writesmith.keys.Keys;
+import com.writesmith.util.PersistentLogger;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.StatusCode;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
@@ -27,25 +28,39 @@ public class RealtimeWebSocket {
     private static final String OPENAI_API_KEY = Keys.openAiAPI;
     private static final int PING_INTERVAL_SECONDS = 30;
 
+    private static final WebSocketClient SHARED_WS_CLIENT;
+    static {
+        SHARED_WS_CLIENT = new WebSocketClient();
+        SHARED_WS_CLIENT.getPolicy().setMaxTextMessageSize(256 * 1024);
+        SHARED_WS_CLIENT.getPolicy().setIdleTimeout(300000);
+        try {
+            SHARED_WS_CLIENT.start();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start shared WebSocketClient", e);
+        }
+    }
+
     private Session clientSession; // Session with the client
     private volatile Session openAISession;  // Session with OpenAI Realtime API
-    private WebSocketClient openAIClient;
     
-    // Ping scheduler to keep connection alive
-    private final ScheduledExecutorService pingScheduler = Executors.newSingleThreadScheduledExecutor();
+    // Ping scheduler to keep connection alive — one per instance, shut down on close
+    private ScheduledExecutorService pingScheduler;
     private ScheduledFuture<?> pingTask;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private long connectTimeMs;
 
     @OnWebSocketConnect
     public void onConnect(Session session) {
         this.clientSession = session;
+        this.connectTimeMs = System.currentTimeMillis();
 
         // Retrieve AuthToken from client's request, e.g., from query parameters or headers
         String authToken = getAuthTokenFromSession(session);
 
         // Authenticate the client
         if (!authenticateClient(authToken)) {
+            PersistentLogger.warn(PersistentLogger.REALTIME, "Authentication failed - closing connection");
             try {
                 session.getRemote().sendString("Authentication failed. Closing connection.");
                 session.close(StatusCode.NORMAL, "Authentication failed.");
@@ -55,11 +70,13 @@ public class RealtimeWebSocket {
             return;
         }
 
+        PersistentLogger.info(PersistentLogger.REALTIME, "Connection opened");
+
         // Establish a WebSocket connection to OpenAI's Realtime API
         try {
             connectToOpenAIRealtimeAPI();
         } catch (Exception e) {
-            e.printStackTrace();
+            PersistentLogger.error(PersistentLogger.REALTIME, "Failed to connect to OpenAI Realtime API", e);
             try {
                 session.getRemote().sendString("Failed to connect to OpenAI Realtime API.");
                 session.close(StatusCode.NORMAL, "Failed to connect to OpenAI Realtime API.");
@@ -76,11 +93,10 @@ public class RealtimeWebSocket {
             try {
                 openAISession.getRemote().sendString(message);
             } catch (IOException e) {
-                System.err.println("Failed to send message to OpenAI Realtime API: " + e.getMessage());
-                e.printStackTrace();
+                PersistentLogger.error(PersistentLogger.REALTIME, "Failed to send message to OpenAI Realtime API: " + e.getMessage());
             }
         } else {
-            System.err.println("Connection to OpenAI Realtime API is not established.");
+            PersistentLogger.warn(PersistentLogger.REALTIME, "Connection to OpenAI Realtime API is not established");
         }
     }
 
@@ -107,134 +123,77 @@ public class RealtimeWebSocket {
                 // Send as text message (not binary)
                 openAISession.getRemote().sendString(jsonMessage);
             } catch (IOException e) {
-                System.err.println("Failed to send audio to OpenAI Realtime API: " + e.getMessage());
-                e.printStackTrace();
+                PersistentLogger.error(PersistentLogger.REALTIME, "Failed to send audio to OpenAI Realtime API: " + e.getMessage());
             }
         } else {
-            System.err.println("Connection to OpenAI Realtime API is not established.");
+            PersistentLogger.warn(PersistentLogger.REALTIME, "Connection to OpenAI Realtime API is not established");
         }
     }
 
     @OnWebSocketClose
     public void onClose(Session session, int statusCode, String reason) {
-        System.out.println("Client WebSocket closed: " + statusCode + " - " + reason);
+        long durationMs = System.currentTimeMillis() - connectTimeMs;
+        PersistentLogger.info(PersistentLogger.REALTIME, "Connection closed - Duration: " + durationMs + "ms, Status: " + statusCode + ", Reason: " + reason);
         
         // Stop ping keepalive
         stopPingKeepalive();
         
-        // Close the OpenAI session if the client disconnects
-        if (openAISession != null && openAISession.isOpen()) {
+        // Close the OpenAI session — use local var and null out field to prevent adapter's onClose from also trying
+        Session localSession = openAISession;
+        openAISession = null;
+        if (localSession != null && localSession.isOpen()) {
             try {
-                openAISession.close();
+                localSession.close();
             } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        
-        // Stop the WebSocket client
-        if (openAIClient != null) {
-            try {
-                openAIClient.stop();
-            } catch (Exception e) {
-                // Ignore stop errors
+                PersistentLogger.warn(PersistentLogger.REALTIME, "Error closing OpenAI session: " + e.getMessage());
             }
         }
     }
 
     @OnWebSocketError
     public void onError(Session session, Throwable error) {
-        System.err.println("RealtimeWebSocket error: " + error.getMessage());
-        error.printStackTrace();
+        PersistentLogger.error(PersistentLogger.REALTIME, "RealtimeWebSocket error", error);
     }
 
     private void connectToOpenAIRealtimeAPI() throws Exception {
-        System.out.println("Connecting to OpenAI Realtime API: " + OPENAI_REALTIME_API_URL);
-        
-        openAIClient = new WebSocketClient();
-        openAIClient.getPolicy().setMaxTextMessageSize(256 * 1024);
-        openAIClient.getPolicy().setIdleTimeout(300000); // 5 minute idle timeout
-        
-        // Start the WebSocket client with proper error handling
-        try {
-            openAIClient.start();
-            
-            // Wait briefly to ensure client is fully started
-            int maxWaitMs = 5000;
-            int waitedMs = 0;
-            while (!openAIClient.isStarted() && waitedMs < maxWaitMs) {
-                Thread.sleep(50);
-                waitedMs += 50;
-            }
-            
-            if (!openAIClient.isStarted()) {
-                throw new IOException("WebSocketClient failed to start within " + maxWaitMs + "ms");
-            }
-            
-            System.out.println("WebSocketClient started successfully after " + waitedMs + "ms");
-        } catch (Exception e) {
-            System.err.println("Failed to start WebSocketClient: " + e.getMessage());
-            e.printStackTrace();
-            // Clean up if start fails
-            try {
-                openAIClient.stop();
-            } catch (Exception stopError) {
-                // Ignore stop errors during cleanup
-            }
-            openAIClient = null;
-            throw new IOException("Failed to start WebSocketClient: " + e.getMessage(), e);
-        }
+        PersistentLogger.info(PersistentLogger.REALTIME, "Connecting to OpenAI Realtime API: " + OPENAI_REALTIME_API_URL);
 
         ClientUpgradeRequest request = new ClientUpgradeRequest();
         request.setHeader("Authorization", "Bearer " + OPENAI_API_KEY);
         request.setHeader("OpenAI-Beta", "realtime=v1");
 
-        System.out.println("Starting WebSocket connection to OpenAI...");
-        
-        // Connect and wait for completion using the Future
-        Future<Session> sessionFuture = openAIClient.connect(new OpenAIWebSocketAdapter(), new URI(OPENAI_REALTIME_API_URL), request);
+        // Connect using the shared client — no per-connection client creation
+        Future<Session> sessionFuture = SHARED_WS_CLIENT.connect(new OpenAIWebSocketAdapter(), new URI(OPENAI_REALTIME_API_URL), request);
         
         try {
             // Wait for the connection with timeout
             openAISession = sessionFuture.get(30, TimeUnit.SECONDS);
-            System.out.println("Successfully connected to OpenAI Realtime API");
+            PersistentLogger.info(PersistentLogger.REALTIME, "Connected to OpenAI Realtime API");
             
             // Start ping keepalive for client connection
             startPingKeepalive();
         } catch (java.util.concurrent.TimeoutException e) {
-            System.err.println("Timeout waiting for OpenAI Realtime API connection");
-            cleanupOpenAIClient();
+            PersistentLogger.error(PersistentLogger.REALTIME, "Timeout waiting for OpenAI Realtime API connection");
             throw new IOException("Connection to OpenAI Realtime API timed out after 30 seconds", e);
         } catch (java.util.concurrent.ExecutionException e) {
-            System.err.println("Failed to connect to OpenAI Realtime API: " + e.getCause().getMessage());
-            e.getCause().printStackTrace();
-            cleanupOpenAIClient();
+            PersistentLogger.error(PersistentLogger.REALTIME, "Failed to connect to OpenAI Realtime API", e.getCause());
             throw new IOException("Failed to connect to OpenAI Realtime API: " + e.getCause().getMessage(), e.getCause());
         }
     }
     
-    private void cleanupOpenAIClient() {
-        if (openAIClient != null) {
-            try {
-                openAIClient.stop();
-            } catch (Exception e) {
-                // Ignore stop errors during cleanup
-            }
-            openAIClient = null;
-        }
-    }
-    
     private void startPingKeepalive() {
+        pingScheduler = Executors.newSingleThreadScheduledExecutor();
         pingTask = pingScheduler.scheduleAtFixedRate(() -> {
             try {
                 if (clientSession != null && clientSession.isOpen()) {
                     clientSession.getRemote().sendPing(ByteBuffer.wrap("keepalive".getBytes()));
                 }
             } catch (Exception e) {
-                System.err.println("Failed to send ping: " + e.getMessage());
+                PersistentLogger.warn(PersistentLogger.REALTIME, "Failed to send ping: " + e.getMessage());
             }
         }, PING_INTERVAL_SECONDS, PING_INTERVAL_SECONDS, TimeUnit.SECONDS);
         
-        System.out.println("Started ping keepalive every " + PING_INTERVAL_SECONDS + " seconds");
+        PersistentLogger.info(PersistentLogger.REALTIME, "Started ping keepalive every " + PING_INTERVAL_SECONDS + " seconds");
     }
     
     private void stopPingKeepalive() {
@@ -242,12 +201,16 @@ public class RealtimeWebSocket {
             pingTask.cancel(false);
             pingTask = null;
         }
+        if (pingScheduler != null) {
+            pingScheduler.shutdownNow();
+            pingScheduler = null;
+        }
     }
 
     private class OpenAIWebSocketAdapter extends WebSocketAdapter {
         @Override
         public void onWebSocketConnect(Session session) {
-            System.out.println("OpenAI Realtime API WebSocket connected callback fired");
+            PersistentLogger.info(PersistentLogger.REALTIME, "OpenAI Realtime API WebSocket connected callback fired");
         }
 
         @Override
@@ -257,8 +220,7 @@ public class RealtimeWebSocket {
                 try {
                     clientSession.getRemote().sendString(message);
                 } catch (IOException e) {
-                    System.err.println("Failed to relay message to client: " + e.getMessage());
-                    e.printStackTrace();
+                    PersistentLogger.error(PersistentLogger.REALTIME, "Failed to relay message to client: " + e.getMessage());
                 }
             }
         }
@@ -271,43 +233,33 @@ public class RealtimeWebSocket {
                     ByteBuffer buffer = ByteBuffer.wrap(payload, offset, len);
                     clientSession.getRemote().sendBytes(buffer);
                 } catch (IOException e) {
-                    System.err.println("Failed to relay binary to client: " + e.getMessage());
-                    e.printStackTrace();
+                    PersistentLogger.error(PersistentLogger.REALTIME, "Failed to relay binary to client: " + e.getMessage());
                 }
             }
         }
 
         @Override
         public void onWebSocketClose(int statusCode, String reason) {
-            System.out.println("OpenAI Realtime API WebSocket closed: " + statusCode + " - " + reason);
+            PersistentLogger.info(PersistentLogger.REALTIME, "OpenAI Realtime API WebSocket closed: " + statusCode + " - " + reason);
             openAISession = null;
             
             // Stop ping keepalive
             stopPingKeepalive();
             
-            // Close client connection when OpenAI disconnects
+            // Notify client that OpenAI disconnected
             if (clientSession != null && clientSession.isOpen()) {
                 try {
                     clientSession.close(statusCode, "OpenAI connection closed: " + reason);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    PersistentLogger.warn(PersistentLogger.REALTIME, "Error closing client session: " + e.getMessage());
                 }
             }
-            
-            // Stop the WebSocket client
-            if (openAIClient != null) {
-                try {
-                    openAIClient.stop();
-                } catch (Exception e) {
-                    // Ignore stop errors
-                }
-            }
+            // Do NOT stop the shared WebSocketClient here — its lifecycle is managed statically
         }
 
         @Override
         public void onWebSocketError(Throwable cause) {
-            System.err.println("OpenAI Realtime API error: " + cause.getMessage());
-            cause.printStackTrace();
+            PersistentLogger.error(PersistentLogger.REALTIME, "OpenAI Realtime API error", cause);
         }
     }
 

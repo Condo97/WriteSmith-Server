@@ -1,10 +1,10 @@
 package com.writesmith.core.service.response;
 
 import com.writesmith.Constants;
-import com.writesmith.keys.Keys;
 
 public class GetIAPStuffResponse {
-    private final String sharedSecret = Keys.sharedAppSecret;
+    // SECURITY: No longer exposing sharedAppSecret to clients. Field retained for backward compatibility.
+    private final String sharedSecret = "";
     private final String[] productIDs = { Constants.WEEKLY_NAME_VAR1, Constants.YEARLY_NAME, Constants.MONTHLY_NAME_VAR1};
 
     public GetIAPStuffResponse() {

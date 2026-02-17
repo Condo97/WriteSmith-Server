@@ -11,6 +11,8 @@ import com.writesmith.apple.iapvalidation.networking.itunes.exception.AppleItune
 import com.writesmith.core.service.request.AuthRequest;
 import com.writesmith.core.service.response.BodyResponse;
 import com.writesmith.core.service.response.IsPremiumResponse;
+import com.writesmith.util.PersistentLogger;
+import com.writesmith.util.RateLimiter;
 import sqlcomponentizer.dbserializer.DBSerializerException;
 import sqlcomponentizer.dbserializer.DBSerializerPrimaryKeyMissingException;
 
@@ -27,6 +29,9 @@ import java.sql.SQLException;
 
 public class GetIsPremiumEndpoint {
 
+    // Rate limit: 30 getIsPremium calls per user per minute (tolerant of retry-heavy clients)
+    private static final RateLimiter rateLimiter = new RateLimiter(30, 60_000);
+
     public static BodyResponse getIsPremium(AuthRequest request) throws DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, DBSerializerPrimaryKeyMissingException, UnrecoverableKeyException, CertificateException, PreparedStatementMissingArgumentException, AppleItunesResponseException, IOException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException {
         // Get u_aT from authRequest
         User_AuthToken u_aT;
@@ -34,6 +39,12 @@ public class GetIsPremiumEndpoint {
             u_aT = User_AuthTokenDAOPooled.get(request.getAuthToken());
         } catch (DBObjectNotFoundFromQueryException e) {
             throw new AuthenticationException("Could not find authToken.");
+        }
+
+        // Rate limit per user to prevent Apple API flooding
+        if (!rateLimiter.tryAcquire(u_aT.getUserID())) {
+            PersistentLogger.warn(PersistentLogger.APPLE, "Rate limit exceeded for user " + u_aT.getUserID() + " on getIsPremium");
+            throw new IllegalArgumentException("Too many requests. Please try again shortly.");
         }
 
         // Get isPremium

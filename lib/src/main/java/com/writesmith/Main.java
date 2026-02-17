@@ -22,6 +22,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static spark.Spark.*;
 
@@ -57,6 +60,9 @@ public class Main {
 
         // Get isDebug from debug arg
         boolean isDebug = argIncluded(args, debugArg);
+
+        // Set production mode flag (used for environment validation of Apple transactions)
+        Constants.isProduction = !isDebug;
 
         PersistentLogger.info(PersistentLogger.SERVER, "Starting WriteSmith Server - threads=" + threads + ", connections=" + connections + ", debug=" + isDebug);
 
@@ -97,6 +103,9 @@ public class Main {
         path("/v1" + Constants.URIs.StructuredOutput.SUBDIRECTORY_PREFIX_LEGACY, () -> configureStructuredOutputEndpoints());
         // OpenRouter structured output endpoints (parallel to existing SO endpoints)
         path("/v1" + Constants.URIs.StructuredOutputOpenRouter.SUBDIRECTORY_PREFIX, () -> configureStructuredOutputOpenRouterEndpoints());
+
+        // Set up https v2 path
+        path("/v2", () -> configureV2Endpoints());
 
         // Set up https dev path
         path("/dev", () -> configureHttpEndpoints(true));
@@ -156,6 +165,21 @@ public class Main {
             res.status(404);
             return "<html><a href=\"" + Constants.SHARE_URL + "\">Download WriteSmith</a></html>";
         });
+
+        // Start periodic thread count monitor
+        ScheduledExecutorService threadMonitor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "ThreadMonitor");
+            t.setDaemon(true);
+            return t;
+        });
+        threadMonitor.scheduleAtFixedRate(() -> {
+            int threadCount = Thread.activeCount();
+            if (threadCount > 100) {
+                PersistentLogger.warn(PersistentLogger.SERVER, "[MONITOR] High thread count: " + threadCount);
+            } else {
+                PersistentLogger.info(PersistentLogger.SERVER, "[MONITOR] Thread count: " + threadCount);
+            }
+        }, 5, 5, TimeUnit.MINUTES);
     }
 
     private static void configureWebSockets() {
@@ -199,6 +223,17 @@ public class Main {
         post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_GOOGLE_QUERY, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) GenerateGoogleQuerySO.class));
         post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_SUGGESTIONS, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) GenerateSuggestionsSO.class));
         post(Constants.URIs.StructuredOutputOpenRouter.GENERATE_TITLE, (req, res) -> Server.structuredOutputOpenRouter(req, res, (Class<?>) GenerateTitleSO.class));
+    }
+
+    private static void configureV2Endpoints() {
+        // V2 transaction registration with JWS verification
+        post(Constants.URIs.REGISTER_TRANSACTION_V2_URI, Server::registerTransactionV2);
+
+        // V2 App Store Server Notifications webhook
+        post(Constants.URIs.APP_STORE_NOTIFICATION_URI, Server::handleAppStoreNotification);
+
+        // NOTE: V2 only serves its own endpoints. Clients should use /v1/* for all
+        // other endpoints and /v2/* only for the new v2-specific endpoints above.
     }
 
     private static void configureHttpEndpoints() {
