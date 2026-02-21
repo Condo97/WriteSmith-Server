@@ -845,6 +845,34 @@ public class Server {
 
 
     /***
+     * Get Subscription Offering
+     *
+     * Returns the active subscription offering configuration for A/B testing.
+     * Assigns the user to a test group if not already assigned.
+     *
+     * Request: {
+     *     authToken: String - Authentication token
+     * }
+     *
+     * Response: {
+     *     Body: {
+     *         offeringId: String,
+     *         testGroupId: String,
+     *         subscriptions: [...],
+     *         copy: {...}
+     *     }
+     * }
+     */
+    public static Object getSubscriptionOffering(Request request, Response response) throws IOException, DBSerializerPrimaryKeyMissingException, SQLException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, DBSerializerException, InstantiationException, DBObjectNotFoundFromQueryException {
+        AuthRequest authRequest = new ObjectMapper().readValue(request.body(), AuthRequest.class);
+
+        BodyResponse bodyResponse = GetSubscriptionOfferingEndpoint.getSubscriptionOffering(authRequest);
+
+        return new ObjectMapper().writeValueAsString(bodyResponse);
+    }
+
+
+    /***
      * Get Remaining Chats
      *
      * Gets the amount of chats remaining in the day for the user for their tier.

@@ -262,6 +262,7 @@ public class Main {
         post(Constants.URIs.SUBMIT_FEEDBACK, Server::submitFeedback);
         post(Constants.URIs.TRANSCRIBE_SPEECH, Server::transcribeSpeech);
         post(Constants.URIs.VALIDATE_AUTHTOKEN, Server::validateAuthToken);
+        post(Constants.URIs.GET_SUBSCRIPTION_OFFERING_URI, Server::getSubscriptionOffering);
 
         // Other POST Functions that are different lol
         post(Constants.URIs.GENERATE_SPEECH, GenerateSpeechEndpoint::generateSpeech);

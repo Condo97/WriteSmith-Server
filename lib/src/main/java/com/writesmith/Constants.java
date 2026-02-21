@@ -132,6 +132,7 @@ public final class Constants {
         public static final String TRANSCRIBE_SPEECH = "/transcribeSpeech";
         public static final String SUBMIT_FEEDBACK = "/submitFeedback";
         public static final String VALIDATE_AUTHTOKEN = "/validateAuthToken";
+        public static final String GET_SUBSCRIPTION_OFFERING_URI = "/getSubscriptionOffering";
 
         /* V2 URIs */
         public static final String REGISTER_TRANSACTION_V2_URI = "/registerTransaction";
