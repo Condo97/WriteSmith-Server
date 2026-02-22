@@ -1,5 +1,6 @@
 package com.writesmith;
 
+import appletransactionclient.exception.AppStoreErrorResponseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oaigptconnector.model.exception.OpenAIGPTException;
@@ -147,6 +148,13 @@ public class Main {
             error.printStackTrace();
 
             res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.ILLEGAL_ARGUMENT));
+        });
+
+        exception(AppStoreErrorResponseException.class, (error, req, res) -> {
+            PersistentLogger.warn(PersistentLogger.APPLE, "AppStoreErrorResponseException: " + error.getMessage());
+            error.printStackTrace();
+
+            res.body(Server.getSimpleExceptionHandlerResponseStatusJSON(ResponseStatus.INVALID_APPLE_TRANSACTION_ERROR));
         });
 
         exception(Exception.class, (error, req, res) -> {

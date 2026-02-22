@@ -576,7 +576,7 @@ public class Server {
         return new ObjectMapper().writeValueAsString(bodyResponse);
     }
 
-    public static Object registerTransactionV2(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, AppStoreErrorResponseException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException {
+    public static Object registerTransactionV2(Request request, Response response) throws IOException, DBSerializerException, SQLException, DBObjectNotFoundFromQueryException, InterruptedException, InvocationTargetException, IllegalAccessException, NoSuchMethodException, InstantiationException, UnrecoverableKeyException, CertificateException, URISyntaxException, KeyStoreException, NoSuchAlgorithmException, InvalidKeySpecException, DBSerializerPrimaryKeyMissingException {
         RegisterTransactionV2Request rtr = new ObjectMapper().readValue(request.body(), RegisterTransactionV2Request.class);
 
         BodyResponse bodyResponse = RegisterTransactionV2Endpoint.registerTransaction(rtr);
